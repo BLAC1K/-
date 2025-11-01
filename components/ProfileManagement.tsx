@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { User } from '../types';
+import { User, Role } from '../types';
 import Avatar from './Avatar';
 import LockIcon from './icons/LockIcon';
 
@@ -154,39 +154,41 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
                 </div>
             </form>
 
-            <div className="pt-6 mt-6 border-t">
-                <h4 className="text-xl font-semibold text-brand-dark mb-4">تغيير كلمة المرور</h4>
-                <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                    <div className="relative">
-                        <label className="block text-sm font-medium text-gray-700">كلمة المرور الحالية</label>
-                        <LockIcon className="w-5 h-5 text-gray-400 absolute right-3 top-9" />
-                        <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full mt-1 pr-10 pl-3 py-2 border border-gray-300 rounded-md" required />
-                    </div>
-                    <div className="relative">
-                        <label className="block text-sm font-medium text-gray-700">كلمة المرور الجديدة</label>
-                        <LockIcon className="w-5 h-5 text-gray-400 absolute right-3 top-9" />
-                        <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full mt-1 pr-10 pl-3 py-2 border border-gray-300 rounded-md" required />
-                    </div>
-                    <div className="relative">
-                        <label className="block text-sm font-medium text-gray-700">تأكيد كلمة المرور الجديدة</label>
-                        <LockIcon className="w-5 h-5 text-gray-400 absolute right-3 top-9" />
-                        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full mt-1 pr-10 pl-3 py-2 border border-gray-300 rounded-md" required />
-                    </div>
-                    
-                    {passwordError && <p className="text-red-600 text-sm text-center">{passwordError}</p>}
-                    {passwordSuccess && <p className="text-green-600 text-sm text-center">{passwordSuccess}</p>}
-                    
-                    <div className="pt-2 flex justify-end">
-                         <button
-                            type="submit"
-                            disabled={isSavingPassword}
-                            className="px-6 py-2 text-sm font-medium text-white bg-brand-light border border-transparent rounded-md shadow-sm hover:bg-brand-dark disabled:bg-opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            {isSavingPassword ? 'جارِ الحفظ...' : 'تغيير كلمة المرور'}
-                        </button>
-                    </div>
-                </form>
-            </div>
+            {user.role === Role.MANAGER && (
+                <div className="pt-6 mt-6 border-t">
+                    <h4 className="text-xl font-semibold text-brand-dark mb-4">تغيير كلمة المرور</h4>
+                    <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                        <div className="relative">
+                            <label className="block text-sm font-medium text-gray-700">كلمة المرور الحالية</label>
+                            <LockIcon className="w-5 h-5 text-gray-400 absolute right-3 top-9" />
+                            <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full mt-1 pr-10 pl-3 py-2 border border-gray-300 rounded-md" required />
+                        </div>
+                        <div className="relative">
+                            <label className="block text-sm font-medium text-gray-700">كلمة المرور الجديدة</label>
+                            <LockIcon className="w-5 h-5 text-gray-400 absolute right-3 top-9" />
+                            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full mt-1 pr-10 pl-3 py-2 border border-gray-300 rounded-md" required />
+                        </div>
+                        <div className="relative">
+                            <label className="block text-sm font-medium text-gray-700">تأكيد كلمة المرور الجديدة</label>
+                            <LockIcon className="w-5 h-5 text-gray-400 absolute right-3 top-9" />
+                            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full mt-1 pr-10 pl-3 py-2 border border-gray-300 rounded-md" required />
+                        </div>
+                        
+                        {passwordError && <p className="text-red-600 text-sm text-center">{passwordError}</p>}
+                        {passwordSuccess && <p className="text-green-600 text-sm text-center">{passwordSuccess}</p>}
+                        
+                        <div className="pt-2 flex justify-end">
+                             <button
+                                type="submit"
+                                disabled={isSavingPassword}
+                                className="px-6 py-2 text-sm font-medium text-white bg-brand-light border border-transparent rounded-md shadow-sm hover:bg-brand-dark disabled:bg-opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {isSavingPassword ? 'جارِ الحفظ...' : 'تغيير كلمة المرور'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
         </div>
     );
 };
