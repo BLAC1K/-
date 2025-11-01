@@ -1,0 +1,409 @@
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
+import { Report, Task, Role, User } from '../types';
+import PlusIcon from './icons/PlusIcon';
+import TrashIcon from './icons/TrashIcon';
+import PaperclipIcon from './icons/PaperclipIcon';
+import LogoutIcon from './icons/LogoutIcon';
+import ReportView from './ReportView';
+import NewReportIcon from './icons/NewReportIcon';
+import InboxIcon from './icons/InboxIcon';
+import OutboxIcon from './icons/OutboxIcon';
+import Logo from './icons/Logo';
+import MegaphoneIcon from './icons/MegaphoneIcon';
+import Avatar from './Avatar';
+import ProfileManagement from './ProfileManagement';
+import UserCircleIcon from './icons/UserCircleIcon';
+import ReportDetailModal from './ReportDetailModal';
+import Toast from './Toast';
+import MenuIcon from './icons/MenuIcon';
+import XMarkIcon from './icons/XMarkIcon';
+import CheckCircleIcon from './icons/CheckCircleIcon';
+import JobTitleIcon from './icons/JobTitleIcon';
+import BadgeNumberIcon from './icons/BadgeNumberIcon';
+import HashtagIcon from './icons/HashtagIcon';
+
+
+interface ReportFormProps {
+    user: User;
+    onReportSubmitted: () => void;
+    nextSequenceNumber: number;
+}
+
+const ReportForm: React.FC<ReportFormProps> = ({ user, onReportSubmitted, nextSequenceNumber }) => {
+    const { addReport } = useData();
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [tasks, setTasks] = useState<Task[]>([{ id: 'task-1', text: '' }]);
+    const [accomplished, setAccomplished] = useState('');
+    const [notAccomplished, setNotAccomplished] = useState('');
+    const [attachments, setAttachments] = useState<File[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleAddTask = () => {
+        setTasks([...tasks, { id: `task-${Date.now()}`, text: '' }]);
+    };
+
+    const handleTaskChange = (index: number, value: string) => {
+        const newTasks = [...tasks];
+        newTasks[index].text = value;
+        setTasks(newTasks);
+    };
+
+    const handleRemoveTask = (index: number) => {
+        const newTasks = tasks.filter((_, i) => i !== index);
+        setTasks(newTasks);
+    };
+    
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setAttachments(Array.from(e.target.files));
+        }
+    };
+
+    const fileToDataURL = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    };
+    
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!user.signatureImageUrl) {
+            alert("لا يمكن إرسال التقرير. لا يوجد توقيع مسجل لك. الرجاء مراجعة المسؤول.");
+            return;
+        }
+        
+        setIsSubmitting(true);
+
+        const attachmentContents = await Promise.all(
+            attachments.map(file => fileToDataURL(file))
+        );
+
+        const report: Omit<Report, 'id' | 'sequenceNumber'> = {
+            userId: user.id,
+            date,
+            day: new Date(date).toLocaleDateString('ar-EG', { weekday: 'long' }),
+            tasks: tasks.filter(t => t.text.trim() !== ''),
+            accomplished,
+            notAccomplished,
+            attachments: attachments.map((f, i) => ({ 
+                name: f.name, 
+                type: f.type, 
+                size: f.size,
+                content: attachmentContents[i]
+            })),
+            signatureTimestamp: new Date().toISOString(),
+            signatureImage: user.signatureImageUrl,
+        };
+        addReport(report);
+        setTimeout(() => {
+            setIsSubmitting(false);
+            onReportSubmitted();
+        }, 1000);
+    };
+
+
+    return (
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-white rounded-lg shadow-md">
+            <h3 className="text-2xl font-semibold text-brand-dark border-b pb-3">تقرير المهام اليومي</h3>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                 <div className="md:col-span-2">
+                    <div className="flex items-center space-x-4 space-x-reverse">
+                        <Avatar src={user.profilePictureUrl} name={user.fullName} size={56} />
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">الاسم الثلاثي</label>
+                            <input type="text" readOnly value={user.fullName} className="block w-full mt-1 bg-gray-100 border-gray-300 rounded-md shadow-sm sm:text-sm" />
+                        </div>
+                    </div>
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium text-gray-700">الصفة الوظيفية</label>
+                    <div className="relative mt-1">
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <JobTitleIcon className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <input type="text" readOnly value={user.jobTitle} className="w-full pr-10 bg-gray-100 border-gray-300 rounded-md shadow-sm sm:text-sm" />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">رقم الباج</label>
+                     <div className="relative mt-1">
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <BadgeNumberIcon className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <input type="text" readOnly value={user.badgeNumber} className="w-full pr-10 bg-gray-100 border-gray-300 rounded-md shadow-sm sm:text-sm" />
+                    </div>
+                </div>
+                <div>
+                    <label htmlFor="date" className="block text-sm font-medium text-gray-700">التاريخ</label>
+                    <input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm" />
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium text-gray-700">رقم التقرير</label>
+                     <div className="relative mt-1">
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <HashtagIcon className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <input type="text" readOnly value={nextSequenceNumber} className="w-full pr-10 bg-gray-100 border-gray-300 rounded-md shadow-sm sm:text-sm" />
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700">المهام</label>
+                {tasks.map((task, index) => (
+                    <div key={task.id} className="flex items-center mt-2 space-x-2 space-x-reverse">
+                        <input type="text" placeholder={`المهمة ${index + 1}`} value={task.text} onChange={(e) => handleTaskChange(index, e.target.value)} className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm" required />
+                        {tasks.length > 1 && <button type="button" onClick={() => handleRemoveTask(index)} className="p-2 text-red-600 rounded-md hover:bg-red-100"><TrashIcon className="w-5 h-5" /></button>}
+                    </div>
+                ))}
+                 <button type="button" onClick={handleAddTask} className="flex items-center mt-2 text-sm font-medium text-brand-light hover:text-brand-dark">
+                    <PlusIcon className="w-5 h-5 ml-1" />
+                    إضافة مهمة أخرى
+                </button>
+            </div>
+            
+            <div>
+                 <label htmlFor="accomplished" className="block text-sm font-medium text-gray-700">ما تم إنجازه</label>
+                 <textarea id="accomplished" value={accomplished} onChange={e => setAccomplished(e.target.value)} rows={3} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm"></textarea>
+            </div>
+            
+            <div>
+                 <label htmlFor="notAccomplished" className="block text-sm font-medium text-gray-700">ما لم يتم إنجازه</label>
+                 <textarea id="notAccomplished" value={notAccomplished} onChange={e => setNotAccomplished(e.target.value)} rows={3} className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm"></textarea>
+            </div>
+
+            <div>
+                 <label className="block text-sm font-medium text-gray-700">المرفقات</label>
+                 <div className="flex items-center justify-center w-full mt-1">
+                    <label className="flex flex-col w-full h-32 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:bg-gray-100 hover:border-gray-400">
+                        <div className="flex flex-col items-center justify-center pt-7">
+                            <PaperclipIcon className="w-8 h-8 text-gray-400"/>
+                            <p className="pt-1 text-sm tracking-wider text-gray-400 group-hover:text-gray-600">اختر ملفات (صور, PDF, ...)</p>
+                        </div>
+                        <input type="file" multiple onChange={handleFileChange} className="opacity-0" />
+                    </label>
+                 </div>
+                 {attachments.length > 0 && (
+                    <div className="mt-2 text-sm text-gray-500">
+                        <p>الملفات المختارة:</p>
+                        <ul className="list-disc pr-5">{attachments.map((file, i) => <li key={i}>{file.name}</li>)}</ul>
+                    </div>
+                 )}
+            </div>
+
+            <div className="pt-4 border-t">
+                 <button type="submit" className="w-full px-4 py-2 text-sm font-medium text-white bg-brand-light border border-transparent rounded-md shadow-sm hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light disabled:bg-opacity-70 transition-colors" disabled={isSubmitting}>
+                    {isSubmitting ? 'جارِ الإرسال...' : 'إرسال التقرير'}
+                 </button>
+            </div>
+
+        </form>
+    );
+};
+
+const EmployeeDashboard: React.FC = () => {
+    const { currentUser, logout } = useAuth();
+    const { reports, announcements, markAnnouncementAsRead } = useData();
+    const [activeTab, setActiveTab] = useState('new');
+    const [viewingReport, setViewingReport] = useState<Report | null>(null);
+    const [notification, setNotification] = useState<string | null>(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    
+    if (!currentUser) return null;
+
+    const myReports = useMemo(() => reports.filter(r => r.userId === currentUser.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [reports, currentUser.id]);
+    const inboxReports = useMemo(() => myReports.filter(r => r.managerComment), [myReports]);
+    // FIX: Corrected the dependency array for useMemo from `inboxes` to `inboxReports`.
+    const unreadCommentsCount = useMemo(() => inboxReports.filter(r => !r.isCommentReadByEmployee).length, [inboxReports]);
+    const unreadAnnouncementsCount = useMemo(() => announcements.filter(a => !a.readBy.some(r => r.userId === currentUser.id)).length, [announcements, currentUser.id]);
+    const nextSequenceNumber = myReports.length + 1;
+
+    // Real-time notification listener
+    useEffect(() => {
+        const handleStorageChange = (event: StorageEvent) => {
+            if (event.key === 'comment_notification' && event.newValue && currentUser) {
+                try {
+                    const payload = JSON.parse(event.newValue);
+                    if (payload.userId === currentUser.id) {
+                        setNotification(payload.message || 'لديك تعليق جديد من المسؤول على أحد تقاريرك.');
+                    }
+                } catch (e) {
+                    console.error("Failed to parse notification from storage", e);
+                }
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, [currentUser]);
+    
+    const pageTitles: { [key: string]: string } = {
+        new: 'تقرير جديد',
+        submitted: 'التقارير الصادرة',
+        inbox: 'البريد الوارد',
+        announcements: 'التوجيهات والتعاميم',
+        profile: 'الملف الشخصي',
+    };
+
+    const renderContent = () => {
+        switch(activeTab) {
+            case 'submitted':
+                return (
+                    <div className="space-y-4">
+                        {myReports.length > 0 ? myReports.map(report => (
+                            <ReportView key={report.id} report={report} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setViewingReport(report)} />
+                        )) : <p className="text-gray-500">لم تقم بإرسال أي تقارير بعد.</p>}
+                    </div>
+                );
+            case 'inbox':
+                 return (
+                    <div className="space-y-4">
+                        {inboxReports.length > 0 ? inboxReports.map(report => (
+                            <ReportView key={report.id} report={report} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setViewingReport(report)} />
+                        )) : <p className="text-gray-500">لا توجد لديك أي رسائل في البريد الوارد.</p>}
+                    </div>
+                );
+            case 'announcements':
+                return (
+                    <div className="space-y-4">
+                        {announcements.length > 0 ? announcements.map(a => {
+                            const readEntry = a.readBy.find(r => r.userId === currentUser.id);
+
+                            return (
+                                <div key={a.id} className="p-4 bg-blue-50 border-r-4 border-brand-light rounded-md shadow-sm">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="text-sm text-gray-600">{new Date(a.date).toLocaleString('ar-EG')}</p>
+                                            <p className="mt-2 text-gray-800">{a.content}</p>
+                                        </div>
+                                        {!readEntry && (
+                                            <button
+                                                onClick={() => markAnnouncementAsRead(a.id, currentUser.id)}
+                                                className="px-3 py-1 text-sm font-semibold text-brand-light bg-white border border-brand-light rounded-full hover:bg-brand-light/10 transition-colors shrink-0"
+                                            >
+                                                تم الاطلاع
+                                            </button>
+                                        )}
+                                    </div>
+                                    {readEntry && (
+                                        <div className="mt-3 pt-2 border-t border-brand-light/20 text-right">
+                                            <p className="flex items-center justify-end text-xs text-green-700 font-medium">
+                                                <CheckCircleIcon className="w-4 h-4 ml-1" />
+                                                <span>تم الاطلاع عليه في: {new Date(readEntry.readAt).toLocaleString('ar-EG')}</span>
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )
+                        }) : <p className="text-gray-500">لا توجد توجيهات حالياً.</p>}
+                    </div>
+                );
+            case 'profile':
+                return <ProfileManagement user={currentUser} />;
+            default: // 'new' tab
+                return <ReportForm user={currentUser} onReportSubmitted={() => setActiveTab('submitted')} nextSequenceNumber={nextSequenceNumber} />;
+        }
+    };
+
+    const NavItem: React.FC<{tabName: string; label: string; icon: React.ReactNode; count?: number}> = ({tabName, label, icon, count}) => {
+        const isActive = activeTab === tabName;
+        return (
+             <button
+                onClick={() => {
+                    setActiveTab(tabName);
+                    if (window.innerWidth < 768) {
+                        setIsSidebarOpen(false);
+                    }
+                }}
+                className={`flex items-center w-full px-3 py-3 text-md transition-colors rounded-lg ${isActive ? 'bg-brand-light/10 text-brand-dark font-bold' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+                {icon}
+                <span className="mr-3">{label}</span>
+                {count && count > 0 ? <span className="flex items-center justify-center w-5 h-5 mr-auto text-xs font-bold text-white bg-brand-accent-red rounded-full">{count}</span> : null}
+            </button>
+        )
+    }
+
+    const SidebarContent = () => (
+        <>
+            <div className="flex items-center justify-center p-4 border-b">
+                <Logo className="w-10 h-10" />
+                <h1 className="mr-2 text-xl font-bold text-brand-dark">المهام اليومية</h1>
+            </div>
+            <div className="flex flex-col items-center p-4 mt-4 space-y-2 border-b">
+                <Avatar src={currentUser.profilePictureUrl} name={currentUser.fullName} size={64} />
+                <span className="font-medium text-gray-700 text-center">مرحباً, {currentUser.fullName.split(' ')[0]}</span>
+            </div>
+            <nav className="flex-grow px-2 py-4 space-y-1">
+                <NavItem tabName='new' label='تقرير جديد' icon={<NewReportIcon className="w-6 h-6"/>} />
+                <NavItem tabName='submitted' label='صادر' icon={<OutboxIcon className="w-6 h-6"/>} />
+                <NavItem tabName='inbox' label='الوارد' icon={<InboxIcon className="w-6 h-6"/>} count={unreadCommentsCount}/>
+                <NavItem tabName='announcements' label='التوجيهات' icon={<MegaphoneIcon className="w-6 h-6"/>} count={unreadAnnouncementsCount}/>
+                <NavItem tabName='profile' label='الملف الشخصي' icon={<UserCircleIcon className="w-6 h-6"/>} />
+                <button
+                    onClick={logout}
+                    className="flex items-center w-full px-3 py-3 text-md transition-colors rounded-lg text-gray-600 hover:bg-gray-100"
+                >
+                    <LogoutIcon className="w-6 h-6"/>
+                    <span className="mr-3">تسجيل الخروج</span>
+                </button>
+            </nav>
+        </>
+    );
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+             {isSidebarOpen && (
+                <div 
+                    className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                ></div>
+            )}
+            <aside className={`fixed inset-y-0 right-0 z-40 flex flex-col w-64 bg-white shadow-lg transform ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0`}>
+                <SidebarContent />
+            </aside>
+
+            <div className="flex flex-col flex-1 md:mr-64">
+                <header className="flex items-center justify-between p-4 bg-white shadow-md md:hidden">
+                    <h1 className="text-xl font-bold text-brand-dark">{pageTitles[activeTab]}</h1>
+                    <button onClick={() => setIsSidebarOpen(p => !p)}>
+                        {isSidebarOpen ? <XMarkIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
+                    </button>
+                </header>
+
+                <main className="container px-4 py-8 mx-auto">
+                     <div className="hidden md:block mb-6">
+                        <h1 className="text-3xl font-bold text-brand-dark">{pageTitles[activeTab]}</h1>
+                    </div>
+                    {renderContent()}
+                </main>
+            </div>
+
+            {notification && (
+                <Toast
+                    message={notification}
+                    onClose={() => setNotification(null)}
+                    onClick={() => {
+                        setActiveTab('inbox');
+                        setNotification(null);
+                    }}
+                />
+            )}
+            {viewingReport && (
+                <ReportDetailModal
+                    report={viewingReport}
+                    user={currentUser}
+                    viewerRole={Role.EMPLOYEE}
+                    onClose={() => setViewingReport(null)}
+                />
+            )}
+        </div>
+    );
+};
+
+export default EmployeeDashboard;

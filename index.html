@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>المهام اليومية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        font-family: 'Cairo', sans-serif;
+      }
+      .animate-blob {
+        animation: blob 7s infinite;
+      }
+      @keyframes blob {
+        0% {
+          transform: translate(0px, 0px) scale(1);
+        }
+        33% {
+          transform: translate(30px, -50px) scale(1.1);
+        }
+        66% {
+          transform: translate(-20px, 20px) scale(0.9);
+        }
+        100% {
+          transform: translate(0px, 0px) scale(1);
+        }
+      }
+      .animation-delay-2000 {
+        animation-delay: 2s;
+      }
+      .animation-delay-4000 {
+        animation-delay: 4s;
+      }
+      .animate-fade-in-right {
+        animation: fade-in-right 0.5s ease-out forwards;
+      }
+      @keyframes fade-in-right {
+        0% {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #printable-report, #printable-report * {
+          visibility: visible;
+        }
+        #printable-report {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          margin: 0;
+          padding: 1.5cm;
+          box-shadow: none !important;
+          border: none !important;
+          font-size: 14px;
+        }
+        .no-print, .no-print * {
+          display: none !important;
+        }
+        @page {
+          size: A4;
+          margin: 0;
+        }
+        body {
+          background-color: #fff;
+        }
+        img {
+          max-width: 100% !important;
+        }
+        .print-page-break {
+            page-break-before: always !important;
+        }
+        #printable-report .report-detail-grid {
+            display: block !important;
+        }
+        #printable-report .report-detail-grid > div {
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        #printable-report .report-detail-grid > div:last-child {
+            border-bottom: none;
+        }
+        #printable-report .attachments-grid-print {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        #printable-report dt {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+        #printable-report dd {
+            color: #111827;
+        }
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'brand-dark': '#2B576E',
+              'brand-light': '#42A5B3',
+              'brand-accent-red': '#E54B22',
+              'brand-accent-yellow': '#FBC02D',
+              'brand-accent-green': '#7CB342',
+            },
+          },
+        },
+      }
+    </script>
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-signature-canvas": "https://aistudiocdn.com/react-signature-canvas@^1.0.6",
+    "@types/react-signature-canvas": "https://aistudiocdn.com/@types/react-signature-canvas@^1.0.5/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

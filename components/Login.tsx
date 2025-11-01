@@ -1,0 +1,70 @@
+import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import LockIcon from './icons/LockIcon';
+import Logo from './icons/Logo';
+import PhoneIcon from './icons/PhoneIcon';
+
+
+const Login: React.FC = () => {
+    const { login, loading } = useAuth();
+
+    const [phone, setPhone] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    
+    const handleLoginSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        if (!phone || !password) {
+            setError('الرجاء إدخال رقم الهاتف وكلمة المرور.');
+            return;
+        }
+        const success = await login(phone, password);
+        if (!success) {
+            setError('رقم الهاتف أو كلمة المرور غير صحيحة.');
+        }
+    };
+    
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-brand-dark to-[#3a7c93] relative overflow-hidden">
+            <div className="absolute top-0 -left-4 w-72 h-72 bg-brand-light rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob"></div>
+            <div className="absolute top-0 -right-4 w-72 h-72 bg-brand-accent-yellow rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob animation-delay-2000"></div>
+            <div className="absolute -bottom-8 left-20 w-72 h-72 bg-brand-accent-red rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob animation-delay-4000"></div>
+
+            <div className="w-full max-w-md p-8 space-y-6 bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl z-10">
+                <div className="flex flex-col items-center text-center">
+                    <Logo className="w-32 h-32 mb-4"/>
+                    <h2 className="text-3xl font-bold text-white">المهام اليومية</h2>
+                    <p className="mt-2 text-sm text-gray-200">نظام تسجيل التقارير</p>
+                    <p className="mt-4 text-xs text-gray-200 bg-white/10 p-2 rounded-md">
+                        للمنتسبين الجدد، يتم إنشاء الحساب من قبل المسؤول.
+                    </p>
+                </div>
+                <form className="mt-8 space-y-6" onSubmit={handleLoginSubmit}>
+                    <div className="space-y-4 rounded-md">
+                        <div className="relative">
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <PhoneIcon className="w-5 h-5 text-gray-300" />
+                            </div>
+                            <input id="phone" name="phone" type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-3 py-3 text-white placeholder-gray-300 bg-white/10 border border-white/30 rounded-md appearance-none pr-10 focus:outline-none focus:ring-brand-accent-yellow focus:border-brand-accent-yellow sm:text-sm" placeholder="رقم الهاتف" />
+                        </div>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <LockIcon className="w-5 h-5 text-gray-300" />
+                            </div>
+                            <input id="password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-3 text-white placeholder-gray-300 bg-white/10 border border-white/30 rounded-md appearance-none pr-10 focus:outline-none focus:ring-brand-accent-yellow focus:border-brand-accent-yellow sm:text-sm" placeholder="كلمة المرور" />
+                        </div>
+                    </div>
+                    {error && <p className="text-sm text-brand-accent-yellow text-center font-semibold">{error}</p>}
+                    <div>
+                        <button type="submit" disabled={loading} className="relative flex justify-center w-full px-4 py-3 text-sm font-bold text-brand-dark bg-brand-accent-yellow border border-transparent rounded-md group hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-brand-accent-yellow disabled:bg-opacity-70 transition-colors">
+                            {loading ? 'جارِ التسجيل...' : 'دخول'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+export default Login;
