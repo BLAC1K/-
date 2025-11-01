@@ -1,0 +1,21 @@
+{
+  "name": "المهام اليومية",
+  "short_name": "مهامي",
+  "description": "تطبيق لتسجيل وإدارة مهام المنتسبين اليومية.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2B576E",
+  "theme_color": "#2B576E",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
