@@ -68,6 +68,8 @@ interface DataContextType {
     updateUser: (user: User) => void;
     deleteUser: (userId: string) => void;
     addAnnouncement: (content: string) => void;
+    updateAnnouncement: (announcementId: string, content: string) => void;
+    deleteAnnouncement: (announcementId: string) => void;
     markAnnouncementAsRead: (announcementId: string, userId: string) => void;
 }
 
@@ -149,6 +151,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setAnnouncements(prev => [newAnnouncement, ...prev]);
     };
+
+    const updateAnnouncement = (announcementId: string, content: string) => {
+        setAnnouncements(prev => prev.map(a => 
+            a.id === announcementId 
+            ? { ...a, content, date: new Date().toISOString() } 
+            : a
+        ));
+    };
+    
+    const deleteAnnouncement = (announcementId: string) => {
+        setAnnouncements(prev => prev.filter(a => a.id !== announcementId));
+    };
     
     const markAnnouncementAsRead = (announcementId: string, userId: string) => {
         setAnnouncements(prev => prev.map(a => {
@@ -172,6 +186,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         updateUser,
         deleteUser,
         addAnnouncement,
+        updateAnnouncement,
+        deleteAnnouncement,
         markAnnouncementAsRead
     }), [users, reports, announcements, getUserById]);
 

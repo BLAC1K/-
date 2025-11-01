@@ -5,6 +5,8 @@ import Avatar from './Avatar';
 import XCircleIcon from './icons/XCircleIcon';
 import UsersIcon from './icons/UsersIcon';
 import CheckCircleIcon from './icons/CheckCircleIcon';
+import EditIcon from './icons/EditIcon';
+import TrashIcon from './icons/TrashIcon';
 
 const DetailsModal: React.FC<{
     announcement: Announcement;
@@ -90,12 +92,46 @@ const DetailsModal: React.FC<{
     );
 };
 
+const EditAnnouncementModal: React.FC<{
+    announcement: Announcement;
+    onClose: () => void;
+    onSave: (announcementId: string, content: string) => void;
+}> = ({ announcement, onClose, onSave }) => {
+    const [content, setContent] = useState(announcement.content);
+
+    const handleSave = () => {
+        if (content.trim()) {
+            onSave(announcement.id, content);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" onClick={onClose}>
+            <div className="w-full max-w-lg p-6 bg-white rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
+                <h2 className="text-xl font-bold text-brand-dark mb-4">تعديل التوجيه</h2>
+                <textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    rows={5}
+                    className="block w-full p-2 border-gray-300 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm"
+                />
+                <div className="flex justify-end pt-4 mt-4 border-t space-x-2 space-x-reverse">
+                    <button onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">إلغاء</button>
+                    <button onClick={handleSave} className="px-4 py-2 text-white bg-brand-light rounded-md hover:bg-brand-dark">حفظ التعديلات</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const AnnouncementCenter: React.FC = () => {
-    const { announcements, users, addAnnouncement } = useData();
+    const { announcements, users, addAnnouncement, updateAnnouncement, deleteAnnouncement } = useData();
     const [newAnnouncement, setNewAnnouncement] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+    const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
+    const [deletingAnnouncement, setDeletingAnnouncement] = useState<Announcement | null>(null);
     
     const employees = useMemo(() => users.filter(u => u.role === Role.EMPLOYEE), [users]);
     const totalEmployees = employees.length;
@@ -109,6 +145,19 @@ const AnnouncementCenter: React.FC = () => {
             setTimeout(() => setIsSubmitting(false), 500);
         }
     };
+    
+    const handleUpdate = (announcementId: string, content: string) => {
+        updateAnnouncement(announcementId, content);
+        setEditingAnnouncement(null);
+    };
+
+    const handleDelete = () => {
+        if (deletingAnnouncement) {
+            deleteAnnouncement(deletingAnnouncement.id);
+            setDeletingAnnouncement(null);
+        }
+    };
+
 
     return (
         <>
@@ -178,12 +227,28 @@ const AnnouncementCenter: React.FC = () => {
                                             <p className="text-xs text-gray-500 mt-1">{readersSummary}</p>
                                         )}
                                      </div>
-                                     <button 
-                                        onClick={() => setSelectedAnnouncement(a)}
-                                        className="px-3 py-1 text-sm font-semibold text-brand-light bg-white border border-brand-light rounded-full hover:bg-brand-light/10 transition-colors"
-                                     >
-                                         عرض التفاصيل
-                                     </button>
+                                    <div className="flex items-center space-x-2 space-x-reverse">
+                                        <button 
+                                            onClick={() => setSelectedAnnouncement(a)}
+                                            className="px-3 py-1 text-sm font-semibold text-brand-light bg-white border border-brand-light rounded-full hover:bg-brand-light/10 transition-colors"
+                                        >
+                                            عرض التفاصيل
+                                        </button>
+                                        <button
+                                            onClick={() => setEditingAnnouncement(a)}
+                                            className="p-2 text-gray-500 rounded-full hover:bg-gray-200 hover:text-brand-dark transition-colors"
+                                            title="تعديل التوجيه"
+                                        >
+                                            <EditIcon className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={() => setDeletingAnnouncement(a)}
+                                            className="p-2 text-gray-500 rounded-full hover:bg-red-100 hover:text-red-600 transition-colors"
+                                            title="حذف التوجيه"
+                                        >
+                                            <TrashIcon className="w-5 h-5" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )
@@ -200,6 +265,25 @@ const AnnouncementCenter: React.FC = () => {
                 users={users}
                 onClose={() => setSelectedAnnouncement(null)}
             />
+        )}
+        {editingAnnouncement && (
+            <EditAnnouncementModal
+                announcement={editingAnnouncement}
+                onClose={() => setEditingAnnouncement(null)}
+                onSave={handleUpdate}
+            />
+        )}
+        {deletingAnnouncement && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" onClick={() => setDeletingAnnouncement(null)}>
+                <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
+                    <h2 className="text-xl font-bold text-brand-dark mb-4">تأكيد الحذف</h2>
+                    <p>هل أنت متأكد من حذف هذا التوجيه؟ لا يمكن التراجع عن هذا الإجراء.</p>
+                    <div className="flex justify-end pt-4 mt-4 border-t space-x-2 space-x-reverse">
+                        <button onClick={() => setDeletingAnnouncement(null)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">إلغاء</button>
+                        <button onClick={handleDelete} className="px-4 py-2 text-white bg-brand-accent-red rounded-md hover:bg-red-700">تأكيد الحذف</button>
+                    </div>
+                </div>
+            </div>
         )}
         </>
     );

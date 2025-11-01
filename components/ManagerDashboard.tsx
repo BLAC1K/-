@@ -30,7 +30,7 @@ const ManagerDashboard: React.FC = () => {
     if (!currentUser) return null;
     
     const newReportsCount = reports.filter(r => !r.isViewedByManager).length;
-    
+
     const ReportsView = () => {
         const { users, reports, markReportAsViewed } = useData();
         const [searchTerm, setSearchTerm] = useState('');

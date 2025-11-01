@@ -6,10 +6,11 @@ import PhoneIcon from './icons/PhoneIcon';
 
 
 const Login: React.FC = () => {
-    const { login, loading } = useAuth();
+    const { login, loginLoading } = useAuth();
 
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
+    const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState('');
     
     const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -19,7 +20,7 @@ const Login: React.FC = () => {
             setError('الرجاء إدخال رقم الهاتف وكلمة المرور.');
             return;
         }
-        const success = await login(phone, password);
+        const success = await login(phone, password, rememberMe);
         if (!success) {
             setError('رقم الهاتف أو كلمة المرور غير صحيحة.');
         }
@@ -55,13 +56,29 @@ const Login: React.FC = () => {
                             <input id="password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-3 text-white placeholder-gray-300 bg-white/10 border border-white/30 rounded-md appearance-none pr-10 focus:outline-none focus:ring-brand-accent-yellow focus:border-brand-accent-yellow sm:text-sm" placeholder="كلمة المرور" />
                         </div>
                     </div>
+
+                    <div className="flex items-center">
+                        <input
+                            id="remember-me"
+                            name="remember-me"
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                            className="w-4 h-4 text-brand-accent-yellow bg-gray-100 border-gray-300 rounded focus:ring-brand-accent-yellow"
+                        />
+                        <label htmlFor="remember-me" className="block mr-2 text-sm text-gray-200">
+                            تذكرني
+                        </label>
+                    </div>
+
                     {error && <p className="text-sm text-brand-accent-yellow text-center font-semibold">{error}</p>}
                     <div>
-                        <button type="submit" disabled={loading} className="relative flex justify-center w-full px-4 py-3 text-sm font-bold text-brand-dark bg-brand-accent-yellow border border-transparent rounded-md group hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-brand-accent-yellow disabled:bg-opacity-70 transition-colors">
-                            {loading ? 'جارِ التسجيل...' : 'دخول'}
+                        <button type="submit" disabled={loginLoading} className="relative flex justify-center w-full px-4 py-3 text-sm font-bold text-brand-dark bg-brand-accent-yellow border border-transparent rounded-md group hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-brand-accent-yellow disabled:bg-opacity-70 transition-colors">
+                            {loginLoading ? 'جارِ التسجيل...' : 'دخول'}
                         </button>
                     </div>
                 </form>
+
             </div>
         </div>
     );
