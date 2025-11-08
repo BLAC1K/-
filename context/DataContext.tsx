@@ -3,6 +3,7 @@ import { User, Report, Role, Announcement } from '../types';
 
 const MOCK_USERS: User[] = [
     { id: '1', fullName: 'وسام عبدالسلام جلوب', badgeNumber: 'MGR-001', phone: '01', role: Role.MANAGER, password: 'admin', jobTitle: 'مسؤول شعبة الفنون والمسرح' },
+    { id: '2', fullName: 'حسين كاظم', badgeNumber: 'EMP-001', phone: '02', role: Role.EMPLOYEE, password: '1234', jobTitle: 'منتسب' },
 ];
 
 const MOCK_REPORTS: Report[] = [];

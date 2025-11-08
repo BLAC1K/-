@@ -27,14 +27,14 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" aria-modal="true" role="dialog" onClick={onClose}>
-            <div id="printable-report" className="relative w-full h-full sm:max-w-3xl sm:h-[85vh] sm:rounded-lg bg-white shadow-xl flex flex-col" onClick={e => e.stopPropagation()}>
-                <div className="p-4 border-b">
+            <div id="printable-report" className="relative w-full h-full sm:max-w-3xl sm:h-[85vh] sm:rounded-lg bg-white dark:bg-gray-800 shadow-xl flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="p-4 border-b dark:border-gray-700">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3 space-x-reverse">
                              <Avatar src={user.profilePictureUrl} name={user.fullName} size={40} />
                              <div>
-                                <h3 className="text-lg font-bold text-brand-dark">التقرير رقم {report.sequenceNumber}: {user.fullName}</h3>
-                                <p className="text-sm text-gray-500">بتاريخ {report.date}</p>
+                                <h3 className="text-lg font-bold text-brand-dark dark:text-gray-100">التقرير رقم {report.sequenceNumber}: {user.fullName}</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">بتاريخ {report.date}</p>
                              </div>
                         </div>
                         <div className="flex items-center gap-2 no-print">
@@ -45,7 +45,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                                 <DownloadIcon className="w-5 h-5" />
                                 <span className="hidden sm:inline">حفظ كـ PDF</span>
                             </button>
-                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                                 <XCircleIcon className="w-7 h-7"/>
                             </button>
                         </div>

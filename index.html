@@ -53,6 +53,10 @@
         }
       }
       @media print {
+        html.dark {
+            --tw-bg-opacity: 1 !important;
+            background-color: #fff !important;
+        }
         body * {
           visibility: hidden;
         }
@@ -69,6 +73,12 @@
           box-shadow: none !important;
           border: none !important;
           font-size: 14px;
+          --tw-bg-opacity: 1 !important;
+          background-color: #fff !important;
+        }
+        #printable-report div, #printable-report p, #printable-report span, #printable-report dt, #printable-report dd, #printable-report h3, #printable-report ul, #printable-report li {
+            color: #000 !important;
+            background-color: transparent !important;
         }
         .no-print, .no-print * {
           display: none !important;
@@ -113,7 +123,15 @@
       }
     </style>
     <script>
+      // Prevents "flash of incorrect theme"
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             colors: {
@@ -143,7 +161,7 @@
 }
 </script>
 </head>
-  <body>
+  <body class="bg-white dark:bg-gray-900">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 

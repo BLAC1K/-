@@ -19,6 +19,7 @@ import UserCircleIcon from './icons/UserCircleIcon';
 import MenuIcon from './icons/MenuIcon';
 import XMarkIcon from './icons/XMarkIcon';
 import DownloadIcon from './icons/DownloadIcon';
+import ThemeToggle from './ThemeToggle';
 
 
 const ManagerDashboard: React.FC = () => {
@@ -59,13 +60,13 @@ const ManagerDashboard: React.FC = () => {
 
         if (viewingReport && selectedEmployee) {
             return (
-                <div id="printable-report" className="bg-white p-4 sm:p-6 rounded-lg shadow-md animate-fade-in">
-                    <div className="flex items-center justify-between pb-4 mb-4 border-b">
+                <div id="printable-report" className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md animate-fade-in">
+                    <div className="flex items-center justify-between pb-4 mb-4 border-b dark:border-gray-700">
                          <div className="flex items-center space-x-3 space-x-reverse">
                              <Avatar src={selectedEmployee.profilePictureUrl} name={selectedEmployee.fullName} size={40} />
                              <div>
-                                <h3 className="text-lg font-bold text-brand-dark">التقرير رقم {viewingReport.sequenceNumber}: {selectedEmployee.fullName}</h3>
-                                <p className="text-sm text-gray-500">بتاريخ {viewingReport.date}</p>
+                                <h3 className="text-lg font-bold text-brand-dark dark:text-gray-100">التقرير رقم {viewingReport.sequenceNumber}: {selectedEmployee.fullName}</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">بتاريخ {viewingReport.date}</p>
                              </div>
                         </div>
                         <div className="flex items-center gap-4 no-print">
@@ -78,7 +79,7 @@ const ManagerDashboard: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => setViewingReport(null)}
-                                className="flex items-center text-sm font-medium text-gray-600 hover:text-brand-dark transition-colors"
+                                className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-brand-dark dark:hover:text-cyan-300 transition-colors"
                             >
                                 <ArrowRightIcon className="w-5 h-5 ml-2" />
                                 العودة إلى تقارير {selectedEmployee.fullName.split(' ')[0]}
@@ -102,19 +103,19 @@ const ManagerDashboard: React.FC = () => {
 
         return (
             <div className="space-y-6">
-                <div className="p-4 mb-6 bg-white rounded-lg shadow">
+                <div className="p-4 mb-6 bg-white dark:bg-gray-800 rounded-lg shadow">
                     <div className="flex flex-col md:flex-row gap-4">
                         <input
                             type="text"
                             placeholder="ابحث باسم المنتسب..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-brand-light focus:border-brand-light"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-brand-light focus:border-brand-light bg-white dark:bg-gray-700 dark:text-gray-200"
                             aria-label="البحث باسم المنتسب"
                         />
                          <button
                             onClick={() => setSearchTerm('')}
-                            className="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors shrink-0"
+                            className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors shrink-0"
                             aria-label="مسح حقل البحث"
                         >
                             مسح
@@ -134,8 +135,8 @@ const ManagerDashboard: React.FC = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-10 px-4 bg-white rounded-lg shadow-md">
-                        <p className="text-gray-500">لا يوجد منتسبين يطابقون معايير البحث.</p>
+                    <div className="text-center py-10 px-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                        <p className="text-gray-500 dark:text-gray-400">لا يوجد منتسبين يطابقون معايير البحث.</p>
                     </div>
                 )}
             </div>
@@ -170,7 +171,7 @@ const ManagerDashboard: React.FC = () => {
                         setIsSidebarOpen(false);
                     }
                 }}
-                className={`flex items-center w-full px-3 py-3 text-md transition-colors rounded-lg ${isActive ? 'bg-brand-light/10 text-brand-dark font-bold' : 'text-gray-600 hover:bg-gray-100'}`}
+                className={`flex items-center w-full px-3 py-3 text-md transition-colors rounded-lg ${isActive ? 'bg-brand-light/10 dark:bg-brand-light/20 text-brand-dark dark:text-gray-100 font-bold' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
             >
                 {icon}
                 <span className="mr-3">{label}</span>
@@ -181,58 +182,61 @@ const ManagerDashboard: React.FC = () => {
 
     const SidebarContent = () => (
          <>
-            <div className="flex items-center justify-center p-4 border-b">
+            <div className="flex items-center justify-center p-4 border-b dark:border-gray-700">
                 <Logo className="w-10 h-10" />
-                <h1 className="mr-2 text-lg font-bold text-brand-dark">لوحة التحكم</h1>
+                <h1 className="mr-2 text-lg font-bold text-brand-dark dark:text-gray-100">لوحة التحكم</h1>
             </div>
-            <div className="flex flex-col items-center p-4 mt-4 space-y-2 border-b">
+            <div className="flex flex-col items-center p-4 mt-4 space-y-2 border-b dark:border-gray-700">
                 <Avatar src={currentUser.profilePictureUrl} name={currentUser.fullName} size={64} />
-                <span className="font-medium text-gray-700 text-center">مرحباً, {currentUser.fullName.split(' ')[0]}</span>
+                <span className="font-medium text-gray-700 dark:text-gray-200 text-center">مرحباً, {currentUser.fullName.split(' ')[0]}</span>
             </div>
             <nav className="flex-grow px-2 py-4 space-y-1">
                 <NavItem tabName="reports" label="التقارير" icon={<NewReportIcon className="w-6 h-6"/>} count={newReportsCount}/>
                 <NavItem tabName="employees" label="إدارة المنتسبين" icon={<UsersIcon className="w-6 h-6"/>} />
                 <NavItem tabName="announcements" label="التوجيهات" icon={<MegaphoneIcon className="w-6 h-6"/>} />
                 <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />
+            </nav>
+            <div className="px-2 py-4 mt-auto border-t dark:border-gray-700">
+                <ThemeToggle />
                 <button
                     onClick={logout}
-                    className="flex items-center w-full px-3 py-3 text-md transition-colors rounded-lg text-gray-600 hover:bg-gray-100"
+                    className="flex items-center w-full px-3 py-3 mt-2 text-md transition-colors rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                     <LogoutIcon className="w-6 h-6"/>
                     <span className="mr-3">تسجيل الخروج</span>
                 </button>
-            </nav>
+            </div>
         </>
     );
 
     return (
-        <div className="flex min-h-screen bg-gray-100">
+        <div className="flex min-h-screen bg-gray-100 dark:bg-black">
              {isSidebarOpen && (
                 <div 
                     className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden"
                     onClick={() => setIsSidebarOpen(false)}
                 ></div>
             )}
-            <aside className={`fixed inset-y-0 right-0 z-40 flex flex-col w-64 bg-white shadow-lg transform ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0`}>
+            <aside className={`fixed inset-y-0 right-0 z-40 flex flex-col w-64 bg-white dark:bg-gray-800 shadow-lg transform ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0`}>
                 <SidebarContent />
             </aside>
             
             <div className="flex flex-col flex-1 w-full overflow-y-auto md:mr-64">
-                <header className="flex items-center justify-between p-4 bg-white shadow-md md:hidden sticky top-0 z-20">
-                    <h1 className="text-xl font-bold text-brand-dark">{pageTitles[activeTab]}</h1>
+                <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 shadow-md md:hidden sticky top-0 z-20">
+                    <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
                     <button onClick={() => setIsSidebarOpen(p => !p)}>
-                        {isSidebarOpen ? <XMarkIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
+                        {isSidebarOpen ? <XMarkIcon className="w-6 h-6 text-gray-800 dark:text-gray-200" /> : <MenuIcon className="w-6 h-6 text-gray-800 dark:text-gray-200" />}
                     </button>
                 </header>
 
                 <main className="flex-grow w-full max-w-6xl px-4 py-8 mx-auto">
                     <div className="hidden md:block mb-6">
-                        <h1 className="text-3xl font-bold text-brand-dark">{pageTitles[activeTab]}</h1>
+                        <h1 className="text-3xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
                     </div>
                     {renderContent()}
                 </main>
 
-                <footer className="py-4 mt-auto text-sm text-center text-gray-500 bg-white border-t">
+                <footer className="py-4 mt-auto text-sm text-center text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
                     <p>تم انشاء التطبيق بواسطة حسين كاظم</p>
                 </footer>
             </div>

@@ -3,6 +3,15 @@ export enum Role {
     MANAGER = 'manager',
 }
 
+export interface SignaturePoint {
+  x: number;
+  y: number;
+  time: number;
+  color: string;
+}
+
+export type SignatureData = SignaturePoint[][];
+
 export interface User {
     id: string;
     fullName: string;
@@ -12,6 +21,7 @@ export interface User {
     password?: string;
     jobTitle: string; // Add job title
     profilePictureUrl?: string;
+    signatureData?: SignatureData;
     signatureImageUrl?: string;
 }
 
@@ -41,7 +51,8 @@ export interface Report {
     attachments: Attachment[];
     managerComment?: string;
     signatureTimestamp?: string;
-    signatureImage?: string; // To store the base64 image of the signature
+    signatureData?: SignatureData; // To store the biometric signature data
+    signatureImageUrl?: string; // To store the uploaded signature image
     isViewedByManager?: boolean;
     isCommentReadByEmployee?: boolean;
     rating?: number;

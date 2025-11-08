@@ -13,7 +13,7 @@ const EmployeeFolder: React.FC<EmployeeFolderProps> = ({ employee, unreadCount, 
     return (
         <div 
             onClick={onClick} 
-            className="relative p-4 bg-white rounded-lg shadow-md cursor-pointer group hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+            className="relative p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md cursor-pointer group hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
             role="button"
             aria-label={`عرض تقارير ${employee.fullName}`}
         >
@@ -27,14 +27,14 @@ const EmployeeFolder: React.FC<EmployeeFolderProps> = ({ employee, unreadCount, 
                 </div>
                 
                 <div className="relative mb-3">
-                     <FolderIcon className="w-24 h-24 text-gray-100 group-hover:text-yellow-200 transition-colors" />
+                     <FolderIcon className="w-24 h-24 text-gray-100 dark:text-gray-700 group-hover:text-yellow-200 dark:group-hover:text-yellow-400/30 transition-colors" />
                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Avatar src={employee.profilePictureUrl} name={employee.fullName} size={56} className="border-2 border-white shadow-sm"/>
+                        <Avatar src={employee.profilePictureUrl} name={employee.fullName} size={56} className="border-2 border-white dark:border-gray-800 shadow-sm"/>
                      </div>
                 </div>
 
-                <h4 className="font-semibold text-brand-dark truncate w-full" title={employee.fullName}>{employee.fullName}</h4>
-                <p className="text-xs text-gray-500 truncate w-full" title={employee.jobTitle}>{employee.jobTitle}</p>
+                <h4 className="font-semibold text-brand-dark dark:text-gray-100 truncate w-full" title={employee.fullName}>{employee.fullName}</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate w-full" title={employee.jobTitle}>{employee.jobTitle}</p>
             </div>
         </div>
     );
