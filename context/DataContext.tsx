@@ -21,6 +21,36 @@ const getInitialState = () => {
             const parsedData = JSON.parse(storedData);
             // Basic validation to ensure data structure is not completely off
             if (parsedData.users && parsedData.reports && parsedData.announcements) {
+                 
+                // --- User data migration to fix login issues ---
+                // This ensures that the credentials for default users are always up-to-date
+                // with the MOCK_USERS, even if the user has old data in localStorage.
+                const storedUsers = parsedData.users as User[];
+                const updatedUsers = [...storedUsers];
+                let hasChanges = false;
+
+                MOCK_USERS.forEach(mockUser => {
+                    const userIndex = storedUsers.findIndex(u => u.id === mockUser.id);
+                    if (userIndex > -1) {
+                        // User exists, check if username or password needs updating
+                        const storedUser = storedUsers[userIndex];
+                        if (storedUser.username !== mockUser.username || storedUser.password !== mockUser.password) {
+                            // Update user, preserving other data like profile pic
+                            updatedUsers[userIndex] = { ...storedUser, ...mockUser };
+                            hasChanges = true;
+                        }
+                    } else {
+                        // Default user doesn't exist, add them
+                        updatedUsers.push(mockUser);
+                        hasChanges = true;
+                    }
+                });
+                
+                if(hasChanges){
+                    parsedData.users = updatedUsers;
+                }
+                // --- End of user data migration ---
+
                  // Migrate old announcement structure if necessary
                  if (parsedData.announcements) {
                     parsedData.announcements = parsedData.announcements.map((ann: any) => {
