@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LockIcon from './icons/LockIcon';
 import AppLogoIcon from './icons/AppLogoIcon';
-import PhoneIcon from './icons/PhoneIcon';
+import UserIcon from './icons/UserIcon';
 import EyeIcon from './icons/EyeIcon';
 import EyeSlashIcon from './icons/EyeSlashIcon';
 
@@ -10,7 +10,7 @@ import EyeSlashIcon from './icons/EyeSlashIcon';
 const Login: React.FC = () => {
     const { login, loginLoading } = useAuth();
 
-    const [phone, setPhone] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
@@ -19,13 +19,13 @@ const Login: React.FC = () => {
     const handleLoginSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        if (!phone || !password) {
-            setError('الرجاء إدخال رقم الهاتف وكلمة المرور.');
+        if (!username || !password) {
+            setError('الرجاء إدخال اسم المستخدم وكلمة المرور.');
             return;
         }
-        const success = await login(phone, password, rememberMe);
+        const success = await login(username, password, rememberMe);
         if (!success) {
-            setError('رقم الهاتف أو كلمة المرور غير صحيحة.');
+            setError('اسم المستخدم أو كلمة المرور غير صحيحة.');
         }
     };
     
@@ -48,9 +48,9 @@ const Login: React.FC = () => {
                     <div className="space-y-4 rounded-md">
                         <div className="relative">
                             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                <PhoneIcon className="w-5 h-5 text-gray-300" />
+                                <UserIcon className="w-5 h-5 text-gray-300" />
                             </div>
-                            <input id="phone" name="phone" type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-3 py-3 text-white placeholder-gray-300 bg-white/10 border border-white/30 rounded-md appearance-none pr-10 focus:outline-none focus:ring-brand-accent-yellow focus:border-brand-accent-yellow sm:text-sm" placeholder="رقم الهاتف" />
+                            <input id="username" name="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-3 py-3 text-white placeholder-gray-300 bg-white/10 border border-white/30 rounded-md appearance-none pr-10 focus:outline-none focus:ring-brand-accent-yellow focus:border-brand-accent-yellow sm:text-sm" placeholder="اسم المستخدم" />
                         </div>
                         <div className="relative">
                             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">

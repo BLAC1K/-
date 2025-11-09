@@ -16,7 +16,7 @@ export interface User {
     id: string;
     fullName: string;
     badgeNumber: string;
-    phone: string;
+    username: string;
     role: Role;
     password?: string;
     jobTitle: string; // Add job title

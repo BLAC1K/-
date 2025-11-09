@@ -17,7 +17,7 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
     const [formData, setFormData] = useState({
         fullName: user?.fullName || '',
         badgeNumber: user?.badgeNumber || '',
-        phone: user?.phone || '',
+        username: user?.username || '',
         jobTitle: user?.jobTitle || '',
         password: user?.password || '',
         profilePictureUrl: user?.profilePictureUrl || '',
@@ -92,7 +92,7 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.fullName || !formData.badgeNumber || !formData.phone || !formData.jobTitle || !formData.password) {
+        if (!formData.fullName || !formData.badgeNumber || !formData.username || !formData.jobTitle || !formData.password) {
             setError('الرجاء تعبئة جميع الحقول.');
             return;
         }
@@ -138,8 +138,8 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
                     </div>
                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                          <div>
-                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">رقم الهاتف</label>
-                            <input type="text" name="phone" id="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" required />
+                            <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">اسم المستخدم</label>
+                            <input type="text" name="username" id="username" value={formData.username} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" required />
                         </div>
                         <div>
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">كلمة المرور</label>
@@ -282,7 +282,7 @@ const UserManagement: React.FC = () => {
                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">الاسم</th>
                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">الصفة الوظيفية</th>
                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">رقم الباج</th>
-                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">رقم الهاتف</th>
+                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">اسم المستخدم</th>
                             <th scope="col" className="relative px-6 py-3">
                                 <span className="sr-only">تعديل</span>
                             </th>
@@ -301,7 +301,7 @@ const UserManagement: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{user.jobTitle}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{user.badgeNumber}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{user.phone}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{user.username}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
                                     <div className="flex items-center justify-end space-x-2 space-x-reverse">
                                         <button onClick={() => openEditModal(user)} className="p-2 text-gray-400 hover:text-brand-light rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><EditIcon className="w-5 h-5"/></button>

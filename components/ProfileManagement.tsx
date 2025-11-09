@@ -15,7 +15,7 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
         fullName: user.fullName,
         jobTitle: user.jobTitle,
         badgeNumber: user.badgeNumber,
-        phone: user.phone,
+        username: user.username,
         profilePictureUrl: user.profilePictureUrl || '',
     });
 
@@ -58,7 +58,7 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
             formData.fullName !== user.fullName ||
             formData.jobTitle !== user.jobTitle ||
             formData.badgeNumber !== user.badgeNumber ||
-            formData.phone !== user.phone ||
+            formData.username !== user.username ||
             formData.profilePictureUrl !== (user.profilePictureUrl || '')
         );
     }, [formData, user]);
@@ -143,8 +143,8 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
                         <input type="text" name="badgeNumber" id="badgeNumber" value={formData.badgeNumber} onChange={handleDataChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" />
                     </div>
                      <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">رقم الهاتف</label>
-                        <input type="text" name="phone" id="phone" value={formData.phone} onChange={handleDataChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" />
+                        <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">اسم المستخدم</label>
+                        <input type="text" name="username" id="username" value={formData.username} onChange={handleDataChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" />
                     </div>
                 </div>
 

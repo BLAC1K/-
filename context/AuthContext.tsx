@@ -6,7 +6,7 @@ interface AuthContextType {
     currentUser: User | null;
     loading: boolean; // For initial load
     loginLoading: boolean; // For login button process
-    login: (phone: string, password: string, rememberMe: boolean) => Promise<boolean>;
+    login: (username: string, password: string, rememberMe: boolean) => Promise<boolean>;
     logout: () => void;
 }
 
@@ -31,11 +31,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return users.find(u => u.id === currentUserId) || null;
     }, [currentUserId, users]);
 
-    const login = useCallback(async (phone: string, password: string, rememberMe: boolean): Promise<boolean> => {
+    const login = useCallback(async (username: string, password: string, rememberMe: boolean): Promise<boolean> => {
         setLoginLoading(true);
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 500)); 
-        const user = users.find(u => u.phone === phone && u.password === password);
+        const user = users.find(u => u.username === username && u.password === password);
         if (user) {
             setCurrentUserId(user.id);
             if (rememberMe) {
