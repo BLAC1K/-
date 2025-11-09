@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, ReactNode, useMemo, useCall
 import { User, Report, Role, Announcement } from '../types';
 
 const MOCK_USERS: User[] = [
-    { id: '1', fullName: 'وسام عبدالسلام جلوب', badgeNumber: 'MGR-001', username: 'admin', role: Role.MANAGER, password: 'admin', jobTitle: 'مسؤول شعبة الفنون والمسرح' },
+    { id: '1', fullName: 'وسام عبدالسلام جلوب', badgeNumber: 'MGR-001', username: 'manager', role: Role.MANAGER, password: 'admin', jobTitle: 'مسؤول شعبة الفنون والمسرح' },
     { id: '2', fullName: 'حسين كاظم', badgeNumber: 'EMP-001', username: 'user', role: Role.EMPLOYEE, password: '1234', jobTitle: 'منتسب' },
 ];
 
