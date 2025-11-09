@@ -1,14 +1,10 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { User, Role } from '../types';
 import Avatar from './Avatar';
 import LockIcon from './icons/LockIcon';
-import SignaturePad, { SignaturePadRef } from './SignaturePad';
 import SignatureIcon from './icons/SignatureIcon';
-import TrashIcon from './icons/TrashIcon';
 import SignaturePreview from './SignaturePreview';
-import UploadIcon from './icons/UploadIcon';
-
 
 const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
     const { updateUser } = useData();
@@ -19,8 +15,6 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
         badgeNumber: user.badgeNumber,
         phone: user.phone,
         profilePictureUrl: user.profilePictureUrl || '',
-        signatureData: user.signatureData,
-        signatureImageUrl: user.signatureImageUrl,
     });
 
     const [imagePreview, setImagePreview] = useState<string | null>(user.profilePictureUrl || null);
@@ -34,10 +28,6 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState('');
     const [isSavingPassword, setIsSavingPassword] = useState(false);
-    
-    // Signature state
-    const signaturePadRef = useRef<SignaturePadRef>(null);
-
 
     const handleDataChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -57,60 +47,15 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
         }
     }, []);
 
-    const handleSignatureImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const result = reader.result as string;
-                setFormData(prev => ({ 
-                    ...prev, 
-                    signatureImageUrl: result,
-                    signatureData: undefined // Clear the other type
-                }));
-                 if (signaturePadRef.current) {
-                    signaturePadRef.current.clearSignature();
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-    }, []);
-
-    const handleSaveSignatureFromPad = useCallback(() => {
-        if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
-            const data = signaturePadRef.current.getSignatureData();
-            setFormData(prev => ({ 
-                ...prev, 
-                signatureData: data,
-                signatureImageUrl: undefined // Clear the other type
-            }));
-        }
-    }, []);
-
-    const handleClearSignature = useCallback(() => {
-        if (signaturePadRef.current) {
-            signaturePadRef.current.clearSignature();
-        }
-        setFormData(prev => ({ 
-            ...prev, 
-            signatureData: undefined,
-            signatureImageUrl: undefined 
-        }));
-    }, []);
-
-
     const isProfileChanged = useMemo(() => {
         return (
             formData.fullName !== user.fullName ||
             formData.jobTitle !== user.jobTitle ||
             formData.badgeNumber !== user.badgeNumber ||
             formData.phone !== user.phone ||
-            formData.profilePictureUrl !== (user.profilePictureUrl || '') ||
-            formData.signatureImageUrl !== (user.signatureImageUrl || '') ||
-            JSON.stringify(formData.signatureData) !== JSON.stringify(user.signatureData)
+            formData.profilePictureUrl !== (user.profilePictureUrl || '')
         );
     }, [formData, user]);
-
 
     const handleSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
@@ -157,7 +102,6 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
 
     }, [user, currentPassword, newPassword, confirmPassword, updateUser]);
 
-
     return (
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-2xl mx-auto">
             <h3 className="text-2xl font-semibold text-brand-dark dark:text-gray-100 border-b dark:border-gray-700 pb-3 mb-6">الملف الشخصي</h3>
@@ -198,62 +142,27 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
                     </div>
                 </div>
 
-                {/* Signature Section */}
-                <div className="pt-6 border-t dark:border-gray-700">
-                    <h4 className="flex items-center text-xl font-semibold text-brand-dark dark:text-gray-100 mb-2">
-                        <SignatureIcon className="w-5 h-5 ml-2" />
-                        <span>توقيعك</span>
-                    </h4>
-                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        اختر الطريقة التي تفضلها لإضافة توقيعك. سيتم إرفاقه تلقائياً بتقاريرك اليومية.
-                    </p>
-                    
-                     {/* Preview */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">التوقيع الحالي</label>
+                {/* Signature Section - Read Only for Employees */}
+                {user.role === Role.EMPLOYEE && (
+                    <div className="pt-6 border-t dark:border-gray-700">
+                        <h4 className="flex items-center text-xl font-semibold text-brand-dark dark:text-gray-100 mb-2">
+                            <SignatureIcon className="w-5 h-5 ml-2" />
+                            <span>توقيعك</span>
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            هذا هو توقيعك المسجل في النظام. يتم إدارته من قبل المسؤول.
+                        </p>
                         <div className="h-48 w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 flex items-center justify-center bg-gray-50 dark:bg-gray-700">
-                            {formData.signatureImageUrl ? (
-                                <img src={formData.signatureImageUrl} alt="Preview" className="max-h-full max-w-full object-contain" />
-                            ) : formData.signatureData && formData.signatureData.length > 0 ? (
-                                <SignaturePreview data={formData.signatureData} className="h-full w-full border-none" />
+                            {user.signatureImageUrl ? (
+                                <img src={user.signatureImageUrl} alt="Preview" className="max-h-full max-w-full object-contain" />
+                            ) : user.signatureData && user.signatureData.length > 0 ? (
+                                <SignaturePreview data={user.signatureData} className="h-full w-full border-none" />
                             ) : (
-                                <span className="text-gray-400">لا يوجد توقيع</span>
+                                <span className="text-gray-400">لا يوجد توقيع مسجل</span>
                             )}
                         </div>
-                        {(formData.signatureData || formData.signatureImageUrl) && (
-                            <button type="button" onClick={handleClearSignature} className="mt-2 text-sm text-red-600 hover:text-red-800 flex items-center">
-                                <TrashIcon className="w-4 h-4 ml-1"/> حذف التوقيع
-                            </button>
-                        )}
                     </div>
-
-                    {/* Input Method */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                        {/* Draw Option */}
-                        <div className="flex flex-col">
-                            <h5 className="font-semibold text-center mb-2 dark:text-gray-200">الخيار 1: التوقيع البايومتري (موصى به)</h5>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 text-center mb-2">
-                                ارسم توقيعك لتسجيل خصائصه الحيوية الفريدة لمزيد من الأمان.
-                            </p>
-                            <SignaturePad ref={signaturePadRef} onEnd={handleSaveSignatureFromPad} onClear={handleClearSignature} />
-                        </div>
-                        {/* Upload Option */}
-                        <div className="flex flex-col">
-                            <h5 className="font-semibold text-center mb-2 dark:text-gray-200">الخيار 2: رفع صورة التوقيع</h5>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 text-center mb-2">
-                                اختر صورة واضحة لتوقيعك بخلفية بيضاء.
-                            </p>
-                            <label htmlFor="signature-upload" className="flex flex-col items-center justify-center w-full h-full min-h-[210px] border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <UploadIcon className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" />
-                                    <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">انقر للرفع</span></p>
-                                </div>
-                                <input id="signature-upload" type="file" className="hidden" accept="image/*" onChange={handleSignatureImageUpload} />
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
+                )}
 
                 <div className="pt-4 border-t dark:border-gray-700 flex items-center justify-end">
                     {successMessage && <p className="text-green-600 text-sm mr-4">{successMessage}</p>}

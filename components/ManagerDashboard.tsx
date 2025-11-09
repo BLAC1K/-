@@ -223,7 +223,10 @@ const ManagerDashboard: React.FC = () => {
             
             <div className="flex flex-col flex-1 w-full overflow-y-auto md:mr-64">
                 <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 shadow-md md:hidden sticky top-0 z-20">
-                    <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
+                    <div className="flex items-center">
+                        <Logo className="w-8 h-8 ml-3" />
+                        <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
+                    </div>
                     <button onClick={() => setIsSidebarOpen(p => !p)}>
                         {isSidebarOpen ? <XMarkIcon className="w-6 h-6 text-gray-800 dark:text-gray-200" /> : <MenuIcon className="w-6 h-6 text-gray-800 dark:text-gray-200" />}
                     </button>
