@@ -10,7 +10,6 @@ import ReportView from './ReportView';
 import NewReportIcon from './icons/NewReportIcon';
 import InboxIcon from './icons/InboxIcon';
 import OutboxIcon from './icons/OutboxIcon';
-import Logo from './icons/Logo';
 import MegaphoneIcon from './icons/MegaphoneIcon';
 import Avatar from './Avatar';
 import ProfileManagement from './ProfileManagement';
@@ -24,6 +23,7 @@ import JobTitleIcon from './icons/JobTitleIcon';
 import BadgeNumberIcon from './icons/BadgeNumberIcon';
 import HashtagIcon from './icons/HashtagIcon';
 import ThemeToggle from './ThemeToggle';
+import AppLogoIcon from './icons/AppLogoIcon';
 
 
 interface ReportFormProps {
@@ -334,7 +334,7 @@ const EmployeeDashboard: React.FC = () => {
     const SidebarContent = () => (
         <>
             <div className="flex items-center justify-center p-4 border-b dark:border-gray-700">
-                <Logo className="w-10 h-10" />
+                <AppLogoIcon className="w-10 h-10 text-brand-dark dark:text-gray-100" />
                 <h1 className="mr-2 text-xl font-bold text-brand-dark dark:text-gray-100">المهام اليومية</h1>
             </div>
             <div className="flex flex-col items-center p-4 mt-4 space-y-2 border-b dark:border-gray-700">
@@ -376,7 +376,7 @@ const EmployeeDashboard: React.FC = () => {
             <div className="flex flex-col flex-1 md:mr-64">
                 <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 shadow-md md:hidden">
                     <div className="flex items-center">
-                        <Logo className="w-8 h-8 ml-3" />
+                        <AppLogoIcon className="w-8 h-8 ml-3 text-brand-dark dark:text-gray-100" />
                         <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
                     </div>
                     <button onClick={() => setIsSidebarOpen(p => !p)}>

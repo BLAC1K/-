@@ -5,6 +5,8 @@ import Avatar from './Avatar';
 import LockIcon from './icons/LockIcon';
 import SignatureIcon from './icons/SignatureIcon';
 import SignaturePreview from './SignaturePreview';
+import EyeIcon from './icons/EyeIcon';
+import EyeSlashIcon from './icons/EyeSlashIcon';
 
 const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
     const { updateUser } = useData();
@@ -28,6 +30,10 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState('');
     const [isSavingPassword, setIsSavingPassword] = useState(false);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
 
     const handleDataChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -180,20 +186,56 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
                 <div className="pt-6 mt-6 border-t dark:border-gray-700">
                     <h4 className="text-xl font-semibold text-brand-dark dark:text-gray-100 mb-4">تغيير كلمة المرور</h4>
                     <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                        <div className="relative">
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">كلمة المرور الحالية</label>
-                            <LockIcon className="w-5 h-5 text-gray-400 absolute right-3 top-9" />
-                            <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full mt-1 pr-10 pl-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200" required />
+                            <div className="relative mt-1">
+                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                    <LockIcon className="w-5 h-5 text-gray-400" />
+                                </div>
+                                <input type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full pr-10 pl-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200" required />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCurrentPassword(p => !p)}
+                                    className="absolute inset-y-0 left-0 flex items-center pl-3"
+                                    aria-label={showCurrentPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                                >
+                                    {showCurrentPassword ? <EyeSlashIcon className="w-5 h-5 text-gray-400" /> : <EyeIcon className="w-5 h-5 text-gray-400" />}
+                                </button>
+                            </div>
                         </div>
-                        <div className="relative">
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">كلمة المرور الجديدة</label>
-                            <LockIcon className="w-5 h-5 text-gray-400 absolute right-3 top-9" />
-                            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full mt-1 pr-10 pl-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200" required />
+                            <div className="relative mt-1">
+                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                    <LockIcon className="w-5 h-5 text-gray-400" />
+                                </div>
+                                <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full pr-10 pl-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200" required />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowNewPassword(p => !p)}
+                                    className="absolute inset-y-0 left-0 flex items-center pl-3"
+                                    aria-label={showNewPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                                >
+                                    {showNewPassword ? <EyeSlashIcon className="w-5 h-5 text-gray-400" /> : <EyeIcon className="w-5 h-5 text-gray-400" />}
+                                </button>
+                            </div>
                         </div>
-                        <div className="relative">
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">تأكيد كلمة المرور الجديدة</label>
-                            <LockIcon className="w-5 h-5 text-gray-400 absolute right-3 top-9" />
-                            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full mt-1 pr-10 pl-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200" required />
+                            <div className="relative mt-1">
+                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                    <LockIcon className="w-5 h-5 text-gray-400" />
+                                </div>
+                                <input type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full pr-10 pl-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200" required />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(p => !p)}
+                                    className="absolute inset-y-0 left-0 flex items-center pl-3"
+                                    aria-label={showConfirmPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                                >
+                                    {showConfirmPassword ? <EyeSlashIcon className="w-5 h-5 text-gray-400" /> : <EyeIcon className="w-5 h-5 text-gray-400" />}
+                                </button>
+                            </div>
                         </div>
                         
                         {passwordError && <p className="text-red-600 text-sm text-center">{passwordError}</p>}

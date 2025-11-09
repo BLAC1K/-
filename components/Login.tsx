@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LockIcon from './icons/LockIcon';
-import Logo from './icons/Logo';
+import AppLogoIcon from './icons/AppLogoIcon';
 import PhoneIcon from './icons/PhoneIcon';
+import EyeIcon from './icons/EyeIcon';
+import EyeSlashIcon from './icons/EyeSlashIcon';
 
 
 const Login: React.FC = () => {
@@ -10,6 +12,7 @@ const Login: React.FC = () => {
 
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState('');
     
@@ -34,9 +37,9 @@ const Login: React.FC = () => {
 
             <div className="w-full max-w-md p-8 space-y-6 bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl z-10">
                 <div className="flex flex-col items-center text-center">
-                    <Logo className="w-32 h-32 mb-4"/>
+                    <AppLogoIcon className="w-32 h-32 mb-4 text-white"/>
                     <h2 className="text-3xl font-bold text-white">المهام اليومية</h2>
-                    <p className="mt-2 text-sm text-gray-200">نظام تسجيل التقارير</p>
+                    <p className="mt-2 text-sm text-gray-200">نظام تسجيل التقارير الداخلي</p>
                     <p className="mt-4 text-xs text-gray-200 bg-white/10 p-2 rounded-md">
                         للمنتسبين الجدد، يتم إنشاء الحساب من قبل المسؤول.
                     </p>
@@ -53,7 +56,19 @@ const Login: React.FC = () => {
                             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                 <LockIcon className="w-5 h-5 text-gray-300" />
                             </div>
-                            <input id="password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-3 text-white placeholder-gray-300 bg-white/10 border border-white/30 rounded-md appearance-none pr-10 focus:outline-none focus:ring-brand-accent-yellow focus:border-brand-accent-yellow sm:text-sm" placeholder="كلمة المرور" />
+                            <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-3 text-white placeholder-gray-300 bg-white/10 border border-white/30 rounded-md appearance-none pr-10 pl-10 focus:outline-none focus:ring-brand-accent-yellow focus:border-brand-accent-yellow sm:text-sm" placeholder="كلمة المرور" />
+                             <button 
+                                type="button" 
+                                onClick={() => setShowPassword(!showPassword)} 
+                                className="absolute inset-y-0 left-0 flex items-center pl-3"
+                                aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                            >
+                                {showPassword ? (
+                                    <EyeSlashIcon className="w-5 h-5 text-gray-300" />
+                                ) : (
+                                    <EyeIcon className="w-5 h-5 text-gray-300" />
+                                )}
+                            </button>
                         </div>
                     </div>
 

@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import LogoutIcon from './icons/LogoutIcon';
 import { Role, User, Report } from '../types';
-import Logo from './icons/Logo';
 import UserManagement from './UserManagement'; 
 import AnnouncementCenter from './AnnouncementCenter';
 import UsersIcon from './icons/UsersIcon';
@@ -20,6 +19,7 @@ import MenuIcon from './icons/MenuIcon';
 import XMarkIcon from './icons/XMarkIcon';
 import DownloadIcon from './icons/DownloadIcon';
 import ThemeToggle from './ThemeToggle';
+import AppLogoIcon from './icons/AppLogoIcon';
 
 
 const ManagerDashboard: React.FC = () => {
@@ -183,7 +183,7 @@ const ManagerDashboard: React.FC = () => {
     const SidebarContent = () => (
          <>
             <div className="flex items-center justify-center p-4 border-b dark:border-gray-700">
-                <Logo className="w-10 h-10" />
+                <AppLogoIcon className="w-10 h-10 text-brand-dark dark:text-gray-100" />
                 <h1 className="mr-2 text-lg font-bold text-brand-dark dark:text-gray-100">لوحة التحكم</h1>
             </div>
             <div className="flex flex-col items-center p-4 mt-4 space-y-2 border-b dark:border-gray-700">
@@ -224,7 +224,7 @@ const ManagerDashboard: React.FC = () => {
             <div className="flex flex-col flex-1 w-full overflow-y-auto md:mr-64">
                 <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 shadow-md md:hidden sticky top-0 z-20">
                     <div className="flex items-center">
-                        <Logo className="w-8 h-8 ml-3" />
+                        <AppLogoIcon className="w-8 h-8 ml-3 text-brand-dark dark:text-gray-100" />
                         <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
                     </div>
                     <button onClick={() => setIsSidebarOpen(p => !p)}>
