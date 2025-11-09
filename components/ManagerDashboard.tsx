@@ -240,7 +240,8 @@ const ManagerDashboard: React.FC = () => {
                 </main>
 
                 <footer className="py-4 mt-auto text-sm text-center text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
-                    <p>تم انشاء التطبيق بواسطة حسين كاظم</p>
+                    <p>جميع الحقوق محفوظة 2025م</p>
+                    <p>حسين كاظم</p>
                 </footer>
             </div>
         </div>

@@ -362,7 +362,7 @@ const EmployeeDashboard: React.FC = () => {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
              {isSidebarOpen && (
                 <div 
                     className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden"
@@ -384,12 +384,17 @@ const EmployeeDashboard: React.FC = () => {
                     </button>
                 </header>
 
-                <main className="container px-4 py-8 mx-auto">
+                <main className="container px-4 py-8 mx-auto flex-grow">
                      <div className="hidden md:block mb-6">
                         <h1 className="text-3xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
                     </div>
                     {renderContent()}
                 </main>
+                
+                <footer className="py-4 mt-auto text-sm text-center text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
+                    <p>جميع الحقوق محفوظة 2025م</p>
+                    <p>حسين كاظم</p>
+                </footer>
             </div>
 
             {notification && (

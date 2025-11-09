@@ -95,6 +95,10 @@ const Login: React.FC = () => {
                 </form>
 
             </div>
+            <footer className="absolute bottom-4 text-center text-xs text-gray-300 z-10">
+                <p>جميع الحقوق محفوظة 2025م</p>
+                <p>حسين كاظم</p>
+            </footer>
         </div>
     );
 };
