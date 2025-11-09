@@ -24,6 +24,7 @@ import BadgeNumberIcon from './icons/BadgeNumberIcon';
 import HashtagIcon from './icons/HashtagIcon';
 import ThemeToggle from './ThemeToggle';
 import AppLogoIcon from './icons/AppLogoIcon';
+import HomeIcon from './icons/HomeIcon';
 
 
 interface ReportFormProps {
@@ -209,10 +210,35 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onReportSubmitted, nextSe
     );
 };
 
+const WelcomeView: React.FC<{ user: User; onStart: () => void }> = ({ user, onStart }) => {
+    return (
+        <div className="flex items-center justify-center h-full">
+            <div className="text-center p-8 md:p-12 bg-gradient-to-br from-brand-dark to-[#3a7c93] rounded-2xl shadow-2xl border border-brand-light/50 max-w-2xl mx-auto animate-fade-in-right">
+                <AppLogoIcon className="w-24 h-24 mx-auto mb-4 text-white" />
+                <h2 className="text-3xl font-bold text-white">
+                    مرحباً, {user.fullName.split(' ')[0]}
+                </h2>
+                <h3 className="mt-2 text-xl font-semibold text-gray-200">
+                    لوحة مهامك…
+                </h3>
+                <p className="mt-4 text-md text-gray-300">
+                    مساحة تبرز فيها جهدك واحترافك
+                </p>
+                <button
+                    onClick={onStart}
+                    className="mt-8 px-8 py-3 text-lg font-bold text-brand-dark bg-brand-accent-yellow border border-transparent rounded-md group hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-dark focus:ring-brand-accent-yellow transition-transform transform hover:scale-105"
+                >
+                    إنشاء تقرير جديد
+                </button>
+            </div>
+        </div>
+    );
+};
+
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
     const { reports, announcements, markAnnouncementAsRead } = useData();
-    const [activeTab, setActiveTab] = useState('new');
+    const [activeTab, setActiveTab] = useState('welcome');
     const [viewingReport, setViewingReport] = useState<Report | null>(null);
     const [notification, setNotification] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -245,6 +271,7 @@ const EmployeeDashboard: React.FC = () => {
     }, [currentUser]);
     
     const pageTitles: { [key: string]: string } = {
+        welcome: 'الرئيسية',
         new: 'تقرير جديد',
         submitted: 'التقارير الصادرة',
         inbox: 'البريد الوارد',
@@ -254,6 +281,8 @@ const EmployeeDashboard: React.FC = () => {
 
     const renderContent = () => {
         switch(activeTab) {
+            case 'welcome':
+                return <WelcomeView user={currentUser} onStart={() => setActiveTab('new')} />;
             case 'submitted':
                 return (
                     <div className="space-y-4">
@@ -342,6 +371,7 @@ const EmployeeDashboard: React.FC = () => {
                 <span className="font-medium text-gray-700 dark:text-gray-200 text-center">مرحباً, {currentUser.fullName.split(' ')[0]}</span>
             </div>
             <nav className="flex-grow px-2 py-4 space-y-1">
+                <NavItem tabName='welcome' label='الرئيسية' icon={<HomeIcon className="w-6 h-6"/>} />
                 <NavItem tabName='new' label='تقرير جديد' icon={<NewReportIcon className="w-6 h-6"/>} />
                 <NavItem tabName='submitted' label='صادر' icon={<OutboxIcon className="w-6 h-6"/>} />
                 <NavItem tabName='inbox' label='الوارد' icon={<InboxIcon className="w-6 h-6"/>} count={unreadCommentsCount}/>
@@ -384,11 +414,13 @@ const EmployeeDashboard: React.FC = () => {
                     </button>
                 </header>
 
-                <main className="container px-4 py-8 mx-auto flex-grow">
+                <main className="container px-4 py-8 mx-auto flex-grow flex flex-col">
                      <div className="hidden md:block mb-6">
                         <h1 className="text-3xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
                     </div>
-                    {renderContent()}
+                    <div className="flex-grow">
+                        {renderContent()}
+                    </div>
                 </main>
                 
                 <footer className="py-4 mt-auto text-sm text-center text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border-t dark:border-gray-700">

@@ -281,8 +281,6 @@ const UserManagement: React.FC = () => {
                         <tr>
                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">الاسم</th>
                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">الصفة الوظيفية</th>
-                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">رقم الباج</th>
-                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">اسم المستخدم</th>
                             <th scope="col" className="relative px-6 py-3">
                                 <span className="sr-only">تعديل</span>
                             </th>
@@ -300,8 +298,6 @@ const UserManagement: React.FC = () => {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{user.jobTitle}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{user.badgeNumber}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{user.username}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
                                     <div className="flex items-center justify-end space-x-2 space-x-reverse">
                                         <button onClick={() => openEditModal(user)} className="p-2 text-gray-400 hover:text-brand-light rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><EditIcon className="w-5 h-5"/></button>

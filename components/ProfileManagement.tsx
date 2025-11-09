@@ -10,6 +10,7 @@ import EyeSlashIcon from './icons/EyeSlashIcon';
 
 const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
     const { updateUser } = useData();
+    const isEmployee = user.role === Role.EMPLOYEE;
 
     const [formData, setFormData] = useState({
         fullName: user.fullName,
@@ -132,19 +133,19 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">الاسم الثلاثي</label>
-                        <input type="text" name="fullName" id="fullName" value={formData.fullName} onChange={handleDataChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" />
+                        <input type="text" name="fullName" id="fullName" value={formData.fullName} onChange={handleDataChange} readOnly={isEmployee} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-100 dark:read-only:bg-gray-700/50" />
                     </div>
                      <div>
                         <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-700 dark:text-gray-300">الصفة الوظيفية</label>
-                        <input type="text" name="jobTitle" id="jobTitle" value={formData.jobTitle} onChange={handleDataChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" />
+                        <input type="text" name="jobTitle" id="jobTitle" value={formData.jobTitle} onChange={handleDataChange} readOnly={isEmployee} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-100 dark:read-only:bg-gray-700/50" />
                     </div>
                      <div>
                         <label htmlFor="badgeNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300">رقم الباج</label>
-                        <input type="text" name="badgeNumber" id="badgeNumber" value={formData.badgeNumber} onChange={handleDataChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" />
+                        <input type="text" name="badgeNumber" id="badgeNumber" value={formData.badgeNumber} onChange={handleDataChange} readOnly={isEmployee} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-100 dark:read-only:bg-gray-700/50" />
                     </div>
                      <div>
                         <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">اسم المستخدم</label>
-                        <input type="text" name="username" id="username" value={formData.username} onChange={handleDataChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" />
+                        <input type="text" name="username" id="username" value={formData.username} onChange={handleDataChange} readOnly={isEmployee} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-100 dark:read-only:bg-gray-700/50" />
                     </div>
                 </div>
 
