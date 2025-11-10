@@ -3,7 +3,20 @@ import { User, Report, Role, Announcement } from '../types';
 
 const MOCK_USERS: User[] = [
     { id: '1', fullName: 'وسام عبدالسلام جلوب', badgeNumber: 'MGR-001', username: 'admin', role: Role.MANAGER, password: 'admin', jobTitle: 'مسؤول شعبة الفنون والمسرح' },
-    { id: '2', fullName: 'حسين كاظم', badgeNumber: 'EMP-001', username: 'hussein', role: Role.EMPLOYEE, password: '1234', jobTitle: 'منتسب' },
+    { id: '2', fullName: 'علي حسين عبيد', badgeNumber: '134', username: 'funun1', role: Role.EMPLOYEE, password: '0134', jobTitle: 'مسؤول وحدة' },
+    { id: '3', fullName: 'مثنى عبد علي شلش', badgeNumber: '238', username: 'funun2', role: Role.EMPLOYEE, password: '0238', jobTitle: 'حرفي أشغال يدوية' },
+    { id: '4', fullName: 'عقيل شاكر حسون', badgeNumber: '14146', username: 'funun3', role: Role.EMPLOYEE, password: '4146', jobTitle: 'حرفي أشغال يدوية' },
+    { id: '5', fullName: 'سجاد حسين مهدي', badgeNumber: '28010', username: 'funun4', role: Role.EMPLOYEE, password: '8010', jobTitle: 'رسام' },
+    { id: '6', fullName: 'حسن حسين شهيد', badgeNumber: '30508', username: 'funun5', role: Role.EMPLOYEE, password: '0508', jobTitle: 'فني فيلوغرافيا' },
+    { id: '7', fullName: 'علي ستار بزون', badgeNumber: '32761', username: 'funun6', role: Role.EMPLOYEE, password: '2761', jobTitle: 'فني فيلوغرافيا' },
+    { id: '8', fullName: 'سلام محمد عبد الرسول', badgeNumber: '13385', username: 'funun7', role: Role.EMPLOYEE, password: '3385', jobTitle: 'مسؤول وحدة' },
+    { id: '9', fullName: 'حسين كاظم علي', badgeNumber: '27857', username: 'funun8', role: Role.EMPLOYEE, password: '7857', jobTitle: 'مصمم' },
+    { id: '10', fullName: 'عبد الله عباس امين', badgeNumber: '17117', username: 'funun9', role: Role.EMPLOYEE, password: '7117', jobTitle: 'مساعد إنتاج' },
+    { id: '11', fullName: 'حسين علي عباس', badgeNumber: '1818', username: 'funun10', role: Role.EMPLOYEE, password: '1818', jobTitle: 'مساعد إنتاج' },
+    { id: '12', fullName: 'أياد عبد علي كريم', badgeNumber: '12616', username: 'funun11', role: Role.EMPLOYEE, password: '2616', jobTitle: 'مساعد إنتاج' },
+    { id: '13', fullName: 'ليث حامد كاظم', badgeNumber: '22198', username: 'funun12', role: Role.EMPLOYEE, password: '2198', jobTitle: 'أمين مخزن' },
+    { id: '14', fullName: 'عباس علي هادي', badgeNumber: '25279', username: 'funun13', role: Role.EMPLOYEE, password: '5279', jobTitle: 'مساعد تقني' },
+    { id: '15', fullName: 'حسنين حميد حسين', badgeNumber: '15195', username: 'funun14', role: Role.EMPLOYEE, password: '5195', jobTitle: 'منتسب' },
 ];
 
 const MOCK_REPORTS: Report[] = [];
@@ -123,7 +136,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const getUserById = useCallback((id: string) => users.find(u => u.id === id), [users]);
 
-    const addReport = (report: Omit<Report, 'id' | 'sequenceNumber'>) => {
+    const addReport = useCallback((report: Omit<Report, 'id' | 'sequenceNumber'>) => {
         const userReportsCount = reports.filter(r => r.userId === report.userId).length;
         const newReport: Report = { 
             ...report, 
@@ -133,9 +146,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             isCommentReadByEmployee: true, 
         };
         setReports(prev => [newReport, ...prev]);
-    };
+    }, [reports]);
 
-    const updateReport = (updatedReport: Report) => {
+    const updateReport = useCallback((updatedReport: Report) => {
         const originalReport = reports.find(r => r.id === updatedReport.id);
         if (originalReport && updatedReport.managerComment && originalReport.managerComment !== updatedReport.managerComment) {
             updatedReport.isCommentReadByEmployee = false;
@@ -149,31 +162,31 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             localStorage.setItem('comment_notification', JSON.stringify(notificationPayload));
         }
         setReports(prev => prev.map(r => r.id === updatedReport.id ? updatedReport : r));
-    };
+    }, [reports]);
     
-    const markReportAsViewed = (reportId: string) => {
+    const markReportAsViewed = useCallback((reportId: string) => {
         setReports(prev => prev.map(r => r.id === reportId ? { ...r, isViewedByManager: true } : r));
-    };
+    }, []);
 
-    const markCommentAsRead = (reportId: string) => {
+    const markCommentAsRead = useCallback((reportId: string) => {
         setReports(prev => prev.map(r => r.id === reportId ? { ...r, isCommentReadByEmployee: true } : r));
-    };
+    }, []);
 
-    const addUser = (user: Omit<User, 'id'>) => {
+    const addUser = useCallback((user: Omit<User, 'id'>) => {
         const newUser: User = { ...user, id: `u${Date.now()}`};
         setUsers(prev => [...prev, newUser]);
-    };
+    }, []);
 
-    const updateUser = (updatedUser: User) => {
+    const updateUser = useCallback((updatedUser: User) => {
         setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
-    };
+    }, []);
 
-    const deleteUser = (userId: string) => {
+    const deleteUser = useCallback((userId: string) => {
         setUsers(prev => prev.filter(u => u.id !== userId));
         setReports(prev => prev.filter(r => r.userId !== userId));
-    };
+    }, []);
     
-    const addAnnouncement = (content: string) => {
+    const addAnnouncement = useCallback((content: string) => {
         const newAnnouncement: Announcement = {
             id: `a${Date.now()}`,
             content,
@@ -181,28 +194,28 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             readBy: []
         };
         setAnnouncements(prev => [newAnnouncement, ...prev]);
-    };
+    }, []);
 
-    const updateAnnouncement = (announcementId: string, content: string) => {
+    const updateAnnouncement = useCallback((announcementId: string, content: string) => {
         setAnnouncements(prev => prev.map(a => 
             a.id === announcementId 
             ? { ...a, content, date: new Date().toISOString() } 
             : a
         ));
-    };
+    }, []);
     
-    const deleteAnnouncement = (announcementId: string) => {
+    const deleteAnnouncement = useCallback((announcementId: string) => {
         setAnnouncements(prev => prev.filter(a => a.id !== announcementId));
-    };
+    }, []);
     
-    const markAnnouncementAsRead = (announcementId: string, userId: string) => {
+    const markAnnouncementAsRead = useCallback((announcementId: string, userId: string) => {
         setAnnouncements(prev => prev.map(a => {
             if (a.id === announcementId && !a.readBy.some(entry => entry.userId === userId)) {
                 return { ...a, readBy: [...a.readBy, { userId, readAt: new Date().toISOString() }] };
             }
             return a;
         }));
-    };
+    }, []);
 
     const value = useMemo(() => ({
         users,
@@ -220,7 +233,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         updateAnnouncement,
         deleteAnnouncement,
         markAnnouncementAsRead
-    }), [users, reports, announcements, getUserById]);
+    }), [
+        users, reports, announcements, getUserById, addReport, updateReport,
+        markReportAsViewed, markCommentAsRead, addUser, updateUser, deleteUser,
+        addAnnouncement, updateAnnouncement, deleteAnnouncement, markAnnouncementAsRead
+    ]);
 
     return (
         <DataContext.Provider value={value}>
