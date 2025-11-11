@@ -12,6 +12,8 @@ import UploadIcon from './icons/UploadIcon';
 import EyeIcon from './icons/EyeIcon';
 import EyeSlashIcon from './icons/EyeSlashIcon';
 
+const UNITS = ['وحدة التمكين الفني', 'وحدة التنسيق الفني'];
+
 // Modal Form Component
 const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user: User | Omit<User, 'id'>) => void; }> = ({ user, onClose, onSave }) => {
     const [formData, setFormData] = useState({
@@ -23,6 +25,7 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
         profilePictureUrl: user?.profilePictureUrl || '',
         signatureData: user?.signatureData,
         signatureImageUrl: user?.signatureImageUrl,
+        unit: user?.unit || '',
     });
     const [imagePreview, setImagePreview] = useState<string | null>(user?.profilePictureUrl || null);
     const [error, setError] = useState('');
@@ -30,7 +33,7 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
     const [showPassword, setShowPassword] = useState(false);
     const signaturePadRef = useRef<SignaturePadRef>(null);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
@@ -136,6 +139,13 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
                             <input type="text" name="badgeNumber" id="badgeNumber" value={formData.badgeNumber} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" required />
                         </div>
                     </div>
+                     <div>
+                        <label htmlFor="unit" className="block text-sm font-medium text-gray-700 dark:text-gray-300">الوحدة التنظيمية</label>
+                        <select name="unit" id="unit" value={formData.unit} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200">
+                            <option value="">غير معين</option>
+                            {UNITS.map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                        </select>
+                     </div>
                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                          <div>
                             <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">اسم المستخدم</label>
@@ -281,6 +291,7 @@ const UserManagement: React.FC = () => {
                         <tr>
                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">الاسم</th>
                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">الصفة الوظيفية</th>
+                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">الوحدة</th>
                             <th scope="col" className="relative px-6 py-3">
                                 <span className="sr-only">تعديل</span>
                             </th>
@@ -298,6 +309,7 @@ const UserManagement: React.FC = () => {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{user.jobTitle}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{user.unit || 'غير معين'}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
                                     <div className="flex items-center justify-end space-x-2 space-x-reverse">
                                         <button onClick={() => openEditModal(user)} className="p-2 text-gray-400 hover:text-brand-light rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><EditIcon className="w-5 h-5"/></button>

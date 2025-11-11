@@ -23,6 +23,7 @@ export interface User {
     profilePictureUrl?: string;
     signatureData?: SignatureData;
     signatureImageUrl?: string;
+    unit?: string;
 }
 
 export interface Attachment {

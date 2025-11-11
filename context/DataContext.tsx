@@ -3,20 +3,20 @@ import { User, Report, Role, Announcement } from '../types';
 
 const MOCK_USERS: User[] = [
     { id: '1', fullName: 'وسام عبدالسلام جلوب', badgeNumber: 'MGR-001', username: 'admin', role: Role.MANAGER, password: 'admin', jobTitle: 'مسؤول شعبة الفنون والمسرح' },
-    { id: '2', fullName: 'علي حسين عبيد', badgeNumber: '134', username: 'funun1', role: Role.EMPLOYEE, password: '0134', jobTitle: 'مسؤول وحدة' },
-    { id: '3', fullName: 'مثنى عبد علي شلش', badgeNumber: '238', username: 'funun2', role: Role.EMPLOYEE, password: '0238', jobTitle: 'حرفي أشغال يدوية' },
-    { id: '4', fullName: 'عقيل شاكر حسون', badgeNumber: '14146', username: 'funun3', role: Role.EMPLOYEE, password: '4146', jobTitle: 'حرفي أشغال يدوية' },
-    { id: '5', fullName: 'سجاد حسين مهدي', badgeNumber: '28010', username: 'funun4', role: Role.EMPLOYEE, password: '8010', jobTitle: 'رسام' },
-    { id: '6', fullName: 'حسن حسين شهيد', badgeNumber: '30508', username: 'funun5', role: Role.EMPLOYEE, password: '0508', jobTitle: 'فني فيلوغرافيا' },
-    { id: '7', fullName: 'علي ستار بزون', badgeNumber: '32761', username: 'funun6', role: Role.EMPLOYEE, password: '2761', jobTitle: 'فني فيلوغرافيا' },
-    { id: '8', fullName: 'سلام محمد عبد الرسول', badgeNumber: '13385', username: 'funun7', role: Role.EMPLOYEE, password: '3385', jobTitle: 'مسؤول وحدة' },
-    { id: '9', fullName: 'حسين كاظم علي', badgeNumber: '27857', username: 'funun8', role: Role.EMPLOYEE, password: '7857', jobTitle: 'مصمم' },
-    { id: '10', fullName: 'عبد الله عباس امين', badgeNumber: '17117', username: 'funun9', role: Role.EMPLOYEE, password: '7117', jobTitle: 'مساعد إنتاج' },
-    { id: '11', fullName: 'حسين علي عباس', badgeNumber: '1818', username: 'funun10', role: Role.EMPLOYEE, password: '1818', jobTitle: 'مساعد إنتاج' },
-    { id: '12', fullName: 'أياد عبد علي كريم', badgeNumber: '12616', username: 'funun11', role: Role.EMPLOYEE, password: '2616', jobTitle: 'مساعد إنتاج' },
-    { id: '13', fullName: 'ليث حامد كاظم', badgeNumber: '22198', username: 'funun12', role: Role.EMPLOYEE, password: '2198', jobTitle: 'أمين مخزن' },
-    { id: '14', fullName: 'عباس علي هادي', badgeNumber: '25279', username: 'funun13', role: Role.EMPLOYEE, password: '5279', jobTitle: 'مساعد تقني' },
-    { id: '15', fullName: 'حسنين حميد حسين', badgeNumber: '15195', username: 'funun14', role: Role.EMPLOYEE, password: '5195', jobTitle: 'منتسب' },
+    { id: '2', fullName: 'علي حسين عبيد', badgeNumber: '134', username: 'funun1', role: Role.EMPLOYEE, password: '0134', jobTitle: 'مسؤول وحدة', unit: 'وحدة التمكين الفني' },
+    { id: '3', fullName: 'مثنى عبد علي شلش', badgeNumber: '238', username: 'funun2', role: Role.EMPLOYEE, password: '0238', jobTitle: 'حرفي أشغال يدوية', unit: 'وحدة التمكين الفني' },
+    { id: '4', fullName: 'عقيل شاكر حسون', badgeNumber: '14146', username: 'funun3', role: Role.EMPLOYEE, password: '4146', jobTitle: 'حرفي أشغال يدوية', unit: 'وحدة التمكين الفني' },
+    { id: '5', fullName: 'سجاد حسين مهدي', badgeNumber: '28010', username: 'funun4', role: Role.EMPLOYEE, password: '8010', jobTitle: 'رسام', unit: 'وحدة التمكين الفني' },
+    { id: '6', fullName: 'حسن حسين شهيد', badgeNumber: '30508', username: 'funun5', role: Role.EMPLOYEE, password: '0508', jobTitle: 'فني فيلوغرافيا', unit: 'وحدة التمكين الفني' },
+    { id: '7', fullName: 'علي ستار بزون', badgeNumber: '32761', username: 'funun6', role: Role.EMPLOYEE, password: '2761', jobTitle: 'فني فيلوغرافيا', unit: 'وحدة التمكين الفني' },
+    { id: '8', fullName: 'سلام محمد عبد الرسول', badgeNumber: '13385', username: 'funun7', role: Role.EMPLOYEE, password: '3385', jobTitle: 'مسؤول وحدة', unit: 'وحدة التنسيق الفني' },
+    { id: '9', fullName: 'حسين كاظم علي', badgeNumber: '27857', username: 'funun8', role: Role.EMPLOYEE, password: '7857', jobTitle: 'مصمم', unit: 'وحدة التنسيق الفني' },
+    { id: '10', fullName: 'عبد الله عباس امين', badgeNumber: '17117', username: 'funun9', role: Role.EMPLOYEE, password: '7117', jobTitle: 'مساعد إنتاج', unit: 'وحدة التنسيق الفني' },
+    { id: '11', fullName: 'حسين علي عباس', badgeNumber: '1818', username: 'funun10', role: Role.EMPLOYEE, password: '1818', jobTitle: 'مساعد إنتاج', unit: 'وحدة التنسيق الفني' },
+    { id: '12', fullName: 'أياد عبد علي كريم', badgeNumber: '12616', username: 'funun11', role: Role.EMPLOYEE, password: '2616', jobTitle: 'مساعد إنتاج', unit: 'وحدة التنسيق الفني' },
+    { id: '13', fullName: 'ليث حامد كاظم', badgeNumber: '22198', username: 'funun12', role: Role.EMPLOYEE, password: '2198', jobTitle: 'أمين مخزن', unit: 'وحدة التنسيق الفني' },
+    { id: '14', fullName: 'عباس علي هادي', badgeNumber: '25279', username: 'funun13', role: Role.EMPLOYEE, password: '5279', jobTitle: 'مساعد تقني', unit: 'وحدة التنسيق الفني' },
+    { id: '15', fullName: 'حسنين حميد حسين', badgeNumber: '15195', username: 'funun14', role: Role.EMPLOYEE, password: '5195', jobTitle: 'منتسب', unit: 'وحدة التنسيق الفني' },
 ];
 
 const MOCK_REPORTS: Report[] = [];
@@ -35,9 +35,7 @@ const getInitialState = () => {
             // Basic validation to ensure data structure is not completely off
             if (parsedData.users && parsedData.reports && parsedData.announcements) {
                  
-                // --- User data migration to fix login issues ---
-                // This ensures that the credentials for default users are always up-to-date
-                // with the MOCK_USERS, even if the user has old data in localStorage.
+                // --- User data migration to fix login issues and add units ---
                 const storedUsers = parsedData.users as User[];
                 const updatedUsers = [...storedUsers];
                 let hasChanges = false;
@@ -45,15 +43,17 @@ const getInitialState = () => {
                 MOCK_USERS.forEach(mockUser => {
                     const userIndex = storedUsers.findIndex(u => u.id === mockUser.id);
                     if (userIndex > -1) {
-                        // User exists, check if username or password needs updating
                         const storedUser = storedUsers[userIndex];
-                        if (storedUser.username !== mockUser.username || storedUser.password !== mockUser.password) {
-                            // Update user, preserving other data like profile pic
+                        // Update if key fields don't match or unit is missing
+                        if (
+                            storedUser.username !== mockUser.username || 
+                            storedUser.password !== mockUser.password ||
+                            !storedUser.unit // Add unit if it's missing
+                        ) {
                             updatedUsers[userIndex] = { ...storedUser, ...mockUser };
                             hasChanges = true;
                         }
                     } else {
-                        // Default user doesn't exist, add them
                         updatedUsers.push(mockUser);
                         hasChanges = true;
                     }

@@ -9,7 +9,6 @@ import UsersIcon from './icons/UsersIcon';
 import MegaphoneIcon from './icons/MegaphoneIcon';
 import NewReportIcon from './icons/NewReportIcon';
 import Avatar from './Avatar';
-import EmployeeFolder from './EmployeeFolder';
 import EmployeeReportsView from './EmployeeReportsView';
 import ReportDetail from './ReportDetail';
 import ArrowRightIcon from './icons/ArrowRightIcon';
@@ -20,6 +19,7 @@ import XMarkIcon from './icons/XMarkIcon';
 import DownloadIcon from './icons/DownloadIcon';
 import ThemeToggle from './ThemeToggle';
 import AppLogoIcon from './icons/AppLogoIcon';
+import UnitFolder from './UnitFolder';
 
 
 const ManagerDashboard: React.FC = () => {
@@ -46,6 +46,24 @@ const ManagerDashboard: React.FC = () => {
                 employee.fullName.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }, [employees, searchTerm]);
+        
+        const unitOrder = ['وحدة التمكين الفني', 'وحدة التنسيق الفني'];
+        
+        const groupedEmployees = useMemo(() => {
+            const groups: { [key: string]: User[] } = {};
+            unitOrder.forEach(unit => groups[unit] = []);
+            groups['غير معين'] = [];
+    
+            filteredEmployees.forEach(employee => {
+                const unit = employee.unit || 'غير معين';
+                if (!groups[unit]) {
+                    groups[unit] = [];
+                }
+                groups[unit].push(employee);
+            });
+    
+            return groups;
+        }, [filteredEmployees]);
 
         const getUnreadCount = (employeeId: string): number => {
             return reports.filter(r => r.userId === employeeId && !r.isViewedByManager).length;
@@ -101,6 +119,9 @@ const ManagerDashboard: React.FC = () => {
             );
         }
 
+        const allUnitKeys = [...unitOrder, 'غير معين'];
+        const totalFilteredEmployees = filteredEmployees.length;
+
         return (
             <div className="space-y-6">
                 <div className="p-4 mb-6 bg-white dark:bg-gray-800 rounded-lg shadow">
@@ -123,16 +144,22 @@ const ManagerDashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {filteredEmployees.length > 0 ? (
-                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {filteredEmployees.map(employee => (
-                            <EmployeeFolder
-                                key={employee.id}
-                                employee={employee}
-                                unreadCount={getUnreadCount(employee.id)}
-                                onClick={() => setSelectedEmployee(employee)}
-                            />
-                        ))}
+                {totalFilteredEmployees > 0 ? (
+                    <div className="space-y-8">
+                        {allUnitKeys.map(unitName => {
+                            const employeesInUnit = groupedEmployees[unitName];
+                            if (!employeesInUnit || employeesInUnit.length === 0) return null;
+
+                            return (
+                                <UnitFolder
+                                    key={unitName}
+                                    unitName={unitName}
+                                    employees={employeesInUnit}
+                                    getUnreadCount={getUnreadCount}
+                                    onEmployeeClick={setSelectedEmployee}
+                                />
+                            );
+                        })}
                     </div>
                 ) : (
                     <div className="text-center py-10 px-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
