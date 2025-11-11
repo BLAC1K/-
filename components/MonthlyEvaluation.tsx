@@ -46,22 +46,24 @@ const MonthlyEvaluation: React.FC<MonthlyEvaluationProps> = ({ employee, reports
             setError('');
             setSummary('');
 
-            try {
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-                
-                const accomplishedSummary = reportsForMonth
-                    .map(r => r.accomplished)
-                    .filter(a => a && a.trim() !== '')
-                    .map(a => `- ${a.trim()}`)
-                    .join('\n');
+            const MAX_RETRIES = 3;
+            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                try {
+                    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
                     
-                const notAccomplishedSummary = reportsForMonth
-                    .map(r => r.notAccomplished)
-                    .filter(na => na && na.trim() !== '')
-                    .map(na => `- ${na.trim()}`)
-                    .join('\n');
+                    const accomplishedSummary = reportsForMonth
+                        .map(r => r.accomplished)
+                        .filter(a => a && a.trim() !== '')
+                        .map(a => `- ${a.trim()}`)
+                        .join('\n');
+                        
+                    const notAccomplishedSummary = reportsForMonth
+                        .map(r => r.notAccomplished)
+                        .filter(na => na && na.trim() !== '')
+                        .map(na => `- ${na.trim()}`)
+                        .join('\n');
 
-                const prompt = `
+                    const prompt = `
 أنت مدير موارد بشرية خبير. قم بتحليل بيانات أداء الموظف "${employee.fullName}" لشهر ${monthName} ${year} وقدم ملخصًا تقييميًا موجزًا واحترافيًا باللغة العربية في نقاط.
 ركز على النقاط الإيجابية ومجالات التحسين المحتملة. لا تتجاوز 5 نقاط.
 
@@ -80,18 +82,35 @@ ${notAccomplishedSummary || "لم تذكر مهام لم تنجز."}
 
 اكتب ملخصك أدناه:
 `;
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: prompt,
-                });
+                    const response = await ai.models.generateContent({
+                        model: 'gemini-2.5-flash',
+                        contents: prompt,
+                    });
 
-                setSummary(response.text);
+                    setSummary(response.text);
+                    setIsLoading(false); // Success
+                    setError('');
+                    return; // Exit function on success
 
-            } catch (err) {
-                console.error("Error generating evaluation summary:", err);
-                setError('حدث خطأ أثناء إنشاء الملخص. الرجاء المحاولة مرة أخرى.');
-            } finally {
-                setIsLoading(false);
+                } catch (err: any) {
+                    console.error(`Error on attempt ${attempt}:`, err);
+                    const errorMessage = err.toString();
+
+                    const isOverloaded = errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE') || errorMessage.includes('overloaded');
+
+                    if (isOverloaded && attempt < MAX_RETRIES) {
+                        const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        if (isOverloaded) {
+                             setError('النموذج مشغول حاليًا. الرجاء المحاولة مرة أخرى لاحقًا.');
+                        } else {
+                            setError('حدث خطأ أثناء إنشاء الملخص. الرجاء المحاولة مرة أخرى.');
+                        }
+                        setIsLoading(false);
+                        return; // Exit function on final failure
+                    }
+                }
             }
         };
 

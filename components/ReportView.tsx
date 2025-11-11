@@ -2,6 +2,7 @@ import React from 'react';
 import { Report, User, Role } from '../types';
 import Avatar from './Avatar';
 import ChevronRightIcon from './icons/ChevronRightIcon';
+import CommentIcon from './icons/CommentIcon';
 
 interface ReportViewProps {
     report: Report;
@@ -26,6 +27,16 @@ const ReportView: React.FC<ReportViewProps> = ({ report, user, viewerRole, onCli
             }
             return <span className="px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full dark:bg-yellow-900/50 dark:text-yellow-300">تم الإرسال</span>;
         }
+        
+        if (isManager && report.managerComment) {
+            return (
+                <div className="flex items-center text-green-600 dark:text-green-400" title="تم التعليق على هذا التقرير">
+                    <CommentIcon className="w-5 h-5" />
+                    <span className="mr-1 text-xs font-semibold">تم التعليق</span>
+                </div>
+            );
+        }
+
         return null;
     }
 
