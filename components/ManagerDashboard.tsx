@@ -50,16 +50,15 @@ const ManagerDashboard: React.FC = () => {
         const unitOrder = ['وحدة التمكين الفني', 'وحدة التنسيق الفني'];
         
         const groupedEmployees = useMemo(() => {
-            const groups: { [key: string]: User[] } = {};
-            unitOrder.forEach(unit => groups[unit] = []);
-            groups['غير معين'] = [];
+            const groups: { [key: string]: User[] } = {
+                'وحدة التمكين الفني': [],
+                'وحدة التنسيق الفني': [],
+            };
     
             filteredEmployees.forEach(employee => {
-                const unit = employee.unit || 'غير معين';
-                if (!groups[unit]) {
-                    groups[unit] = [];
+                if (employee.unit && (employee.unit === 'وحدة التمكين الفني' || employee.unit === 'وحدة التنسيق الفني')) {
+                    groups[employee.unit].push(employee);
                 }
-                groups[unit].push(employee);
             });
     
             return groups;
@@ -119,8 +118,9 @@ const ManagerDashboard: React.FC = () => {
             );
         }
 
-        const allUnitKeys = [...unitOrder, 'غير معين'];
-        const totalFilteredEmployees = filteredEmployees.length;
+        const allUnitKeys = unitOrder;
+        // FIX: Replaced Object.values with Object.keys for better type inference to resolve error "Property 'length' does not exist on type 'unknown'".
+        const hasAssignedEmployees = Object.keys(groupedEmployees).some(key => groupedEmployees[key].length > 0);
 
         return (
             <div className="space-y-6">
@@ -144,7 +144,7 @@ const ManagerDashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {totalFilteredEmployees > 0 ? (
+                {hasAssignedEmployees ? (
                     <div className="space-y-8">
                         {allUnitKeys.map(unitName => {
                             const employeesInUnit = groupedEmployees[unitName];
@@ -163,7 +163,11 @@ const ManagerDashboard: React.FC = () => {
                     </div>
                 ) : (
                     <div className="text-center py-10 px-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-                        <p className="text-gray-500 dark:text-gray-400">لا يوجد منتسبين يطابقون معايير البحث.</p>
+                        <p className="text-gray-500 dark:text-gray-400">
+                             {searchTerm
+                                ? 'لا يوجد منتسبون معينون لوحدة يطابقون البحث.'
+                                : 'لا يوجد منتسبون معينون في أي وحدة حالياً.'}
+                        </p>
                     </div>
                 )}
             </div>

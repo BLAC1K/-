@@ -285,41 +285,44 @@ const UserManagement: React.FC = () => {
                     إضافة منتسب
                 </button>
             </div>
-             <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">الاسم</th>
-                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">الصفة الوظيفية</th>
-                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">الوحدة</th>
-                            <th scope="col" className="relative px-6 py-3">
-                                <span className="sr-only">تعديل</span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {employees.map(user => (
-                            <tr key={user.id}>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="flex items-center">
-                                        <Avatar src={user.profilePictureUrl} name={user.fullName} size={40} />
-                                        <div className="mr-4">
-                                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.fullName}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{user.jobTitle}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{user.unit || 'غير معين'}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
-                                    <div className="flex items-center justify-end space-x-2 space-x-reverse">
-                                        <button onClick={() => openEditModal(user)} className="p-2 text-gray-400 hover:text-brand-light rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><EditIcon className="w-5 h-5"/></button>
-                                        <button onClick={() => confirmDelete(user)} className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30"><TrashIcon className="w-5 h-5"/></button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                {employees.length > 0 ? employees.map(user => (
+                    <div key={user.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 flex flex-col border border-gray-200 dark:border-gray-700 hover:border-brand-light transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-center space-x-4 space-x-reverse">
+                                <Avatar src={user.profilePictureUrl} name={user.fullName} size={48} />
+                                <div>
+                                    <p className="font-bold text-lg text-brand-dark dark:text-gray-100">{user.fullName}</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">{user.jobTitle}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-1 space-x-reverse shrink-0">
+                                <button onClick={() => openEditModal(user)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-light rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="تعديل">
+                                    <EditIcon className="w-5 h-5"/>
+                                </button>
+                                <button onClick={() => confirmDelete(user)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" title="حذف">
+                                    <TrashIcon className="w-5 h-5"/>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                            <p className="text-sm flex items-center">
+                                <span className="font-semibold text-gray-700 dark:text-gray-300 w-20 shrink-0">الوحدة:</span>
+                                <span className="mr-2 text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full text-xs">{user.unit || 'غير معين'}</span>
+                            </p>
+                            <p className="text-sm flex items-center">
+                                <span className="font-semibold text-gray-700 dark:text-gray-300 w-20 shrink-0">رقم الباج:</span>
+                                <span className="mr-2 text-gray-600 dark:text-gray-400">{user.badgeNumber}</span>
+                            </p>
+                        </div>
+                    </div>
+                )) : (
+                    <div className="col-span-1 sm:col-span-2 xl:col-span-3 text-center py-10 px-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                        <p className="text-gray-500 dark:text-gray-400">
+                            لا يوجد منتسبون مضافون حالياً.
+                        </p>
+                    </div>
+                )}
             </div>
             {isModalOpen && <UserFormModal user={editingUser} onClose={() => setIsModalOpen(false)} onSave={handleSaveUser} />}
              {deletingUser && (
