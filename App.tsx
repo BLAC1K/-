@@ -33,11 +33,11 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
     return (
         <ThemeProvider>
-            <AuthProvider>
-                <DataProvider>
+            <DataProvider>
+                <AuthProvider>
                     <AppContent />
-                </DataProvider>
-            </AuthProvider>
+                </AuthProvider>
+            </DataProvider>
         </ThemeProvider>
     );
 };
