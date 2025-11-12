@@ -40,21 +40,20 @@ const UnitFolder: React.FC<UnitFolderProps> = ({ unitName, employees, getUnreadC
                 </span>
 
                 {!isOpen && totalUnreadInUnit > 0 && (
-                     <span className="flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold text-white bg-brand-accent-red rounded-full animate-pulse">
+                     <span className="flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold text-white bg-brand-accent-red rounded-full">
                         {totalUnreadInUnit}
-                    </span>
+                     </span>
                 )}
-
-                <div className="mr-auto flex items-center">
-                    {isOpen ? <ChevronDownIcon className="w-6 h-6 text-gray-500 dark:text-gray-400" /> : <ChevronLeftIcon className="w-6 h-6 text-gray-500 dark:text-gray-400" />}
-                </div>
+                
+                {isOpen ? (
+                    <ChevronDownIcon className="w-6 h-6 mr-auto text-gray-500 transition-transform"/>
+                ) : (
+                    <ChevronLeftIcon className="w-6 h-6 mr-auto text-gray-500 transition-transform"/>
+                )}
             </header>
             
             {isOpen && (
-                 <div 
-                    id={`unit-content-${unitName.replace(/\s/g, '-')}`}
-                    className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in-right"
-                >
+                <div id={`unit-content-${unitName.replace(/\s/g, '-')}`} className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-fade-in">
                     {employees.map(employee => (
                         <EmployeeFolder
                             key={employee.id}

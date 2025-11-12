@@ -8,4 +8,3 @@ const PaperclipIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 export default PaperclipIcon;
-   

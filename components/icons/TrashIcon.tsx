@@ -8,4 +8,3 @@ const TrashIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 export default TrashIcon;
-   

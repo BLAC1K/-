@@ -29,6 +29,13 @@ const SendTaskModal: React.FC<SendTaskModalProps> = ({ employee, manager, onClos
             employeeId: employee.id,
             content: taskContent,
         });
+        
+        // Notify employee about the new task
+        localStorage.setItem('task_notification', JSON.stringify({
+            userId: employee.id,
+            message: `لديك مهمة جديدة من ${manager.fullName}.`
+        }));
+        
         setIsSending(false);
         onClose();
     };

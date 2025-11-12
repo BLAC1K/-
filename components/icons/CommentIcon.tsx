@@ -8,4 +8,3 @@ const CommentIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 export default CommentIcon;
-   

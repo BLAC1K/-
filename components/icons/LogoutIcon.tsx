@@ -8,4 +8,3 @@ const LogoutIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 export default LogoutIcon;
-   

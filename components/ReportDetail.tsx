@@ -6,6 +6,7 @@ import DocumentTextIcon from './icons/DocumentTextIcon';
 import CommentIcon from './icons/CommentIcon';
 import DownloadIcon from './icons/DownloadIcon';
 import SignaturePreview from './SignaturePreview';
+import AIReportAnalysis from './AIReportAnalysis';
 
 // This component will render the detailed content of a report.
 // It contains the logic previously in the expanded state of ReportView.
@@ -42,6 +43,12 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
         setReport(updatedReport); // Optimistic UI update
         setIsEditingComment(false);
         await updateReport(updatedReport);
+        
+        // Notify employee about the new comment
+        localStorage.setItem('comment_notification', JSON.stringify({
+            userId: report.userId,
+            message: `لديك تعليق جديد من المسؤول على تقريرك بتاريخ ${report.date}.`
+        }));
     };
 
     const handleRatingBlur = async () => {
@@ -212,6 +219,10 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                         ) : <p>لا توجد مرفقات.</p>}
                     </dd>
                 </div>
+                
+                {isManager && (
+                    <AIReportAnalysis report={report} />
+                )}
             </dl>
         </div>
     );

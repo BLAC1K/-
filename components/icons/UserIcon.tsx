@@ -8,4 +8,3 @@ const UserIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 export default UserIcon;
-   
