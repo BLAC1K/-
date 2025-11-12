@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect } from 'react';
-import { User, Report, Role, Announcement } from '../types';
+import { User, Report, Role, Announcement, DirectTask } from '../types';
 
 const MOCK_USERS: User[] = [
     { id: '1', fullName: 'وسام عبدالسلام جلوب', badgeNumber: 'MGR-001', username: 'admin', role: Role.MANAGER, password: 'admin', jobTitle: 'مسؤول شعبة الفنون والمسرح' },
@@ -24,6 +24,8 @@ const MOCK_REPORTS: Report[] = [];
 const MOCK_ANNOUNCEMENTS: Announcement[] = [
     { id: 'a1', content: 'تذكير: اجتماع الشعبة يوم الخميس الساعة 10 صباحاً.', date: '2024-07-28T10:00:00Z', readBy: [] },
 ];
+
+const MOCK_DIRECT_TASKS: DirectTask[] = [];
 
 const APP_STORAGE_KEY = 'dailyTasksAppData';
 
@@ -85,6 +87,10 @@ const getInitialState = () => {
                         return ann;
                     });
                 }
+                 // Ensure directTasks exists
+                if (!parsedData.directTasks) {
+                    parsedData.directTasks = MOCK_DIRECT_TASKS;
+                }
                 return parsedData;
             }
         }
@@ -95,6 +101,7 @@ const getInitialState = () => {
         users: MOCK_USERS,
         reports: MOCK_REPORTS,
         announcements: MOCK_ANNOUNCEMENTS,
+        directTasks: MOCK_DIRECT_TASKS,
     };
 };
 
@@ -103,6 +110,7 @@ interface DataContextType {
     users: User[];
     reports: Report[];
     announcements: Announcement[];
+    directTasks: DirectTask[];
     getUserById: (id: string) => User | undefined;
     addReport: (report: Omit<Report, 'id' | 'sequenceNumber'>) => void;
     updateReport: (updatedReport: Report) => void;
@@ -115,6 +123,9 @@ interface DataContextType {
     updateAnnouncement: (announcementId: string, content: string) => void;
     deleteAnnouncement: (announcementId: string) => void;
     markAnnouncementAsRead: (announcementId: string, userId: string) => void;
+    addDirectTask: (task: Omit<DirectTask, 'id' | 'sentAt' | 'status' | 'isReadByEmployee'>) => void;
+    updateDirectTaskStatus: (taskId: string, status: 'acknowledged' | 'rejected', rejectionReason?: string) => void;
+    markDirectTaskAsRead: (taskId: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -124,14 +135,43 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [users, setUsers] = useState<User[]>(initialState.users);
     const [reports, setReports] = useState<Report[]>(initialState.reports);
     const [announcements, setAnnouncements] = useState<Announcement[]>(initialState.announcements);
+    const [directTasks, setDirectTasks] = useState<DirectTask[]>(initialState.directTasks);
 
     useEffect(() => {
         try {
-            localStorage.setItem(APP_STORAGE_KEY, JSON.stringify({ users, reports, announcements }));
+            localStorage.setItem(APP_STORAGE_KEY, JSON.stringify({ users, reports, announcements, directTasks }));
         } catch (error) {
             console.error("Could not save app state to localStorage", error);
         }
-    }, [users, reports, announcements]);
+    }, [users, reports, announcements, directTasks]);
+
+    // This useEffect handles synchronization between browser tabs and on window focus.
+    useEffect(() => {
+        const syncStateFromStorage = () => {
+            // We re-run getInitialState because it contains the logic to parse, validate, and migrate data.
+            const currentState = getInitialState();
+            setUsers(currentState.users);
+            setReports(currentState.reports);
+            setAnnouncements(currentState.announcements);
+            setDirectTasks(currentState.directTasks);
+        };
+
+        const handleStorageChange = (event: StorageEvent) => {
+            if (event.key === APP_STORAGE_KEY) {
+                syncStateFromStorage();
+            }
+        };
+
+        // Listen for changes from other tabs
+        window.addEventListener('storage', handleStorageChange);
+        // Also sync when the tab regains focus
+        window.addEventListener('focus', syncStateFromStorage);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('focus', syncStateFromStorage);
+        };
+    }, []);
 
 
     const getUserById = useCallback((id: string) => users.find(u => u.id === id), [users]);
@@ -217,10 +257,51 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }));
     }, []);
 
+    const addDirectTask = useCallback((task: Omit<DirectTask, 'id' | 'sentAt' | 'status' | 'isReadByEmployee'>) => {
+        const newDirectTask: DirectTask = {
+            ...task,
+            id: `dt-${Date.now()}`,
+            sentAt: new Date().toISOString(),
+            status: 'pending',
+            isReadByEmployee: false
+        };
+        setDirectTasks(prev => [newDirectTask, ...prev]);
+         // Fire real-time notification event
+        const notificationPayload = {
+            userId: task.employeeId,
+            taskId: newDirectTask.id,
+            timestamp: Date.now(),
+            message: `لديك مهمة جديدة من المسؤول.`
+        };
+        localStorage.setItem('task_notification', JSON.stringify(notificationPayload));
+    }, []);
+
+    const updateDirectTaskStatus = useCallback((taskId: string, status: 'acknowledged' | 'rejected', rejectionReason?: string) => {
+        setDirectTasks(prev => prev.map(task => {
+            if (task.id === taskId) {
+                return {
+                    ...task,
+                    status,
+                    rejectionReason: rejectionReason,
+                    acknowledgedAt: new Date().toISOString(),
+                    isReadByEmployee: true
+                };
+            }
+            return task;
+        }));
+    }, []);
+    
+    const markDirectTaskAsRead = useCallback((taskId: string) => {
+        setDirectTasks(prev => prev.map(task => 
+            task.id === taskId ? { ...task, isReadByEmployee: true } : task
+        ));
+    }, []);
+
     const value = useMemo(() => ({
         users,
         reports,
         announcements,
+        directTasks,
         getUserById,
         addReport,
         updateReport,
@@ -232,11 +313,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         addAnnouncement,
         updateAnnouncement,
         deleteAnnouncement,
-        markAnnouncementAsRead
+        markAnnouncementAsRead,
+        addDirectTask,
+        updateDirectTaskStatus,
+        markDirectTaskAsRead
     }), [
-        users, reports, announcements, getUserById, addReport, updateReport,
+        users, reports, announcements, directTasks, getUserById, addReport, updateReport,
         markReportAsViewed, markCommentAsRead, addUser, updateUser, deleteUser,
-        addAnnouncement, updateAnnouncement, deleteAnnouncement, markAnnouncementAsRead
+        addAnnouncement, updateAnnouncement, deleteAnnouncement, markAnnouncementAsRead,
+        addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
     ]);
 
     return (

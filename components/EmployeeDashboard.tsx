@@ -25,6 +25,8 @@ import HashtagIcon from './icons/HashtagIcon';
 import ThemeToggle from './ThemeToggle';
 import AppLogoIcon from './icons/AppLogoIcon';
 import HomeIcon from './icons/HomeIcon';
+import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
+import DirectTasksView from './DirectTasksView';
 
 
 interface ReportFormProps {
@@ -237,7 +239,7 @@ const WelcomeView: React.FC<{ user: User; onStart: () => void }> = ({ user, onSt
 
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
-    const { reports, announcements, markAnnouncementAsRead } = useData();
+    const { reports, announcements, markAnnouncementAsRead, directTasks } = useData();
     const [activeTab, setActiveTab] = useState('welcome');
     const [viewingReport, setViewingReport] = useState<Report | null>(null);
     const [notification, setNotification] = useState<string | null>(null);
@@ -250,6 +252,10 @@ const EmployeeDashboard: React.FC = () => {
     // FIX: Corrected the dependency array for useMemo from `inboxes` to `inboxReports`.
     const unreadCommentsCount = useMemo(() => inboxReports.filter(r => !r.isCommentReadByEmployee).length, [inboxReports]);
     const unreadAnnouncementsCount = useMemo(() => announcements.filter(a => !a.readBy.some(r => r.userId === currentUser.id)).length, [announcements, currentUser.id]);
+    
+    const myDirectTasks = useMemo(() => directTasks.filter(t => t.employeeId === currentUser.id), [directTasks, currentUser.id]);
+    const unreadDirectTasksCount = useMemo(() => myDirectTasks.filter(t => t.status === 'pending').length, [myDirectTasks]);
+
     const nextSequenceNumber = myReports.length + 1;
 
     // Real-time notification listener
@@ -265,6 +271,16 @@ const EmployeeDashboard: React.FC = () => {
                     console.error("Failed to parse notification from storage", e);
                 }
             }
+            if (event.key === 'task_notification' && event.newValue && currentUser) {
+                 try {
+                    const payload = JSON.parse(event.newValue);
+                    if (payload.userId === currentUser.id) {
+                        setNotification(payload.message || 'لديك مهمة جديدة من المسؤول.');
+                    }
+                } catch (e) {
+                    console.error("Failed to parse notification from storage", e);
+                }
+            }
         };
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
@@ -275,6 +291,7 @@ const EmployeeDashboard: React.FC = () => {
         new: 'تقرير جديد',
         submitted: 'التقارير الصادرة',
         inbox: 'البريد الوارد',
+        directTasks: 'المهام الواردة',
         announcements: 'التوجيهات والتعاميم',
         profile: 'الملف الشخصي',
     };
@@ -299,6 +316,8 @@ const EmployeeDashboard: React.FC = () => {
                         )) : <p className="text-gray-500 dark:text-gray-400">لا توجد لديك أي رسائل في البريد الوارد.</p>}
                     </div>
                 );
+            case 'directTasks':
+                return <DirectTasksView />;
             case 'announcements':
                 return (
                     <div className="space-y-4">
@@ -375,6 +394,7 @@ const EmployeeDashboard: React.FC = () => {
                 <NavItem tabName='new' label='تقرير جديد' icon={<NewReportIcon className="w-6 h-6"/>} />
                 <NavItem tabName='submitted' label='صادر' icon={<OutboxIcon className="w-6 h-6"/>} />
                 <NavItem tabName='inbox' label='الوارد' icon={<InboxIcon className="w-6 h-6"/>} count={unreadCommentsCount}/>
+                <NavItem tabName='directTasks' label='المهام الواردة' icon={<ClipboardDocumentListIcon className="w-6 h-6"/>} count={unreadDirectTasksCount}/>
                 <NavItem tabName='announcements' label='التوجيهات' icon={<MegaphoneIcon className="w-6 h-6"/>} count={unreadAnnouncementsCount}/>
                 <NavItem tabName='profile' label='الملف الشخصي' icon={<UserCircleIcon className="w-6 h-6"/>} />
             </nav>
@@ -434,7 +454,11 @@ const EmployeeDashboard: React.FC = () => {
                     message={notification}
                     onClose={() => setNotification(null)}
                     onClick={() => {
-                        setActiveTab('inbox');
+                        if (notification.includes('مهمة')) {
+                             setActiveTab('directTasks');
+                        } else {
+                             setActiveTab('inbox');
+                        }
                         setNotification(null);
                     }}
                 />

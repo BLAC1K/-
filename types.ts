@@ -70,3 +70,15 @@ export interface Announcement {
     date: string;
     readBy: ReadEntry[]; // Array of ReadEntry objects
 }
+
+export interface DirectTask {
+    id: string;
+    managerId: string;
+    employeeId: string;
+    content: string;
+    sentAt: string;
+    status: 'pending' | 'acknowledged' | 'rejected';
+    acknowledgedAt?: string;
+    rejectionReason?: string;
+    isReadByEmployee: boolean;
+}

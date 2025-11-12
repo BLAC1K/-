@@ -1,10 +1,73 @@
 import React, { useState, useMemo } from 'react';
 import { User, Report, Role } from '../types';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import ReportView from './ReportView';
 import Avatar from './Avatar';
 import ArrowRightIcon from './icons/ArrowRightIcon';
 import MonthlyEvaluation from './MonthlyEvaluation';
+import PaperAirplaneIcon from './icons/PaperAirplaneIcon';
+import XCircleIcon from './icons/XCircleIcon';
+
+
+interface SendTaskModalProps {
+    employee: User;
+    manager: User;
+    onClose: () => void;
+}
+
+const SendTaskModal: React.FC<SendTaskModalProps> = ({ employee, manager, onClose }) => {
+    const [taskContent, setTaskContent] = useState('');
+    const [isSending, setIsSending] = useState(false);
+    const { addDirectTask } = useData();
+
+    const handleSend = () => {
+        if (!taskContent.trim()) return;
+        setIsSending(true);
+        addDirectTask({
+            managerId: manager.id,
+            employeeId: employee.id,
+            content: taskContent,
+        });
+        setTimeout(() => {
+            setIsSending(false);
+            onClose();
+        }, 500);
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" onClick={onClose}>
+            <div className="w-full max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-start justify-between pb-4 border-b dark:border-gray-700">
+                    <div>
+                        <h2 className="text-xl font-bold text-brand-dark dark:text-gray-100">إرسال مهمة جديدة إلى {employee.fullName.split(' ')[0]}</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">ستصل المهمة إلى المنتسب في قسم المهام الواردة.</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <XCircleIcon className="w-7 h-7" />
+                    </button>
+                </div>
+                <div className="mt-4">
+                    <textarea
+                        value={taskContent}
+                        onChange={(e) => setTaskContent(e.target.value)}
+                        rows={5}
+                        placeholder={`اكتب نص المهمة الموجهة إلى ${employee.fullName.split(' ')[0]}...`}
+                        className="block w-full p-2 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200"
+                    />
+                </div>
+                <div className="flex justify-end pt-4 mt-4 border-t dark:border-gray-700 space-x-2 space-x-reverse">
+                    <button onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">إلغاء</button>
+                    <button onClick={handleSend} disabled={isSending || !taskContent.trim()} className="flex items-center px-4 py-2 text-white bg-brand-light rounded-md hover:bg-brand-dark disabled:bg-opacity-50">
+                         <PaperAirplaneIcon className="w-5 h-5 ml-2" />
+                        {isSending ? 'جارِ الإرسال...' : 'إرسال'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 interface EmployeeReportsViewProps {
     employee: User;
@@ -14,6 +77,8 @@ interface EmployeeReportsViewProps {
 
 const EmployeeReportsView: React.FC<EmployeeReportsViewProps> = ({ employee, onViewReport, onBack }) => {
     const { reports } = useData();
+    const { currentUser: manager } = useAuth();
+    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     // Default to current month in YYYY-MM format
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
 
@@ -32,6 +97,7 @@ const EmployeeReportsView: React.FC<EmployeeReportsViewProps> = ({ employee, onV
 
 
     return (
+         <>
          <div className="bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 rounded-lg shadow-inner animate-fade-in">
              {/* Header */}
              <div className="flex flex-col sm:flex-row items-start justify-between pb-4 mb-4 border-b dark:border-gray-700 gap-3">
@@ -42,13 +108,22 @@ const EmployeeReportsView: React.FC<EmployeeReportsViewProps> = ({ employee, onV
                         <p className="text-sm text-gray-600 dark:text-gray-400">{employee.jobTitle}</p>
                     </div>
                 </div>
-                 <button 
-                    onClick={onBack}
-                    className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-brand-dark dark:hover:text-cyan-300 transition-colors"
-                >
-                    <ArrowRightIcon className="w-5 h-5 ml-2" />
-                    العودة إلى قائمة المنتسبين
-                </button>
+                 <div className="flex items-center flex-col-reverse sm:flex-row gap-3">
+                     <button 
+                        onClick={onBack}
+                        className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-brand-dark dark:hover:text-cyan-300 transition-colors"
+                    >
+                        <ArrowRightIcon className="w-5 h-5 ml-2" />
+                        العودة إلى قائمة المنتسبين
+                    </button>
+                    <button
+                        onClick={() => setIsTaskModalOpen(true)}
+                        className="flex items-center text-sm font-medium text-white bg-brand-accent-green hover:bg-green-700 transition-colors px-3 py-2 rounded-md shadow-sm"
+                    >
+                        <PaperAirplaneIcon className="w-5 h-5 ml-2" />
+                        إرسال مهمة جديدة
+                    </button>
+                </div>
             </div>
              
              {/* Month selector and Evaluation */}
@@ -96,6 +171,14 @@ const EmployeeReportsView: React.FC<EmployeeReportsViewProps> = ({ employee, onV
                 )}
             </div>
          </div>
+         {isTaskModalOpen && manager && (
+            <SendTaskModal
+                employee={employee}
+                manager={manager}
+                onClose={() => setIsTaskModalOpen(false)}
+            />
+        )}
+        </>
     );
 };
 
