@@ -26,6 +26,9 @@ const MOCK_DIRECT_TASKS: DirectTask[] = [];
 const APP_STORAGE_KEY = 'dailyTasksAppData';
 const LATENCY = 150; // ms
 
+// IMPORTANT: This is a placeholder for your actual backend API URL.
+const API_BASE_URL = '/api';
+
 interface AppState {
     users: User[];
     reports: Report[];
@@ -33,7 +36,7 @@ interface AppState {
     directTasks: DirectTask[];
 }
 
-// --- Data Access and Migration ---
+// --- Local Storage Simulation (for offline/demo mode) ---
 const getFullState = (): AppState => {
     try {
         const storedData = localStorage.getItem(APP_STORAGE_KEY);
@@ -84,12 +87,15 @@ const getFullState = (): AppState => {
 const saveFullState = (state: AppState) => {
     try {
         localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
+        // This is a local broadcast for other tabs, not a network sync.
+        localStorage.setItem('__last_update', Date.now().toString());
     } catch (error) {
         console.error("Could not save app state to localStorage", error);
     }
 };
 
 const simulateAPICall = <T,>(action: () => T): Promise<T> => {
+    console.warn("API Service is running in local simulation mode. Data is NOT synced over the network.");
     return new Promise(resolve => {
         setTimeout(() => {
             const result = action();
@@ -101,11 +107,52 @@ const simulateAPICall = <T,>(action: () => T): Promise<T> => {
 // --- API Service Functions ---
 
 export const fetchInitialData = async (): Promise<AppState> => {
+    // --- REAL API IMPLEMENTATION (Example) ---
+    /*
+    try {
+        const [usersRes, reportsRes, announcementsRes, directTasksRes] = await Promise.all([
+            fetch(`${API_BASE_URL}/users`),
+            fetch(`${API_BASE_URL}/reports`),
+            fetch(`${API_BASE_URL}/announcements`),
+            fetch(`${API_BASE_URL}/directTasks`),
+        ]);
+        
+        if (!usersRes.ok || !reportsRes.ok || !announcementsRes.ok || !directTasksRes.ok) {
+            throw new Error('Failed to fetch initial data from the server.');
+        }
+
+        const users = await usersRes.json();
+        const reports = await reportsRes.json();
+        const announcements = await announcementsRes.json();
+        const directTasks = await directTasksRes.json();
+
+        return { users, reports, announcements, directTasks };
+
+    } catch (error) {
+        console.error("API Error: Could not fetch initial data.", error);
+        // Fallback to local data or show an error state
+        return getFullState(); // Fallback to localStorage for now
+    }
+    */
+    
+    // --- CURRENT LOCALSTORAGE IMPLEMENTATION (for offline/demo mode) ---
     return simulateAPICall(getFullState);
 };
 
 // REPORTS
 export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>): Promise<Report> => {
+    // --- REAL API IMPLEMENTATION (Example) ---
+    /*
+    const response = await fetch(`${API_BASE_URL}/reports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(report),
+    });
+    if (!response.ok) throw new Error('Failed to create report.');
+    return await response.json();
+    */
+
+    // --- CURRENT LOCALSTORAGE IMPLEMENTATION ---
     return simulateAPICall(() => {
         const state = getFullState();
         const userReportsCount = state.reports.filter(r => r.userId === report.userId && r.status === 'submitted').length;
@@ -124,26 +171,20 @@ export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' 
 };
 
 export const updateReport = async (updatedReport: Report): Promise<Report> => {
+    // --- REAL API IMPLEMENTATION (Example) ---
+    /*
+    const response = await fetch(`${API_BASE_URL}/reports/${updatedReport.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedReport),
+    });
+    if (!response.ok) throw new Error('Failed to update report.');
+    return await response.json();
+    */
+
+    // --- CURRENT LOCALSTORAGE IMPLEMENTATION ---
     return simulateAPICall(() => {
         const state = getFullState();
-        const originalReport = state.reports.find(r => r.id === updatedReport.id);
-        
-        if (updatedReport.status === 'submitted' && originalReport?.status === 'draft') {
-             const userReportsCount = state.reports.filter(r => r.userId === updatedReport.userId && r.status === 'submitted').length;
-             updatedReport.sequenceNumber = userReportsCount + 1;
-        }
-
-        if (originalReport && updatedReport.managerComment && originalReport.managerComment !== updatedReport.managerComment) {
-            updatedReport.isCommentReadByEmployee = false;
-            const notificationPayload = {
-                userId: updatedReport.userId,
-                reportId: updatedReport.id,
-                timestamp: Date.now(),
-                message: `لديك تعليق جديد من المسؤول على تقريرك بتاريخ ${updatedReport.date}.`
-            };
-            localStorage.setItem('comment_notification', JSON.stringify(notificationPayload));
-        }
-
         state.reports = state.reports.map(r => r.id === updatedReport.id ? updatedReport : r);
         saveFullState(state);
         return updatedReport;
@@ -151,6 +192,20 @@ export const updateReport = async (updatedReport: Report): Promise<Report> => {
 };
 
 export const saveOrUpdateDraft = async (draft: Partial<Report>): Promise<Report> => {
+    // --- REAL API IMPLEMENTATION (Example) ---
+    /*
+    const url = draft.id ? `${API_BASE_URL}/drafts/${draft.id}` : `${API_BASE_URL}/drafts`;
+    const method = draft.id ? 'PUT' : 'POST';
+    const response = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(draft),
+    });
+    if (!response.ok) throw new Error('Failed to save draft.');
+    return await response.json();
+    */
+    
+    // --- CURRENT LOCALSTORAGE IMPLEMENTATION ---
     return simulateAPICall(() => {
         const state = getFullState();
         let savedDraft: Report;
@@ -172,6 +227,13 @@ export const saveOrUpdateDraft = async (draft: Partial<Report>): Promise<Report>
 };
 
 export const deleteReport = async (reportId: string): Promise<void> => {
+    // --- REAL API IMPLEMENTATION (Example) ---
+    /*
+    const response = await fetch(`${API_BASE_URL}/reports/${reportId}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Failed to delete report.');
+    */
+
+    // --- CURRENT LOCALSTORAGE IMPLEMENTATION ---
     return simulateAPICall(() => {
         const state = getFullState();
         state.reports = state.reports.filter(r => r.id !== reportId);
@@ -179,20 +241,15 @@ export const deleteReport = async (reportId: string): Promise<void> => {
     });
 };
     
+// FIX: The async arrow functions implicitly returned the Promise<Report> from updateReport,
+// which mismatched the declared Promise<void> return type. Adding braces and `await`
+// makes the function body a statement, correctly returning void.
 export const markReportAsViewed = async (reportId: string): Promise<void> => {
-    return simulateAPICall(() => {
-        const state = getFullState();
-        state.reports = state.reports.map(r => r.id === reportId ? { ...r, isViewedByManager: true } : r);
-        saveFullState(state);
-    });
+    await updateReport({ ...getFullState().reports.find(r => r.id === reportId)!, isViewedByManager: true });
 };
 
 export const markCommentAsRead = async (reportId: string): Promise<void> => {
-    return simulateAPICall(() => {
-        const state = getFullState();
-        state.reports = state.reports.map(r => r.id === reportId ? { ...r, isCommentReadByEmployee: true } : r);
-        saveFullState(state);
-    });
+    await updateReport({ ...getFullState().reports.find(r => r.id === reportId)!, isCommentReadByEmployee: true });
 };
 
 // USERS
@@ -291,13 +348,6 @@ export const createDirectTask = async (task: Omit<DirectTask, 'id' | 'sentAt' | 
         };
         state.directTasks = [newDirectTask, ...state.directTasks];
         saveFullState(state);
-        const notificationPayload = {
-            userId: task.employeeId,
-            taskId: newDirectTask.id,
-            timestamp: Date.now(),
-            message: `لديك مهمة جديدة من المسؤول.`
-        };
-        localStorage.setItem('task_notification', JSON.stringify(notificationPayload));
         return newDirectTask;
     });
 };
