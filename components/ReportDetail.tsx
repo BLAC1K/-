@@ -17,40 +17,40 @@ interface ReportDetailProps {
 }
 
 const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user, viewerRole }) => {
-    const [report, setReport] = useState<Report>(initialReport);
+    const { updateReport } = useData();
+    const [report, setReport] = useState<Report>(initialReport); // Local copy for immediate UI feedback
     const [localRating, setLocalRating] = useState<string>((initialReport.rating ?? '').toString());
     const [isEditingComment, setIsEditingComment] = useState(false);
     const [comment, setComment] = useState(report.managerComment || '');
-    const { updateReport } = useData();
     
     const isManager = viewerRole === Role.MANAGER;
 
-    const handleTaskDelete = (taskId: string) => {
+    const handleTaskDelete = async (taskId: string) => {
         const taskComment = prompt("الرجاء إضافة هامش على سبب الحذف:");
         if (taskComment !== null) {
             const updatedTasks = report.tasks.map(task => 
                 task.id === taskId ? { ...task, isDeleted: true, managerComment: taskComment } : task
             );
             const updatedReport = { ...report, tasks: updatedTasks };
-            setReport(updatedReport);
-            updateReport(updatedReport);
+            setReport(updatedReport); // Optimistic UI update
+            await updateReport(updatedReport);
         }
     };
     
-    const handleSaveManagerComment = () => {
+    const handleSaveManagerComment = async () => {
         const updatedReport = { ...report, managerComment: comment };
-        setReport(updatedReport);
-        updateReport(updatedReport);
+        setReport(updatedReport); // Optimistic UI update
         setIsEditingComment(false);
+        await updateReport(updatedReport);
     };
 
-    const handleRatingBlur = () => {
+    const handleRatingBlur = async () => {
         let newRating = parseInt(localRating, 10);
         if (isNaN(newRating)) {
              const updatedReport = { ...report, rating: undefined };
              if (report.rating !== undefined) {
                 setReport(updatedReport);
-                updateReport(updatedReport);
+                await updateReport(updatedReport);
              }
              return;
         }
@@ -61,7 +61,7 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
         const updatedReport = { ...report, rating: newRating };
         if (report.rating !== newRating) {
            setReport(updatedReport);
-           updateReport(updatedReport);
+           await updateReport(updatedReport);
         }
     };
 

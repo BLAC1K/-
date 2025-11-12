@@ -95,13 +95,16 @@ const DetailsModal: React.FC<{
 const EditAnnouncementModal: React.FC<{
     announcement: Announcement;
     onClose: () => void;
-    onSave: (announcementId: string, content: string) => void;
+    onSave: (announcementId: string, content: string) => Promise<void>;
 }> = ({ announcement, onClose, onSave }) => {
     const [content, setContent] = useState(announcement.content);
+    const [isSaving, setIsSaving] = useState(false);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (content.trim()) {
-            onSave(announcement.id, content);
+            setIsSaving(true);
+            await onSave(announcement.id, content);
+            setIsSaving(false);
         }
     };
 
@@ -116,8 +119,10 @@ const EditAnnouncementModal: React.FC<{
                     className="block w-full p-2 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200"
                 />
                 <div className="flex justify-end pt-4 mt-4 border-t dark:border-gray-700 space-x-2 space-x-reverse">
-                    <button onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">إلغاء</button>
-                    <button onClick={handleSave} className="px-4 py-2 text-white bg-brand-light rounded-md hover:bg-brand-dark">حفظ التعديلات</button>
+                    <button onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500" disabled={isSaving}>إلغاء</button>
+                    <button onClick={handleSave} className="px-4 py-2 text-white bg-brand-light rounded-md hover:bg-brand-dark" disabled={isSaving}>
+                        {isSaving ? 'جارِ الحفظ...' : 'حفظ التعديلات'}
+                    </button>
                 </div>
             </div>
         </div>
@@ -136,24 +141,24 @@ const AnnouncementCenter: React.FC = () => {
     const employees = useMemo(() => users.filter(u => u.role === Role.EMPLOYEE), [users]);
     const totalEmployees = employees.length;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newAnnouncement.trim()) {
             setIsSubmitting(true);
-            addAnnouncement(newAnnouncement);
+            await addAnnouncement(newAnnouncement);
             setNewAnnouncement('');
-            setTimeout(() => setIsSubmitting(false), 500);
+            setIsSubmitting(false);
         }
     };
     
-    const handleUpdate = (announcementId: string, content: string) => {
-        updateAnnouncement(announcementId, content);
+    const handleUpdate = async (announcementId: string, content: string) => {
+        await updateAnnouncement(announcementId, content);
         setEditingAnnouncement(null);
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deletingAnnouncement) {
-            deleteAnnouncement(deletingAnnouncement.id);
+            await deleteAnnouncement(deletingAnnouncement.id);
             setDeletingAnnouncement(null);
         }
     };

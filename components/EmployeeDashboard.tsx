@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { Report, Task, Role, User } from '../types';
+import { Report, Task, Role, User, Attachment } from '../types';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import PaperclipIcon from './icons/PaperclipIcon';
@@ -27,22 +28,44 @@ import AppLogoIcon from './icons/AppLogoIcon';
 import HomeIcon from './icons/HomeIcon';
 import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import DirectTasksView from './DirectTasksView';
+import ArchiveBoxIcon from './icons/ArchiveBoxIcon';
+import ConfirmModal from './ConfirmModal';
+import EditIcon from './icons/EditIcon';
 
 
 interface ReportFormProps {
     user: User;
-    onReportSubmitted: () => void;
-    nextSequenceNumber: number;
+    onFinish: () => void;
+    draftToEdit: Report | null;
 }
 
-const ReportForm: React.FC<ReportFormProps> = ({ user, onReportSubmitted, nextSequenceNumber }) => {
-    const { addReport } = useData();
+const ReportForm: React.FC<ReportFormProps> = ({ user, onFinish, draftToEdit }) => {
+    const { addReport, saveOrUpdateDraft, updateReport } = useData();
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [tasks, setTasks] = useState<Task[]>([{ id: 'task-1', text: '' }]);
     const [accomplished, setAccomplished] = useState('');
     const [notAccomplished, setNotAccomplished] = useState('');
-    const [attachments, setAttachments] = useState<File[]>([]);
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSavingDraft, setIsSavingDraft] = useState(false);
+
+    useEffect(() => {
+        if (draftToEdit) {
+            setDate(draftToEdit.date);
+            setTasks(draftToEdit.tasks.length > 0 ? draftToEdit.tasks : [{ id: 'task-1', text: '' }]);
+            setAccomplished(draftToEdit.accomplished);
+            setNotAccomplished(draftToEdit.notAccomplished);
+            setAttachments(draftToEdit.attachments || []);
+        } else {
+            // Reset form when creating a new report
+            setDate(new Date().toISOString().split('T')[0]);
+            setTasks([{ id: 'task-1', text: '' }]);
+            setAccomplished('');
+            setNotAccomplished('');
+            setAttachments([]);
+        }
+    }, [draftToEdit]);
+
 
     const handleAddTask = () => {
         setTasks([...tasks, { id: `task-${Date.now()}`, text: '' }]);
@@ -59,10 +82,24 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onReportSubmitted, nextSe
         setTasks(newTasks);
     };
     
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            setAttachments(Array.from(e.target.files));
+            const fileList = Array.from(e.target.files);
+            const newAttachments = await Promise.all(
+                // FIX: Explicitly type 'file' as 'File' to resolve type inference issues.
+                fileList.map(async (file: File) => ({
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    content: await fileToDataURL(file)
+                }))
+            );
+            setAttachments(prev => [...prev, ...newAttachments]);
         }
+    };
+
+     const handleRemoveAttachment = (index: number) => {
+        setAttachments(prev => prev.filter((_, i) => i !== index));
     };
 
     const fileToDataURL = (file: File): Promise<string> => {
@@ -72,6 +109,27 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onReportSubmitted, nextSe
             reader.onerror = error => reject(error);
             reader.readAsDataURL(file);
         });
+    };
+
+    const collectReportData = (): Partial<Report> => {
+        return {
+            userId: user.id,
+            date,
+            day: new Date(date).toLocaleDateString('ar-EG', { weekday: 'long' }),
+            tasks: tasks.filter(t => t.text.trim() !== ''),
+            accomplished,
+            notAccomplished,
+            attachments,
+        };
+    };
+
+    const handleSaveDraft = async () => {
+        setIsSavingDraft(true);
+        const draftData = collectReportData();
+        const draftToSave = { ...draftData, id: draftToEdit?.id };
+        await saveOrUpdateDraft(draftToSave);
+        setIsSavingDraft(false);
+        onFinish();
     };
     
     const handleSubmit = async (e: React.FormEvent) => {
@@ -83,39 +141,36 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onReportSubmitted, nextSe
         }
         
         setIsSubmitting(true);
+        const reportData = collectReportData();
 
-        const attachmentContents = await Promise.all(
-            attachments.map(file => fileToDataURL(file))
-        );
-
-        const report: Omit<Report, 'id' | 'sequenceNumber'> = {
-            userId: user.id,
-            date,
-            day: new Date(date).toLocaleDateString('ar-EG', { weekday: 'long' }),
-            tasks: tasks.filter(t => t.text.trim() !== ''),
-            accomplished,
-            notAccomplished,
-            attachments: attachments.map((f, i) => ({ 
-                name: f.name, 
-                type: f.type, 
-                size: f.size,
-                content: attachmentContents[i]
-            })),
-            signatureTimestamp: new Date().toISOString(),
-            signatureData: user.signatureData,
-            signatureImageUrl: user.signatureImageUrl,
-        };
-        addReport(report);
-        setTimeout(() => {
-            setIsSubmitting(false);
-            onReportSubmitted();
-        }, 1000);
+        if (draftToEdit) { // Submitting an existing draft
+            const submittedDraft: Report = {
+                ...draftToEdit,
+                ...reportData,
+                status: 'submitted',
+                signatureTimestamp: new Date().toISOString(),
+                signatureData: user.signatureData,
+                signatureImageUrl: user.signatureImageUrl,
+            };
+            await updateReport(submittedDraft);
+        } else { // Submitting a new report
+             const newReport: Omit<Report, 'id' | 'sequenceNumber' | 'status'> = {
+                ...(reportData as any), // Type assertion as we know it's a new report
+                signatureTimestamp: new Date().toISOString(),
+                signatureData: user.signatureData,
+                signatureImageUrl: user.signatureImageUrl,
+            };
+            await addReport(newReport);
+        }
+        
+        setIsSubmitting(false);
+        onFinish();
     };
 
 
     return (
         <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-            <h3 className="text-2xl font-semibold text-brand-dark dark:text-gray-100 border-b dark:border-gray-700 pb-3">تقرير المهام اليومي</h3>
+            <h3 className="text-2xl font-semibold text-brand-dark dark:text-gray-100 border-b dark:border-gray-700 pb-3">{draftToEdit ? 'تعديل المسودة' : 'تقرير المهام اليومي'}</h3>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                  <div className="md:col-span-2">
                     <div className="flex items-center space-x-4 space-x-reverse">
@@ -154,7 +209,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onReportSubmitted, nextSe
                         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                             <HashtagIcon className="w-5 h-5 text-gray-400" />
                         </div>
-                        <input type="text" readOnly value={nextSequenceNumber} className="w-full pr-10 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm sm:text-sm dark:text-gray-200" />
+                        <input type="text" readOnly value={draftToEdit ? draftToEdit.sequenceNumber || '-' : 'سيتم تعيينه عند الإرسال'} className="w-full pr-10 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm sm:text-sm dark:text-gray-200" />
                     </div>
                 </div>
             </div>
@@ -163,7 +218,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onReportSubmitted, nextSe
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">المهام</label>
                 {tasks.map((task, index) => (
                     <div key={task.id} className="flex items-center mt-2 space-x-2 space-x-reverse">
-                        <input type="text" placeholder={`المهمة ${index + 1}`} value={task.text} onChange={(e) => handleTaskChange(index, e.target.value)} className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" required />
+                        <input type="text" placeholder={`المهمة ${index + 1}`} value={task.text} onChange={(e) => handleTaskChange(index, e.target.value)} className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" />
                         {tasks.length > 1 && <button type="button" onClick={() => handleRemoveTask(index)} className="p-2 text-red-600 rounded-md hover:bg-red-100 dark:hover:bg-red-900/20"><TrashIcon className="w-5 h-5" /></button>}
                     </div>
                 ))}
@@ -197,13 +252,23 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onReportSubmitted, nextSe
                  {attachments.length > 0 && (
                     <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                         <p>الملفات المختارة:</p>
-                        <ul className="list-disc pr-5">{attachments.map((file, i) => <li key={i}>{file.name}</li>)}</ul>
+                        <ul className="list-disc pr-5">{attachments.map((file, i) => (
+                             <li key={i} className="flex items-center justify-between">
+                                <span>{file.name}</span>
+                                <button type="button" onClick={() => handleRemoveAttachment(i)} className="p-1 text-red-500 hover:text-red-700">
+                                    <XMarkIcon className="w-4 h-4" />
+                                </button>
+                            </li>
+                        ))}</ul>
                     </div>
                  )}
             </div>
 
-            <div className="pt-4 border-t dark:border-gray-700">
-                 <button type="submit" className="w-full px-4 py-2 text-sm font-medium text-white bg-brand-light border border-transparent rounded-md shadow-sm hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light disabled:bg-opacity-70 transition-colors" disabled={isSubmitting}>
+            <div className="pt-4 border-t dark:border-gray-700 flex flex-col sm:flex-row gap-2">
+                 <button type="button" onClick={handleSaveDraft} className="w-full px-4 py-2 text-sm font-medium text-brand-dark dark:text-gray-100 bg-gray-200 dark:bg-gray-600 border border-transparent rounded-md shadow-sm hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 disabled:bg-opacity-70 transition-colors" disabled={isSavingDraft || isSubmitting}>
+                    {isSavingDraft ? 'جارِ الحفظ...' : 'حفظ كمسودة'}
+                 </button>
+                 <button type="submit" className="w-full px-4 py-2 text-sm font-medium text-white bg-brand-light border border-transparent rounded-md shadow-sm hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light disabled:bg-opacity-70 transition-colors" disabled={isSubmitting || isSavingDraft}>
                     {isSubmitting ? 'جارِ الإرسال...' : 'إرسال التقرير'}
                  </button>
             </div>
@@ -211,6 +276,40 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onReportSubmitted, nextSe
         </form>
     );
 };
+
+const DraftView: React.FC<{
+    draft: Report;
+    onEdit: (draft: Report) => void;
+    onDelete: (draft: Report) => void;
+}> = ({ draft, onEdit, onDelete }) => {
+    return (
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div>
+                <p className="font-semibold text-brand-dark dark:text-gray-100">مسودة بتاريخ: {draft.date}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {draft.tasks.length > 0 ? `${draft.tasks.length} مهام` : 'لا توجد مهام'}
+                </p>
+            </div>
+            <div className="flex items-center space-x-2 space-x-reverse">
+                <button
+                    onClick={() => onEdit(draft)}
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-light rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    title="تعديل المسودة"
+                >
+                    <EditIcon className="w-5 h-5" />
+                </button>
+                <button
+                    onClick={() => onDelete(draft)}
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                    title="حذف المسودة"
+                >
+                    <TrashIcon className="w-5 h-5" />
+                </button>
+            </div>
+        </div>
+    );
+};
+
 
 const WelcomeView: React.FC<{ user: User; onStart: () => void }> = ({ user, onStart }) => {
     return (
@@ -239,24 +338,25 @@ const WelcomeView: React.FC<{ user: User; onStart: () => void }> = ({ user, onSt
 
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
-    const { reports, announcements, markAnnouncementAsRead, directTasks } = useData();
+    const { reports, announcements, markAnnouncementAsRead, directTasks, deleteReport } = useData();
     const [activeTab, setActiveTab] = useState('welcome');
     const [viewingReport, setViewingReport] = useState<Report | null>(null);
     const [notification, setNotification] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [editingDraft, setEditingDraft] = useState<Report | null>(null);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [draftToDelete, setDraftToDelete] = useState<Report | null>(null);
     
     if (!currentUser) return null;
 
     const myReports = useMemo(() => reports.filter(r => r.userId === currentUser.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [reports, currentUser.id]);
-    const inboxReports = useMemo(() => myReports.filter(r => r.managerComment), [myReports]);
-    // FIX: Corrected the dependency array for useMemo from `inboxes` to `inboxReports`.
+    const submittedReports = useMemo(() => myReports.filter(r => r.status === 'submitted'), [myReports]);
+    const myDrafts = useMemo(() => myReports.filter(r => r.status === 'draft'), [myReports]);
+    const inboxReports = useMemo(() => submittedReports.filter(r => r.managerComment), [submittedReports]);
     const unreadCommentsCount = useMemo(() => inboxReports.filter(r => !r.isCommentReadByEmployee).length, [inboxReports]);
     const unreadAnnouncementsCount = useMemo(() => announcements.filter(a => !a.readBy.some(r => r.userId === currentUser.id)).length, [announcements, currentUser.id]);
-    
     const myDirectTasks = useMemo(() => directTasks.filter(t => t.employeeId === currentUser.id), [directTasks, currentUser.id]);
     const unreadDirectTasksCount = useMemo(() => myDirectTasks.filter(t => t.status === 'pending').length, [myDirectTasks]);
-
-    const nextSequenceNumber = myReports.length + 1;
 
     // Real-time notification listener
     useEffect(() => {
@@ -288,22 +388,40 @@ const EmployeeDashboard: React.FC = () => {
     
     const pageTitles: { [key: string]: string } = {
         welcome: 'الرئيسية',
-        new: 'تقرير جديد',
+        new: editingDraft ? 'تعديل مسودة' : 'تقرير جديد',
         submitted: 'التقارير الصادرة',
         inbox: 'البريد الوارد',
+        drafts: 'المسودات',
         directTasks: 'المهام الواردة',
         announcements: 'التوجيهات والتعاميم',
         profile: 'الملف الشخصي',
     };
 
+     const handleReportFormFinish = useCallback(() => {
+        setEditingDraft(null);
+        setActiveTab('submitted');
+    }, []);
+
+    const handleEditDraft = useCallback((draft: Report) => {
+        setEditingDraft(draft);
+        setActiveTab('new');
+    }, []);
+    
+    const handleDeleteDraft = useCallback(async () => {
+        if (draftToDelete) {
+            await deleteReport(draftToDelete.id);
+            setDraftToDelete(null);
+        }
+    }, [draftToDelete, deleteReport]);
+
     const renderContent = () => {
         switch(activeTab) {
             case 'welcome':
-                return <WelcomeView user={currentUser} onStart={() => setActiveTab('new')} />;
+                return <WelcomeView user={currentUser} onStart={() => { setEditingDraft(null); setActiveTab('new'); }} />;
             case 'submitted':
                 return (
                     <div className="space-y-4">
-                        {myReports.length > 0 ? myReports.map(report => (
+                        {submittedReports.length > 0 ? submittedReports.map(report => (
                             <ReportView key={report.id} report={report} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setViewingReport(report)} />
                         )) : <p className="text-gray-500 dark:text-gray-400">لم تقم بإرسال أي تقارير بعد.</p>}
                     </div>
@@ -314,6 +432,14 @@ const EmployeeDashboard: React.FC = () => {
                         {inboxReports.length > 0 ? inboxReports.map(report => (
                             <ReportView key={report.id} report={report} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setViewingReport(report)} />
                         )) : <p className="text-gray-500 dark:text-gray-400">لا توجد لديك أي رسائل في البريد الوارد.</p>}
+                    </div>
+                );
+            case 'drafts':
+                return (
+                    <div className="space-y-4">
+                        {myDrafts.length > 0 ? myDrafts.map(draft => (
+                            <DraftView key={draft.id} draft={draft} onEdit={handleEditDraft} onDelete={setDraftToDelete} />
+                        )) : <p className="text-gray-500 dark:text-gray-400">لا توجد لديك أي مسودات محفوظة.</p>}
                     </div>
                 );
             case 'directTasks':
@@ -356,7 +482,7 @@ const EmployeeDashboard: React.FC = () => {
             case 'profile':
                 return <ProfileManagement user={currentUser} />;
             default: // 'new' tab
-                return <ReportForm user={currentUser} onReportSubmitted={() => setActiveTab('submitted')} nextSequenceNumber={nextSequenceNumber} />;
+                return <ReportForm user={currentUser} onFinish={handleReportFormFinish} draftToEdit={editingDraft} />;
         }
     };
 
@@ -365,6 +491,9 @@ const EmployeeDashboard: React.FC = () => {
         return (
              <button
                 onClick={() => {
+                    if (tabName === 'new') {
+                        setEditingDraft(null); // Always start fresh from sidebar
+                    }
                     setActiveTab(tabName);
                     if (window.innerWidth < 768) {
                         setIsSidebarOpen(false);
@@ -374,7 +503,7 @@ const EmployeeDashboard: React.FC = () => {
             >
                 {icon}
                 <span className="mr-3">{label}</span>
-                {count && count > 0 ? <span className="flex items-center justify-center w-5 h-5 mr-auto text-xs font-bold text-white bg-brand-accent-red rounded-full">{count}</span> : null}
+                {count !== undefined && count > 0 ? <span className="flex items-center justify-center w-5 h-5 mr-auto text-xs font-bold text-white bg-brand-accent-red rounded-full">{count}</span> : null}
             </button>
         )
     }
@@ -392,6 +521,7 @@ const EmployeeDashboard: React.FC = () => {
             <nav className="flex-grow px-2 py-4 space-y-1">
                 <NavItem tabName='welcome' label='الرئيسية' icon={<HomeIcon className="w-6 h-6"/>} />
                 <NavItem tabName='new' label='تقرير جديد' icon={<NewReportIcon className="w-6 h-6"/>} />
+                <NavItem tabName='drafts' label='المسودات' icon={<ArchiveBoxIcon className="w-6 h-6"/>} count={myDrafts.length}/>
                 <NavItem tabName='submitted' label='صادر' icon={<OutboxIcon className="w-6 h-6"/>} />
                 <NavItem tabName='inbox' label='الوارد' icon={<InboxIcon className="w-6 h-6"/>} count={unreadCommentsCount}/>
                 <NavItem tabName='directTasks' label='المهام الواردة' icon={<ClipboardDocumentListIcon className="w-6 h-6"/>} count={unreadDirectTasksCount}/>
@@ -401,7 +531,7 @@ const EmployeeDashboard: React.FC = () => {
             <div className="px-2 py-4 mt-auto border-t dark:border-gray-700">
                  <ThemeToggle />
                  <button
-                    onClick={logout}
+                    onClick={() => setShowLogoutConfirm(true)}
                     className="flex items-center w-full px-3 py-3 mt-2 text-md transition-colors rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                     <LogoutIcon className="w-6 h-6"/>
@@ -469,6 +599,25 @@ const EmployeeDashboard: React.FC = () => {
                     user={currentUser}
                     viewerRole={Role.EMPLOYEE}
                     onClose={() => setViewingReport(null)}
+                />
+            )}
+            {showLogoutConfirm && (
+                <ConfirmModal
+                    title="تأكيد تسجيل الخروج"
+                    message="هل أنت متأكد من رغبتك في تسجيل الخروج؟"
+                    onConfirm={logout}
+                    onCancel={() => setShowLogoutConfirm(false)}
+                    confirmText="خروج"
+                />
+            )}
+            {draftToDelete && (
+                 <ConfirmModal
+                    title="تأكيد الحذف"
+                    message={`هل أنت متأكد من حذف هذه المسودة بتاريخ ${draftToDelete.date}؟`}
+                    onConfirm={handleDeleteDraft}
+                    onCancel={() => setDraftToDelete(null)}
+                    confirmText="حذف"
+                    confirmButtonClass="bg-brand-accent-red hover:bg-red-700"
                 />
             )}
         </div>

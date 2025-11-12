@@ -15,7 +15,7 @@ import EyeSlashIcon from './icons/EyeSlashIcon';
 const UNITS = ['وحدة التمكين الفني', 'وحدة التنسيق الفني'];
 
 // Modal Form Component
-const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user: User | Omit<User, 'id'>) => void; }> = ({ user, onClose, onSave }) => {
+const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user: User | Omit<User, 'id'>) => Promise<void>; }> = ({ user, onClose, onSave }) => {
     const [formData, setFormData] = useState({
         fullName: user?.fullName || '',
         badgeNumber: user?.badgeNumber || '',
@@ -31,6 +31,7 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
     const [error, setError] = useState('');
     const [signatureMode, setSignatureMode] = useState<'draw' | 'upload'>('draw');
     const [showPassword, setShowPassword] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const signaturePadRef = useRef<SignaturePadRef>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -93,18 +94,20 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
     }, []);
 
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.fullName || !formData.badgeNumber || !formData.username || !formData.jobTitle || !formData.password) {
             setError('الرجاء تعبئة جميع الحقول.');
             return;
         }
         
+        setIsSaving(true);
         if (user) {
-            onSave({ ...user, ...formData });
+            await onSave({ ...user, ...formData });
         } else {
-            onSave({ ...formData, role: Role.EMPLOYEE });
+            await onSave({ ...formData, role: Role.EMPLOYEE });
         }
+        setIsSaving(false);
     };
     
     return (
@@ -223,8 +226,10 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
 
                     {error && <p className="text-sm text-red-500">{error}</p>}
                     <div className="flex justify-end pt-4 mt-4 border-t dark:border-gray-700 space-x-2 space-x-reverse">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">إلغاء</button>
-                        <button type="submit" className="px-4 py-2 text-white bg-brand-light rounded-md hover:bg-brand-dark">حفظ</button>
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500" disabled={isSaving}>إلغاء</button>
+                        <button type="submit" className="px-4 py-2 text-white bg-brand-light rounded-md hover:bg-brand-dark disabled:bg-opacity-50" disabled={isSaving}>
+                            {isSaving ? 'جارِ الحفظ...' : 'حفظ'}
+                        </button>
                     </div>
                 </form>
             </div>
@@ -241,11 +246,11 @@ const UserManagement: React.FC = () => {
 
     const employees = users.filter(u => u.role === Role.EMPLOYEE);
 
-    const handleSaveUser = (userData: User | Omit<User, 'id'>) => {
+    const handleSaveUser = async (userData: User | Omit<User, 'id'>) => {
         if ('id' in userData) {
-            updateUser(userData as User);
+            await updateUser(userData as User);
         } else {
-            addUser(userData as Omit<User, 'id'>);
+            await addUser(userData as Omit<User, 'id'>);
         }
         setIsModalOpen(false);
         setEditingUser(undefined);
@@ -265,9 +270,9 @@ const UserManagement: React.FC = () => {
         setDeletingUser(user);
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deletingUser) {
-            deleteUser(deletingUser.id);
+            await deleteUser(deletingUser.id);
             setDeletingUser(null);
         }
     };

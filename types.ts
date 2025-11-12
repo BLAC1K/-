@@ -43,7 +43,7 @@ export interface Task {
 export interface Report {
     id: string;
     userId: string;
-    sequenceNumber: number;
+    sequenceNumber?: number; // Optional for drafts
     date: string;
     day: string;
     tasks: Task[];
@@ -57,6 +57,7 @@ export interface Report {
     isViewedByManager?: boolean;
     isCommentReadByEmployee?: boolean;
     rating?: number;
+    status: 'draft' | 'submitted';
 }
 
 export interface ReadEntry {

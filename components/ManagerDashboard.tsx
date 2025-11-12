@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -15,6 +16,9 @@ import MenuIcon from './icons/MenuIcon';
 import XMarkIcon from './icons/XMarkIcon';
 import ThemeToggle from './ThemeToggle';
 import AppLogoIcon from './icons/AppLogoIcon';
+import ConfirmModal from './ConfirmModal';
+import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
+import SentTasksView from './SentTasksView';
 
 
 const ManagerDashboard: React.FC = () => {
@@ -22,15 +26,17 @@ const ManagerDashboard: React.FC = () => {
     const { reports } = useData();
     const [activeTab, setActiveTab] = useState('reports');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     if (!currentUser) return null;
     
-    const newReportsCount = reports.filter(r => !r.isViewedByManager).length;
+    const newReportsCount = reports.filter(r => !r.isViewedByManager && r.status === 'submitted').length;
 
     const pageTitles: { [key: string]: string } = {
         reports: 'التقارير',
         employees: 'إدارة المنتسبين',
         announcements: 'التوجيهات',
+        sentTasks: 'المهام المرسلة',
         profile: 'الملف الشخصي'
     };
 
@@ -38,6 +44,7 @@ const ManagerDashboard: React.FC = () => {
         switch(activeTab) {
             case 'employees': return <UserManagement />;
             case 'announcements': return <AnnouncementCenter />;
+            case 'sentTasks': return <SentTasksView />;
             case 'profile': return <ProfileManagement user={currentUser} />;
             case 'reports':
             default:
@@ -78,12 +85,13 @@ const ManagerDashboard: React.FC = () => {
                 <NavItem tabName="reports" label="التقارير" icon={<NewReportIcon className="w-6 h-6"/>} count={newReportsCount}/>
                 <NavItem tabName="employees" label="إدارة المنتسبين" icon={<UsersIcon className="w-6 h-6"/>} />
                 <NavItem tabName="announcements" label="التوجيهات" icon={<MegaphoneIcon className="w-6 h-6"/>} />
+                <NavItem tabName="sentTasks" label="المهام المرسلة" icon={<ClipboardDocumentListIcon className="w-6 h-6"/>} />
                 <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />
             </nav>
             <div className="px-2 py-4 mt-auto border-t dark:border-gray-700">
                 <ThemeToggle />
                 <button
-                    onClick={logout}
+                    onClick={() => setShowLogoutConfirm(true)}
                     className="flex items-center w-full px-3 py-3 mt-2 text-md transition-colors rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                     <LogoutIcon className="w-6 h-6"/>
@@ -128,6 +136,15 @@ const ManagerDashboard: React.FC = () => {
                     <p>حسين كاظم</p>
                 </footer>
             </div>
+             {showLogoutConfirm && (
+                <ConfirmModal
+                    title="تأكيد تسجيل الخروج"
+                    message="هل أنت متأكد من رغبتك في تسجيل الخروج؟"
+                    onConfirm={logout}
+                    onCancel={() => setShowLogoutConfirm(false)}
+                    confirmText="خروج"
+                />
+            )}
         </div>
     );
 };

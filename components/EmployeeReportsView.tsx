@@ -21,18 +21,16 @@ const SendTaskModal: React.FC<SendTaskModalProps> = ({ employee, manager, onClos
     const [isSending, setIsSending] = useState(false);
     const { addDirectTask } = useData();
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!taskContent.trim()) return;
         setIsSending(true);
-        addDirectTask({
+        await addDirectTask({
             managerId: manager.id,
             employeeId: employee.id,
             content: taskContent,
         });
-        setTimeout(() => {
-            setIsSending(false);
-            onClose();
-        }, 500);
+        setIsSending(false);
+        onClose();
     };
 
     return (
@@ -57,7 +55,7 @@ const SendTaskModal: React.FC<SendTaskModalProps> = ({ employee, manager, onClos
                     />
                 </div>
                 <div className="flex justify-end pt-4 mt-4 border-t dark:border-gray-700 space-x-2 space-x-reverse">
-                    <button onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">إلغاء</button>
+                    <button onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500" disabled={isSending}>إلغاء</button>
                     <button onClick={handleSend} disabled={isSending || !taskContent.trim()} className="flex items-center px-4 py-2 text-white bg-brand-light rounded-md hover:bg-brand-dark disabled:bg-opacity-50">
                          <PaperAirplaneIcon className="w-5 h-5 ml-2" />
                         {isSending ? 'جارِ الإرسال...' : 'إرسال'}

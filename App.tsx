@@ -1,16 +1,17 @@
 
 import React from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { DataProvider } from './context/DataContext';
+import { DataProvider, useData } from './context/DataContext';
 import Login from './components/Login';
 import EmployeeDashboard from './components/EmployeeDashboard';
 import ManagerDashboard from './components/ManagerDashboard';
 import { ThemeProvider } from './context/ThemeContext';
 
 const AppContent: React.FC = () => {
-    const { currentUser, loading } = useAuth();
+    const { currentUser, loading: authLoading } = useAuth();
+    const { isDataLoading } = useData();
 
-    if (loading) {
+    if (authLoading || isDataLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
                 <div className="text-xl font-semibold text-gray-700 dark:text-gray-300">تحميل...</div>
@@ -32,11 +33,11 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
     return (
         <ThemeProvider>
-            <DataProvider>
-                <AuthProvider>
+            <AuthProvider>
+                <DataProvider>
                     <AppContent />
-                </AuthProvider>
-            </DataProvider>
+                </DataProvider>
+            </AuthProvider>
         </ThemeProvider>
     );
 };

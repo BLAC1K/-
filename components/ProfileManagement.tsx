@@ -113,21 +113,20 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
         );
     }, [formData, user]);
 
-    const handleSubmit = useCallback((e: React.FormEvent) => {
+    const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
         setSuccessMessage('');
 
-        setTimeout(() => {
-            const updatedUser = { ...user, ...formData };
-            updateUser(updatedUser);
-            setIsSaving(false);
-            setSuccessMessage('تم تحديث الملف الشخصي بنجاح!');
-            setTimeout(() => setSuccessMessage(''), 3000);
-        }, 1000);
+        const updatedUser = { ...user, ...formData };
+        await updateUser(updatedUser);
+        
+        setIsSaving(false);
+        setSuccessMessage('تم تحديث الملف الشخصي بنجاح!');
+        setTimeout(() => setSuccessMessage(''), 3000);
     }, [user, formData, updateUser]);
 
-    const handlePasswordSubmit = useCallback((e: React.FormEvent) => {
+    const handlePasswordSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         setPasswordError('');
         setPasswordSuccess('');
@@ -146,15 +145,13 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
         }
 
         setIsSavingPassword(true);
-        setTimeout(() => {
-            updateUser({ ...user, password: newPassword });
-            setIsSavingPassword(false);
-            setPasswordSuccess('تم تغيير كلمة المرور بنجاح!');
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
-            setTimeout(() => setPasswordSuccess(''), 3000);
-        }, 1000);
+        await updateUser({ ...user, password: newPassword });
+        setIsSavingPassword(false);
+        setPasswordSuccess('تم تغيير كلمة المرور بنجاح!');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => setPasswordSuccess(''), 3000);
 
     }, [user, currentPassword, newPassword, confirmPassword, updateUser]);
 
