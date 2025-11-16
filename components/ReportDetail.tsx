@@ -5,7 +5,6 @@ import TrashIcon from './icons/TrashIcon';
 import DocumentTextIcon from './icons/DocumentTextIcon';
 import CommentIcon from './icons/CommentIcon';
 import DownloadIcon from './icons/DownloadIcon';
-import SignaturePreview from './SignaturePreview';
 import AIReportAnalysis from './AIReportAnalysis';
 
 // This component will render the detailed content of a report.
@@ -127,26 +126,6 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                         </dd>
                     </div>
                 )}
-                 <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">وقت الإرسال</dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                        {report.signatureTimestamp ? new Date(report.signatureTimestamp).toLocaleString('ar-EG') : 'غير محدد'}
-                    </dd>
-                </div>
-                <div className="sm:col-span-2">
-                    <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">توقيع المنتسب</dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                        {report.signatureImageUrl ? (
-                            <img 
-                                src={report.signatureImageUrl} 
-                                alt="توقيع" 
-                                className="h-24 max-w-[300px] border border-gray-300 dark:border-gray-600 rounded-md object-contain bg-white" 
-                            />
-                        ) : (
-                            <SignaturePreview data={report.signatureData} className="h-24 max-w-[300px]" />
-                        )}
-                    </dd>
-                </div>
                  <div className="sm:col-span-2">
                     <dt className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-400">
                        <CommentIcon className="w-4 h-4 ml-1 text-gray-500"/>

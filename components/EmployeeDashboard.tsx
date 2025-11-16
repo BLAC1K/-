@@ -134,11 +134,6 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onFinish, draftToEdit }) 
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!user.signatureData && !user.signatureImageUrl) {
-            alert("لا يمكن إرسال التقرير. لا يوجد توقيع مسجل لك. الرجاء تحديث ملفك الشخصي أو مراجعة المسؤول.");
-            return;
-        }
         
         setIsSubmitting(true);
         const reportData = collectReportData();
@@ -148,17 +143,11 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onFinish, draftToEdit }) 
                 ...draftToEdit,
                 ...reportData,
                 status: 'submitted',
-                signatureTimestamp: new Date().toISOString(),
-                signatureData: user.signatureData,
-                signatureImageUrl: user.signatureImageUrl,
             };
             await updateReport(submittedDraft);
         } else { // Submitting a new report
              const newReport: Omit<Report, 'id' | 'sequenceNumber' | 'status'> = {
                 ...(reportData as any), // Type assertion as we know it's a new report
-                signatureTimestamp: new Date().toISOString(),
-                signatureData: user.signatureData,
-                signatureImageUrl: user.signatureImageUrl,
             };
             await addReport(newReport);
         }

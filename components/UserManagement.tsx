@@ -5,10 +5,6 @@ import PlusIcon from './icons/PlusIcon';
 import EditIcon from './icons/EditIcon';
 import Avatar from './Avatar';
 import TrashIcon from './icons/TrashIcon';
-import SignatureIcon from './icons/SignatureIcon';
-import SignaturePad, { SignaturePadRef } from './SignaturePad';
-import SignaturePreview from './SignaturePreview';
-import UploadIcon from './icons/UploadIcon';
 import EyeIcon from './icons/EyeIcon';
 import EyeSlashIcon from './icons/EyeSlashIcon';
 
@@ -23,16 +19,12 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
         jobTitle: user?.jobTitle || '',
         password: user?.password || '',
         profilePictureUrl: user?.profilePictureUrl || '',
-        signatureData: user?.signatureData,
-        signatureImageUrl: user?.signatureImageUrl,
         unit: user?.unit || '',
     });
     const [imagePreview, setImagePreview] = useState<string | null>(user?.profilePictureUrl || null);
     const [error, setError] = useState('');
-    const [signatureMode, setSignatureMode] = useState<'draw' | 'upload'>('draw');
     const [showPassword, setShowPassword] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const signaturePadRef = useRef<SignaturePadRef>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -52,48 +44,6 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
         }
     };
     
-    const handleSignatureImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const result = reader.result as string;
-                setFormData(prev => ({ 
-                    ...prev, 
-                    signatureImageUrl: result,
-                    signatureData: undefined // Clear the other type
-                }));
-                 if (signaturePadRef.current) {
-                    signaturePadRef.current.clearSignature();
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-    }, []);
-
-    const handleSaveSignatureFromPad = useCallback(() => {
-        if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
-            const data = signaturePadRef.current.getSignatureData();
-            setFormData(prev => ({ 
-                ...prev, 
-                signatureData: data,
-                signatureImageUrl: undefined // Clear the other type
-            }));
-        }
-    }, []);
-
-    const handleClearSignature = useCallback(() => {
-        if (signaturePadRef.current) {
-            signaturePadRef.current.clearSignature();
-        }
-        setFormData(prev => ({ 
-            ...prev, 
-            signatureData: undefined,
-            signatureImageUrl: undefined
-        }));
-    }, []);
-
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.fullName || !formData.badgeNumber || !formData.username || !formData.jobTitle || !formData.password) {
@@ -180,48 +130,6 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
                                 </button>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div className="pt-4 border-t dark:border-gray-700">
-                        <h4 className="flex items-center text-md font-semibold text-brand-dark dark:text-gray-100 mb-2">
-                            <SignatureIcon className="w-5 h-5 ml-2" />
-                            <span>توقيع المنتسب</span>
-                        </h4>
-                        <div className="flex space-x-2 space-x-reverse border-b dark:border-gray-700 mb-2">
-                            <button type="button" onClick={() => setSignatureMode('draw')} className={`px-3 py-2 text-sm ${signatureMode === 'draw' ? 'border-b-2 border-brand-light text-brand-dark dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>رسم</button>
-                            <button type="button" onClick={() => setSignatureMode('upload')} className={`px-3 py-2 text-sm ${signatureMode === 'upload' ? 'border-b-2 border-brand-light text-brand-dark dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>رفع صورة</button>
-                        </div>
-                        {signatureMode === 'draw' ? (
-                            <SignaturePad ref={signaturePadRef} onEnd={handleSaveSignatureFromPad} onClear={handleClearSignature} />
-                        ) : (
-                            <div className="mt-2">
-                                <label htmlFor="sig-upload" className="flex items-center justify-center w-full px-4 py-6 bg-gray-50 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
-                                    <div className="text-center">
-                                        <UploadIcon className="w-8 h-8 mx-auto text-gray-400"/>
-                                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">اختر صورة توقيع</p>
-                                    </div>
-                                    <input id="sig-upload" type="file" className="hidden" onChange={handleSignatureImageUpload} accept="image/*"/>
-                                </label>
-                            </div>
-                        )}
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                            التوقيع الحالي: 
-                            {formData.signatureImageUrl && <span className="font-semibold"> صورة مرفوعة</span>}
-                            {formData.signatureData && <span className="font-semibold"> توقيع مرسوم</span>}
-                            {!formData.signatureImageUrl && !formData.signatureData && <span className="font-semibold"> لا يوجد</span>}
-                        </p>
-                         {(formData.signatureImageUrl || (formData.signatureData && formData.signatureData.length > 0)) && (
-                            <div className="mt-2 p-2 border dark:border-gray-600 rounded-md">
-                                <p className="text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">معاينة:</p>
-                                 <div className="h-24 w-full bg-white flex items-center justify-center rounded">
-                                    {formData.signatureImageUrl ? (
-                                        <img src={formData.signatureImageUrl} alt="Preview" className="max-h-full max-w-full object-contain" />
-                                    ) : (
-                                        <SignaturePreview data={formData.signatureData} className="h-full w-full border-none" />
-                                    )}
-                                </div>
-                            </div>
-                        )}
                     </div>
 
                     {error && <p className="text-sm text-red-500">{error}</p>}

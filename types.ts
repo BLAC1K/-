@@ -3,15 +3,6 @@ export enum Role {
     MANAGER = 'manager',
 }
 
-export interface SignaturePoint {
-  x: number;
-  y: number;
-  time: number;
-  color: string;
-}
-
-export type SignatureData = SignaturePoint[][];
-
 export interface User {
     id: string;
     fullName: string;
@@ -21,8 +12,6 @@ export interface User {
     password?: string;
     jobTitle: string; // Add job title
     profilePictureUrl?: string;
-    signatureData?: SignatureData;
-    signatureImageUrl?: string;
     unit?: string;
 }
 
@@ -51,9 +40,6 @@ export interface Report {
     notAccomplished: string;
     attachments: Attachment[];
     managerComment?: string;
-    signatureTimestamp?: string;
-    signatureData?: SignatureData; // To store the biometric signature data
-    signatureImageUrl?: string; // To store the uploaded signature image
     isViewedByManager?: boolean;
     isCommentReadByEmployee?: boolean;
     rating?: number;
@@ -83,3 +69,18 @@ export interface DirectTask {
     rejectionReason?: string;
     isReadByEmployee: boolean;
 }
+
+// FIX: Add SignatureData and related interfaces for react-signature-canvas to resolve import errors.
+export interface Point {
+    x: number;
+    y: number;
+    time: number;
+    color: string;
+}
+
+export interface PointGroup {
+    color: string;
+    points: Point[];
+}
+
+export type SignatureData = PointGroup[];
