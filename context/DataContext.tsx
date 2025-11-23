@@ -37,37 +37,33 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isDataLoading, setIsDataLoading] = useState(true);
 
     const loadData = useCallback(async () => {
-        const initialState = await api.fetchInitialData();
-        setAppState(initialState);
-        setIsDataLoading(false);
+        setIsDataLoading(true);
+        try {
+            const initialState = await api.fetchInitialData();
+            setAppState(initialState);
+        } catch (error) {
+            console.error("Failed to load initial data from API:", error);
+            // In a real app, you might want to set an error state to show in the UI
+        } finally {
+            setIsDataLoading(false);
+        }
     }, []);
 
     useEffect(() => {
         loadData();
     }, [loadData]);
-
-    useEffect(() => {
-        const syncStateFromStorage = () => {
-            // Refetch data from the "server" when another tab makes a change
-            loadData();
-        };
-        
-        window.addEventListener('storage', syncStateFromStorage);
-        // Also sync on focus to catch changes made in other windows/tabs
-        window.addEventListener('focus', syncStateFromStorage);
-
-        return () => {
-            window.removeEventListener('storage', syncStateFromStorage);
-            window.removeEventListener('focus', syncStateFromStorage);
-        };
-    }, [loadData]);
-
-
+    
     const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);
     
     const performApiAction = useCallback(async (action: Promise<any>) => {
-        await action;
-        await loadData();
+        try {
+            await action;
+            await loadData(); // After any change, refetch all data to stay in sync.
+        } catch (error) {
+            console.error("An API action failed:", error);
+            // In a real app, you might show a toast notification to the user.
+            throw error; // Re-throw so components can handle it if needed.
+        }
     }, [loadData]);
 
     const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => performApiAction(api.createReport(report)), [performApiAction]);
@@ -87,6 +83,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const updateDirectTaskStatus = useCallback(async (taskId: string, status: 'acknowledged' | 'rejected', rejectionReason?: string) => performApiAction(api.updateDirectTaskStatus(taskId, status, rejectionReason)), [performApiAction]);
     const markDirectTaskAsRead = useCallback(async (taskId: string) => performApiAction(api.markDirectTaskAsRead(taskId)), [performApiAction]);
 
+    // FIX: Corrected useMemo syntax. The dependency array was incorrectly placed inside the factory function's return expression.
     const value = useMemo(() => ({
         ...appState,
         isDataLoading,

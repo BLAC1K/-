@@ -1,33 +1,8 @@
-import { User, Report, Role, Announcement, DirectTask } from '../types';
-
-const MOCK_USERS: User[] = [
-    { id: '1', fullName: 'وسام عبدالسلام جلوب', badgeNumber: 'MGR-001', username: 'admin', role: Role.MANAGER, password: 'admin', jobTitle: 'مسؤول شعبة الفنون والمسرح' },
-    { id: '2', fullName: 'علي حسين عبيد', badgeNumber: '134', username: 'funun1', role: Role.EMPLOYEE, password: '0134', jobTitle: 'مسؤول وحدة', unit: 'وحدة التمكين الفني' },
-    { id: '3', fullName: 'مثنى عبد علي شلش', badgeNumber: '238', username: 'funun2', role: Role.EMPLOYEE, password: '0238', jobTitle: 'حرفي أشغال يدوية', unit: 'وحدة التمكين الفني' },
-    { id: '4', fullName: 'عقيل شاكر حسون', badgeNumber: '14146', username: 'funun3', role: Role.EMPLOYEE, password: '4146', jobTitle: 'حرفي أشغال يدوية', unit: 'وحدة التمكين الفني' },
-    { id: '5', fullName: 'سجاد حسين مهدي', badgeNumber: '28010', username: 'funun4', role: Role.EMPLOYEE, password: '8010', jobTitle: 'رسام', unit: 'وحدة التمكين الفني' },
-    { id: '6', fullName: 'حسن حسين شهيد', badgeNumber: '30508', username: 'funun5', role: Role.EMPLOYEE, password: '0508', jobTitle: 'فني فيلوغرافيا', unit: 'وحدة التمكين الفني' },
-    { id: '7', fullName: 'علي ستار بزون', badgeNumber: '32761', username: 'funun6', role: Role.EMPLOYEE, password: '2761', jobTitle: 'فني فيلوغرافيا', unit: 'وحدة التمكين الفني' },
-    { id: '8', fullName: 'سلام محمد عبد الرسول', badgeNumber: '13385', username: 'funun7', role: Role.EMPLOYEE, password: '3385', jobTitle: 'مسؤول وحدة', unit: 'وحدة التنسيق الفني' },
-    { id: '9', fullName: 'حسين كاظم علي', badgeNumber: '27857', username: 'funun8', role: Role.EMPLOYEE, password: '7857', jobTitle: 'مصمم', unit: 'وحدة التنسيق الفني' },
-    { id: '10', fullName: 'عبد الله عباس امين', badgeNumber: '17117', username: 'funun9', role: Role.EMPLOYEE, password: '7117', jobTitle: 'مساعد إنتاج', unit: 'وحدة التنسيق الفني' },
-    { id: '11', fullName: 'حسين علي عباس', badgeNumber: '1818', username: 'funun10', role: Role.EMPLOYEE, password: '1818', jobTitle: 'مساعد إنتاج', unit: 'وحدة التنسيق الفني' },
-    { id: '12', fullName: 'أياد عبد علي كريم', badgeNumber: '12616', username: 'funun11', role: Role.EMPLOYEE, password: '2616', jobTitle: 'مساعد إنتاج', unit: 'وحدة التنسيق الفني' },
-    { id: '13', fullName: 'ليث حامد كاظم', badgeNumber: '22198', username: 'funun12', role: Role.EMPLOYEE, password: '2198', jobTitle: 'أمين مخزن', unit: 'وحدة التنسيق الفني' },
-    { id: '14', fullName: 'عباس علي هادي', badgeNumber: '25279', username: 'funun13', role: Role.EMPLOYEE, password: '5279', jobTitle: 'مساعد تقني', unit: 'وحدة التنسيق الفني' },
-    { id: '15', fullName: 'حسنين حميد حسين', badgeNumber: '15195', username: 'funun14', role: Role.EMPLOYEE, password: '5195', jobTitle: 'منتسب', unit: 'وحدة التنسيق الفني' },
-];
-const MOCK_REPORTS: Report[] = [];
-const MOCK_ANNOUNCEMENTS: Announcement[] = [
-    { id: 'a1', content: 'تذكير: اجتماع الشعبة يوم الخميس الساعة 10 صباحاً.', date: '2024-07-28T10:00:00Z', readBy: [] },
-];
-const MOCK_DIRECT_TASKS: DirectTask[] = [];
-
-const APP_STORAGE_KEY = 'dailyTasksAppData';
-const LATENCY = 150; // ms
+import { User, Report, Announcement, DirectTask } from '../types';
 
 // IMPORTANT: This is a placeholder for your actual backend API URL.
-const API_BASE_URL = '/api';
+// You need to replace this URL with the one for your server.
+const API_BASE_URL = 'https://my-daily-tasks-api.example.com/api';
 
 interface AppState {
     users: User[];
@@ -36,347 +11,159 @@ interface AppState {
     directTasks: DirectTask[];
 }
 
-// --- Local Storage Simulation (for offline/demo mode) ---
-const getFullState = (): AppState => {
+/**
+ * A helper function to make API requests and handle common logic.
+ * @param endpoint The API endpoint to call (e.g., '/users').
+ * @param options The options for the fetch request (method, body, etc.).
+ * @returns The JSON response from the API.
+ */
+const apiRequest = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
     try {
-        const storedData = localStorage.getItem(APP_STORAGE_KEY);
-        if (storedData) {
-            const parsedData = JSON.parse(storedData);
-            if (parsedData.users && parsedData.reports && parsedData.announcements) {
-                // Perform migrations on the loaded data
-                const storedUsers = parsedData.users as User[];
-                const updatedUsers = [...storedUsers];
-                let hasChanges = false;
-                MOCK_USERS.forEach(mockUser => {
-                    const userIndex = storedUsers.findIndex(u => u.id === mockUser.id);
-                    if (userIndex > -1) {
-                        const storedUser = storedUsers[userIndex];
-                        if (storedUser.username !== mockUser.username || storedUser.password !== mockUser.password || !storedUser.unit) {
-                            updatedUsers[userIndex] = { ...storedUser, ...mockUser };
-                            hasChanges = true;
-                        }
-                    } else {
-                        updatedUsers.push(mockUser);
-                        hasChanges = true;
-                    }
-                });
-                if (hasChanges) parsedData.users = updatedUsers;
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            },
+            ...options,
+        });
 
-                if (parsedData.announcements) {
-                    parsedData.announcements = parsedData.announcements.map((ann: any) => {
-                        if (ann.readBy && ann.readBy.length > 0 && typeof ann.readBy[0] === 'string') {
-                            return { ...ann, readBy: ann.readBy.map((userId: string) => ({ userId, readAt: ann.date })) };
-                        }
-                        if (!ann.readBy) return { ...ann, readBy: [] };
-                        return ann;
-                    });
-                }
-                if (!parsedData.directTasks) parsedData.directTasks = MOCK_DIRECT_TASKS;
-                if (parsedData.reports) {
-                    parsedData.reports = parsedData.reports.map((report: Report) => ({ ...report, status: report.status || 'submitted' }));
-                }
-                return parsedData;
-            }
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: 'An unknown API error occurred' }));
+            console.error(`API Error on ${endpoint}:`, response.status, errorData);
+            throw new Error(errorData.message || `Request failed with status ${response.status}`);
         }
+        
+        // Handle responses that might not have a body (e.g., DELETE, or 204 No Content)
+        if (response.status === 204) {
+            return undefined as T;
+        }
+        return await response.json();
     } catch (error) {
-        console.error("Failed to read from localStorage", error);
+        console.error(`Network or fetch error on ${endpoint}:`, error);
+        // Re-throw the error so the calling component or context can handle it.
+        throw error;
     }
-    return { users: MOCK_USERS, reports: MOCK_REPORTS, announcements: MOCK_ANNOUNCEMENTS, directTasks: MOCK_DIRECT_TASKS };
-};
-
-const saveFullState = (state: AppState) => {
-    try {
-        localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
-        // This is a local broadcast for other tabs, not a network sync.
-        localStorage.setItem('__last_update', Date.now().toString());
-    } catch (error) {
-        console.error("Could not save app state to localStorage", error);
-    }
-};
-
-const simulateAPICall = <T,>(action: () => T): Promise<T> => {
-    console.warn("API Service is running in local simulation mode. Data is NOT synced over the network.");
-    return new Promise(resolve => {
-        setTimeout(() => {
-            const result = action();
-            resolve(result);
-        }, LATENCY);
-    });
 };
 
 // --- API Service Functions ---
 
+// In a real-world scenario, you might have separate endpoints for each data type.
+// For simplicity in this refactor, we'll assume a single endpoint to get all initial data.
 export const fetchInitialData = async (): Promise<AppState> => {
-    // --- REAL API IMPLEMENTATION (Example) ---
-    /*
-    try {
-        const [usersRes, reportsRes, announcementsRes, directTasksRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/users`),
-            fetch(`${API_BASE_URL}/reports`),
-            fetch(`${API_BASE_URL}/announcements`),
-            fetch(`${API_BASE_URL}/directTasks`),
-        ]);
-        
-        if (!usersRes.ok || !reportsRes.ok || !announcementsRes.ok || !directTasksRes.ok) {
-            throw new Error('Failed to fetch initial data from the server.');
-        }
-
-        const users = await usersRes.json();
-        const reports = await reportsRes.json();
-        const announcements = await announcementsRes.json();
-        const directTasks = await directTasksRes.json();
-
-        return { users, reports, announcements, directTasks };
-
-    } catch (error) {
-        console.error("API Error: Could not fetch initial data.", error);
-        // Fallback to local data or show an error state
-        return getFullState(); // Fallback to localStorage for now
-    }
-    */
-    
-    // --- CURRENT LOCALSTORAGE IMPLEMENTATION (for offline/demo mode) ---
-    return simulateAPICall(getFullState);
+    // This assumes your backend has an endpoint like GET /api/data that returns the entire app state.
+    return apiRequest<AppState>('/data');
 };
 
 // REPORTS
 export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>): Promise<Report> => {
-    // --- REAL API IMPLEMENTATION (Example) ---
-    /*
-    const response = await fetch(`${API_BASE_URL}/reports`, {
+    return apiRequest<Report>('/reports', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(report),
-    });
-    if (!response.ok) throw new Error('Failed to create report.');
-    return await response.json();
-    */
-
-    // --- CURRENT LOCALSTORAGE IMPLEMENTATION ---
-    return simulateAPICall(() => {
-        const state = getFullState();
-        const userReportsCount = state.reports.filter(r => r.userId === report.userId && r.status === 'submitted').length;
-        const newReport: Report = { 
-            ...report, 
-            id: `r${Date.now()}`,
-            sequenceNumber: userReportsCount + 1,
-            isViewedByManager: false,
-            isCommentReadByEmployee: true, 
-            status: 'submitted',
-        };
-        state.reports = [newReport, ...state.reports];
-        saveFullState(state);
-        return newReport;
+        body: JSON.stringify({ ...report, status: 'submitted' }),
     });
 };
 
 export const updateReport = async (updatedReport: Report): Promise<Report> => {
-    // --- REAL API IMPLEMENTATION (Example) ---
-    /*
-    const response = await fetch(`${API_BASE_URL}/reports/${updatedReport.id}`, {
+    return apiRequest<Report>(`/reports/${updatedReport.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedReport),
-    });
-    if (!response.ok) throw new Error('Failed to update report.');
-    return await response.json();
-    */
-
-    // --- CURRENT LOCALSTORAGE IMPLEMENTATION ---
-    return simulateAPICall(() => {
-        const state = getFullState();
-        state.reports = state.reports.map(r => r.id === updatedReport.id ? updatedReport : r);
-        saveFullState(state);
-        return updatedReport;
     });
 };
 
 export const saveOrUpdateDraft = async (draft: Partial<Report>): Promise<Report> => {
-    // --- REAL API IMPLEMENTATION (Example) ---
-    /*
-    const url = draft.id ? `${API_BASE_URL}/drafts/${draft.id}` : `${API_BASE_URL}/drafts`;
-    const method = draft.id ? 'PUT' : 'POST';
-    const response = await fetch(url, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(draft),
-    });
-    if (!response.ok) throw new Error('Failed to save draft.');
-    return await response.json();
-    */
-    
-    // --- CURRENT LOCALSTORAGE IMPLEMENTATION ---
-    return simulateAPICall(() => {
-        const state = getFullState();
-        let savedDraft: Report;
-        if (draft.id) {
-             const existingIndex = state.reports.findIndex(r => r.id === draft.id);
-             savedDraft = { ...state.reports[existingIndex], ...draft, status: 'draft' };
-             state.reports[existingIndex] = savedDraft;
-        } else {
-            savedDraft = {
-                ...(draft as Omit<Report, 'id'|'status'>),
-                id: `d${Date.now()}`,
-                status: 'draft',
-            };
-            state.reports = [savedDraft, ...state.reports];
-        }
-        saveFullState(state);
-        return savedDraft;
-    });
+    const fullDraft = { ...draft, status: 'draft' };
+    if (draft.id) {
+        // Update existing draft
+        return apiRequest<Report>(`/reports/${draft.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(fullDraft),
+        });
+    } else {
+        // Create new draft
+        return apiRequest<Report>('/reports', {
+            method: 'POST',
+            body: JSON.stringify(fullDraft),
+        });
+    }
 };
 
 export const deleteReport = async (reportId: string): Promise<void> => {
-    // --- REAL API IMPLEMENTATION (Example) ---
-    /*
-    const response = await fetch(`${API_BASE_URL}/reports/${reportId}`, { method: 'DELETE' });
-    if (!response.ok) throw new Error('Failed to delete report.');
-    */
-
-    // --- CURRENT LOCALSTORAGE IMPLEMENTATION ---
-    return simulateAPICall(() => {
-        const state = getFullState();
-        state.reports = state.reports.filter(r => r.id !== reportId);
-        saveFullState(state);
-    });
+    await apiRequest<void>(`/reports/${reportId}`, { method: 'DELETE' });
 };
-    
-// FIX: The async arrow functions implicitly returned the Promise<Report> from updateReport,
-// which mismatched the declared Promise<void> return type. Adding braces and `await`
-// makes the function body a statement, correctly returning void.
+
 export const markReportAsViewed = async (reportId: string): Promise<void> => {
-    await updateReport({ ...getFullState().reports.find(r => r.id === reportId)!, isViewedByManager: true });
+    // A real API would ideally use PATCH here for efficiency.
+    // This endpoint should handle setting `isViewedByManager` to true on the server.
+    await apiRequest<void>(`/reports/${reportId}/viewed`, { method: 'POST' });
 };
 
 export const markCommentAsRead = async (reportId: string): Promise<void> => {
-    await updateReport({ ...getFullState().reports.find(r => r.id === reportId)!, isCommentReadByEmployee: true });
+    // This endpoint should handle setting `isCommentReadByEmployee` to true on the server.
+    await apiRequest<void>(`/reports/${reportId}/comment-read`, { method: 'POST' });
 };
 
 // USERS
 export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
-    return simulateAPICall(() => {
-        const state = getFullState();
-        const newUser: User = { ...user, id: `u${Date.now()}`};
-        state.users = [...state.users, newUser];
-        saveFullState(state);
-        return newUser;
+    return apiRequest<User>('/users', {
+        method: 'POST',
+        body: JSON.stringify(user),
     });
 };
 
 export const updateUser = async (updatedUser: User): Promise<User> => {
-    return simulateAPICall(() => {
-        const state = getFullState();
-        state.users = state.users.map(u => u.id === updatedUser.id ? updatedUser : u);
-        saveFullState(state);
-        return updatedUser;
+    return apiRequest<User>(`/users/${updatedUser.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updatedUser),
     });
 };
 
 export const deleteUser = async (userId: string): Promise<void> => {
-    return simulateAPICall(() => {
-        const state = getFullState();
-        state.users = state.users.filter(u => u.id !== userId);
-        state.reports = state.reports.filter(r => r.userId !== userId);
-        saveFullState(state);
-    });
+    await apiRequest<void>(`/users/${userId}`, { method: 'DELETE' });
 };
-    
+
 // ANNOUNCEMENTS
 export const createAnnouncement = async (content: string): Promise<Announcement> => {
-    return simulateAPICall(() => {
-        const state = getFullState();
-        const newAnnouncement: Announcement = {
-            id: `a${Date.now()}`,
-            content,
-            date: new Date().toISOString(),
-            readBy: []
-        };
-        state.announcements = [newAnnouncement, ...state.announcements];
-        saveFullState(state);
-        return newAnnouncement;
+    return apiRequest<Announcement>('/announcements', {
+        method: 'POST',
+        body: JSON.stringify({ content }),
     });
 };
 
 export const updateAnnouncement = async (announcementId: string, content: string): Promise<Announcement> => {
-    return simulateAPICall(() => {
-        const state = getFullState();
-        let updatedAnnouncement: Announcement | undefined;
-        state.announcements = state.announcements.map(a => {
-            if (a.id === announcementId) {
-                updatedAnnouncement = { ...a, content, date: new Date().toISOString() };
-                return updatedAnnouncement;
-            }
-            return a;
-        });
-        saveFullState(state);
-        if (!updatedAnnouncement) throw new Error("Announcement not found");
-        return updatedAnnouncement;
+    return apiRequest<Announcement>(`/announcements/${announcementId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ content }),
     });
 };
-    
+
 export const deleteAnnouncement = async (announcementId: string): Promise<void> => {
-    return simulateAPICall(() => {
-        const state = getFullState();
-        state.announcements = state.announcements.filter(a => a.id !== announcementId);
-        saveFullState(state);
-    });
+    await apiRequest<void>(`/announcements/${announcementId}`, { method: 'DELETE' });
 };
-    
+
 export const markAnnouncementAsRead = async (announcementId: string, userId: string): Promise<void> => {
-    return simulateAPICall(() => {
-        const state = getFullState();
-        state.announcements = state.announcements.map(a => {
-            if (a.id === announcementId && !a.readBy.some(entry => entry.userId === userId)) {
-                return { ...a, readBy: [...a.readBy, { userId, readAt: new Date().toISOString() }] };
-            }
-            return a;
-        });
-        saveFullState(state);
+    // This endpoint should add the user to the `readBy` list on the server.
+    await apiRequest<void>(`/announcements/${announcementId}/read`, {
+        method: 'POST',
+        body: JSON.stringify({ userId }),
     });
 };
 
 // DIRECT TASKS
 export const createDirectTask = async (task: Omit<DirectTask, 'id' | 'sentAt' | 'status' | 'isReadByEmployee'>): Promise<DirectTask> => {
-    return simulateAPICall(() => {
-        const state = getFullState();
-        const newDirectTask: DirectTask = {
-            ...task,
-            id: `dt-${Date.now()}`,
-            sentAt: new Date().toISOString(),
-            status: 'pending',
-            isReadByEmployee: false
-        };
-        state.directTasks = [newDirectTask, ...state.directTasks];
-        saveFullState(state);
-        return newDirectTask;
+    return apiRequest<DirectTask>('/direct-tasks', {
+        method: 'POST',
+        body: JSON.stringify(task),
     });
 };
 
 export const updateDirectTaskStatus = async (taskId: string, status: 'acknowledged' | 'rejected', rejectionReason?: string): Promise<void> => {
-    return simulateAPICall(() => {
-        const state = getFullState();
-        state.directTasks = state.directTasks.map(task => {
-            if (task.id === taskId) {
-                return {
-                    ...task,
-                    status,
-                    rejectionReason: rejectionReason,
-                    acknowledgedAt: new Date().toISOString(),
-                    isReadByEmployee: true
-                };
-            }
-            return task;
-        });
-        saveFullState(state);
+    // This endpoint should update the task's status on the server.
+    await apiRequest<void>(`/direct-tasks/${taskId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status, rejectionReason }),
     });
 };
-    
+
 export const markDirectTaskAsRead = async (taskId: string): Promise<void> => {
-    return simulateAPICall(() => {
-        const state = getFullState();
-        state.directTasks = state.directTasks.map(task => 
-            task.id === taskId ? { ...task, isReadByEmployee: true } : task
-        );
-        saveFullState(state);
-    });
+    // This endpoint should update the task's read status on the server.
+    await apiRequest<void>(`/direct-tasks/${taskId}/read`, { method: 'POST' });
 };
