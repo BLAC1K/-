@@ -131,7 +131,7 @@ const ReportsView: React.FC = () => {
         );
     }
 
-    const hasFilteredResults = Object.values(groupedEmployees).some(unit => unit.length > 0);
+    const hasFilteredResults = Object.keys(groupedEmployees).some(key => groupedEmployees[key].length > 0);
 
     return (
         <div className="space-y-6">

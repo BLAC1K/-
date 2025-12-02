@@ -327,7 +327,7 @@ const WelcomeView: React.FC<{ user: User; onStart: () => void }> = ({ user, onSt
 
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
-    const { reports, announcements, markAnnouncementAsRead, directTasks, deleteReport } = useData();
+    const { reports, announcements, markAnnouncementAsRead, directTasks, deleteReport, isCloud } = useData();
     const [activeTab, setActiveTab] = useState('welcome');
     const [viewingReport, setViewingReport] = useState<Report | null>(null);
     const [notification, setNotification] = useState<string | null>(null);
@@ -506,6 +506,11 @@ const EmployeeDashboard: React.FC = () => {
             <div className="flex flex-col items-center p-4 mt-4 space-y-2 border-b dark:border-gray-700">
                 <Avatar src={currentUser.profilePictureUrl} name={currentUser.fullName} size={64} />
                 <span className="font-medium text-gray-700 dark:text-gray-200 text-center">مرحباً, {currentUser.fullName.split(' ')[0]}</span>
+                {/* Connection Status Indicator */}
+                <span className={`px-2 py-0.5 text-xs rounded-full flex items-center ${isCloud ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'}`}>
+                    <span className={`w-2 h-2 rounded-full mr-1.5 ${isCloud ? 'bg-green-500' : 'bg-orange-500'}`}></span>
+                    {isCloud ? 'متصل (سحابي)' : 'محلي (Offline)'}
+                </span>
             </div>
             <nav className="flex-grow px-2 py-4 space-y-1">
                 <NavItem tabName='welcome' label='الرئيسية' icon={<HomeIcon className="w-6 h-6"/>} />
@@ -555,7 +560,13 @@ const EmployeeDashboard: React.FC = () => {
 
                 <main className="container px-4 py-8 mx-auto flex-grow flex flex-col">
                      <div className="hidden md:block mb-6">
-                        <h1 className="text-3xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
+                        <div className="flex justify-between items-center">
+                            <h1 className="text-3xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
+                             <span className={`md:hidden px-2 py-0.5 text-xs rounded-full flex items-center ${isCloud ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+                                <span className={`w-2 h-2 rounded-full mr-1.5 ${isCloud ? 'bg-green-500' : 'bg-orange-500'}`}></span>
+                                {isCloud ? 'متصل' : 'محلي'}
+                            </span>
+                        </div>
                     </div>
                     <div className="flex-grow">
                         {renderContent()}

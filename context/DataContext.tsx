@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect } from 'react';
 import { User, Report, Announcement, DirectTask } from '../types';
 import * as api from '../services/apiService';
@@ -11,6 +12,7 @@ interface AppState {
 
 interface DataContextType extends AppState {
     isDataLoading: boolean;
+    isCloud: boolean;
     getUserById: (id: string) => User | undefined;
     addReport: (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => Promise<void>;
     updateReport: (updatedReport: Report) => Promise<void>;
@@ -35,12 +37,14 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [appState, setAppState] = useState<AppState>({ users: [], reports: [], announcements: [], directTasks: [] });
     const [isDataLoading, setIsDataLoading] = useState(true);
+    const [isCloud, setIsCloud] = useState(false);
 
     const loadData = useCallback(async () => {
         setIsDataLoading(true);
         try {
-            const initialState = await api.fetchInitialData();
+            const { isCloud: cloudStatus, ...initialState } = await api.fetchInitialData();
             setAppState(initialState);
+            setIsCloud(cloudStatus);
         } catch (error) {
             console.error("Failed to load initial data from API:", error);
             // In a real app, you might want to set an error state to show in the UI
@@ -83,10 +87,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const updateDirectTaskStatus = useCallback(async (taskId: string, status: 'acknowledged' | 'rejected', rejectionReason?: string) => performApiAction(api.updateDirectTaskStatus(taskId, status, rejectionReason)), [performApiAction]);
     const markDirectTaskAsRead = useCallback(async (taskId: string) => performApiAction(api.markDirectTaskAsRead(taskId)), [performApiAction]);
 
-    // FIX: Corrected useMemo syntax. The dependency array was incorrectly placed inside the factory function's return expression.
     const value = useMemo(() => ({
         ...appState,
         isDataLoading,
+        isCloud,
         getUserById,
         addReport,
         updateReport,
@@ -105,7 +109,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         updateDirectTaskStatus,
         markDirectTaskAsRead
     }), [
-        appState, isDataLoading, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
+        appState, isDataLoading, isCloud, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
     ]);
