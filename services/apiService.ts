@@ -11,7 +11,7 @@ interface AppState {
     isCloud: boolean; // Flag to indicate data source
 }
 
-// Initial Data to seed the application
+// Initial Data to seed the application (REAL DATA REQUESTED BY USER)
 const INITIAL_USERS: User[] = [
     {
         id: 'u1',
@@ -60,38 +60,6 @@ const INITIAL_USERS: User[] = [
 
 // Helper: Generate ID (UUID-like)
 const generateId = () => crypto.randomUUID();
-
-// ============================================================================
-// LOCAL STORAGE IMPLEMENTATION (Fallback)
-// ============================================================================
-
-const STORAGE_KEY = 'daily_tasks_app_data_v2';
-
-const loadFromLocalStorage = (): AppState => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    let state: Omit<AppState, 'isCloud'>;
-    
-    if (stored) {
-        state = JSON.parse(stored);
-    } else {
-        // Default initial state
-        state = {
-            users: INITIAL_USERS,
-            reports: [],
-            announcements: [],
-            directTasks: []
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
-    
-    return { ...state, isCloud: false };
-};
-
-const saveToLocalStorage = (state: AppState) => {
-    // We don't save isCloud to storage
-    const { isCloud, ...stateToSave } = state;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
-};
 
 // ============================================================================
 // SUPABASE MAPPERS
@@ -146,13 +114,12 @@ const mapDirectTask = (row: any): DirectTask => ({
 });
 
 // ============================================================================
-// API FUNCTIONS (Hybrid)
+// API FUNCTIONS (STRICT CLOUD ONLY)
 // ============================================================================
 
 export const fetchInitialData = async (): Promise<AppState> => {
     if (!isSupabaseConfigured()) {
-        console.warn('Supabase not configured. Using Local Storage.');
-        return loadFromLocalStorage();
+        throw new Error("Supabase is not configured. Please check services/supabaseConfig.ts");
     }
 
     try {
@@ -162,9 +129,9 @@ export const fetchInitialData = async (): Promise<AppState> => {
 
         let users: User[] = usersData.map(mapUser);
 
-        // Seed initial users if database is empty (First time run)
+        // Seed initial users ONLY if database is empty (First time run)
         if (users.length === 0) {
-            console.log("Seeding Database with initial users...");
+            console.log("Database is empty. Seeding initial users...");
             const dbUsers = INITIAL_USERS.map(u => ({
                 id: u.id,
                 full_name: u.fullName,
@@ -177,8 +144,14 @@ export const fetchInitialData = async (): Promise<AppState> => {
             }));
             
             const { error: seedError } = await supabase.from('users').insert(dbUsers);
-            if (seedError) console.error("Error seeding users:", seedError);
-            else users = INITIAL_USERS;
+            
+            if (seedError) {
+                console.error("Error seeding users:", seedError);
+                // If seed fails (e.g., permissions), we still return empty array to avoid crashing,
+                // but we DO NOT return local storage data.
+            } else {
+                 users = INITIAL_USERS;
+            }
         }
 
         // Fetch Reports
@@ -198,32 +171,17 @@ export const fetchInitialData = async (): Promise<AppState> => {
 
         return { users, reports, announcements, directTasks, isCloud: true };
 
-    } catch (error) {
-        console.error("Error fetching data from Supabase:", error);
-        // Fallback to local storage on error to keep app usable
-        return loadFromLocalStorage(); 
+    } catch (error: any) {
+        console.error("CRITICAL ERROR: Failed to fetch data from Supabase:", error);
+        // We re-throw the error so the UI can show a specific connection error screen
+        // instead of silently falling back to local storage.
+        throw error;
     }
 };
 
 // --- REPORTS ---
 
 export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>): Promise<Report> => {
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        const maxSeq = Math.max(0, ...state.reports.map(r => r.sequenceNumber || 0));
-        const newReport: Report = {
-            ...report,
-            id: generateId(),
-            sequenceNumber: maxSeq + 1,
-            status: 'submitted',
-            isViewedByManager: false,
-            isCommentReadByEmployee: false
-        };
-        state.reports.push(newReport);
-        saveToLocalStorage({ ...state, isCloud: false });
-        return newReport;
-    }
-
     const { data: maxSeqData } = await supabase
         .from('reports')
         .select('sequence_number')
@@ -265,13 +223,6 @@ export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' 
 };
 
 export const updateReport = async (updatedReport: Report): Promise<Report> => {
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        state.reports = state.reports.map(r => r.id === updatedReport.id ? updatedReport : r);
-        saveToLocalStorage({ ...state, isCloud: false });
-        return updatedReport;
-    }
-
     const dbReport = {
         tasks: updatedReport.tasks,
         accomplished: updatedReport.accomplished,
@@ -291,20 +242,6 @@ export const updateReport = async (updatedReport: Report): Promise<Report> => {
 };
 
 export const saveOrUpdateDraft = async (draft: Partial<Report>): Promise<Report> => {
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        let newDraft: Report;
-        if (draft.id) {
-            newDraft = { ...state.reports.find(r => r.id === draft.id)!, ...draft } as Report;
-            state.reports = state.reports.map(r => r.id === draft.id ? newDraft : r);
-        } else {
-            newDraft = { ...draft, id: generateId(), status: 'draft' } as Report;
-            state.reports.push(newDraft);
-        }
-        saveToLocalStorage({ ...state, isCloud: false });
-        return newDraft;
-    }
-
     if (draft.id) {
         // Update existing draft
         const dbDraft = {
@@ -356,41 +293,16 @@ export const saveOrUpdateDraft = async (draft: Partial<Report>): Promise<Report>
 };
 
 export const deleteReport = async (reportId: string): Promise<void> => {
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        state.reports = state.reports.filter(r => r.id !== reportId);
-        saveToLocalStorage({ ...state, isCloud: false });
-        return;
-    }
-
     const { error } = await supabase.from('reports').delete().eq('id', reportId);
     if (error) throw error;
 };
 
 export const markReportAsViewed = async (reportId: string): Promise<void> => {
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        const report = state.reports.find(r => r.id === reportId);
-        if (report) {
-            report.isViewedByManager = true;
-            saveToLocalStorage({ ...state, isCloud: false });
-        }
-        return;
-    }
     const { error } = await supabase.from('reports').update({ is_viewed_by_manager: true }).eq('id', reportId);
     if (error) throw error;
 };
 
 export const markCommentAsRead = async (reportId: string): Promise<void> => {
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        const report = state.reports.find(r => r.id === reportId);
-        if (report) {
-            report.isCommentReadByEmployee = true;
-            saveToLocalStorage({ ...state, isCloud: false });
-        }
-        return;
-    }
     const { error } = await supabase.from('reports').update({ is_comment_read_by_employee: true }).eq('id', reportId);
     if (error) throw error;
 };
@@ -401,13 +313,6 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
     const newId = generateId();
     const newUser: User = { ...user, id: newId };
     
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        state.users.push(newUser);
-        saveToLocalStorage({ ...state, isCloud: false });
-        return newUser;
-    }
-
     const dbUser = {
         id: newId,
         full_name: user.fullName,
@@ -427,13 +332,6 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
 };
 
 export const updateUser = async (updatedUser: User): Promise<User> => {
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        state.users = state.users.map(u => u.id === updatedUser.id ? updatedUser : u);
-        saveToLocalStorage({ ...state, isCloud: false });
-        return updatedUser;
-    }
-
     const dbUser = {
         full_name: updatedUser.fullName,
         badge_number: updatedUser.badgeNumber,
@@ -452,14 +350,6 @@ export const updateUser = async (updatedUser: User): Promise<User> => {
 };
 
 export const deleteUser = async (userId: string): Promise<void> => {
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        state.users = state.users.filter(u => u.id !== userId);
-        state.reports = state.reports.filter(r => r.userId !== userId); // Cascade delete reports
-        saveToLocalStorage({ ...state, isCloud: false });
-        return;
-    }
-
     // Cascade delete in Supabase should be handled by DB, but safe to delete reports first
     await supabase.from('reports').delete().eq('user_id', userId);
     const { error } = await supabase.from('users').delete().eq('id', userId);
@@ -477,13 +367,6 @@ export const createAnnouncement = async (content: string): Promise<Announcement>
         readBy: []
     };
 
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        state.announcements.unshift(newAnnouncement);
-        saveToLocalStorage({ ...state, isCloud: false });
-        return newAnnouncement;
-    }
-
     const dbAnn = {
         id: newId,
         content,
@@ -498,45 +381,17 @@ export const createAnnouncement = async (content: string): Promise<Announcement>
 };
 
 export const updateAnnouncement = async (announcementId: string, content: string): Promise<Announcement> => {
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        const ann = state.announcements.find(a => a.id === announcementId);
-        if (ann) {
-            ann.content = content;
-            saveToLocalStorage({ ...state, isCloud: false });
-            return ann;
-        }
-        throw new Error('Announcement not found');
-    }
-
     const { error } = await supabase.from('announcements').update({ content }).eq('id', announcementId);
     if (error) throw error;
     return { id: announcementId, content } as Announcement;
 };
 
 export const deleteAnnouncement = async (announcementId: string): Promise<void> => {
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        state.announcements = state.announcements.filter(a => a.id !== announcementId);
-        saveToLocalStorage({ ...state, isCloud: false });
-        return;
-    }
-
     const { error } = await supabase.from('announcements').delete().eq('id', announcementId);
     if (error) throw error;
 };
 
 export const markAnnouncementAsRead = async (announcementId: string, userId: string): Promise<void> => {
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        const ann = state.announcements.find(a => a.id === announcementId);
-        if (ann && !ann.readBy.some(r => r.userId === userId)) {
-            ann.readBy.push({ userId, readAt: new Date().toISOString() });
-            saveToLocalStorage({ ...state, isCloud: false });
-        }
-        return;
-    }
-
     const { data } = await supabase.from('announcements').select('read_by').eq('id', announcementId).single();
     if (data) {
         const currentReadBy = data.read_by || [];
@@ -560,13 +415,6 @@ export const createDirectTask = async (task: Omit<DirectTask, 'id' | 'sentAt' | 
         isReadByEmployee: false
     };
 
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        state.directTasks.push(newTask);
-        saveToLocalStorage({ ...state, isCloud: false });
-        return newTask;
-    }
-
     const dbTask = {
         id: newId,
         manager_id: newTask.managerId,
@@ -584,18 +432,6 @@ export const createDirectTask = async (task: Omit<DirectTask, 'id' | 'sentAt' | 
 };
 
 export const updateDirectTaskStatus = async (taskId: string, status: 'acknowledged' | 'rejected', rejectionReason?: string): Promise<void> => {
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        const task = state.directTasks.find(t => t.id === taskId);
-        if (task) {
-            task.status = status;
-            if (rejectionReason) task.rejectionReason = rejectionReason;
-            if (status === 'acknowledged') task.acknowledgedAt = new Date().toISOString();
-            saveToLocalStorage({ ...state, isCloud: false });
-        }
-        return;
-    }
-
     const updates: any = { status };
     if (rejectionReason) updates.rejection_reason = rejectionReason;
     if (status === 'acknowledged') updates.acknowledged_at = new Date().toISOString();
@@ -605,15 +441,6 @@ export const updateDirectTaskStatus = async (taskId: string, status: 'acknowledg
 };
 
 export const markDirectTaskAsRead = async (taskId: string): Promise<void> => {
-    if (!isSupabaseConfigured()) {
-        const state = loadFromLocalStorage();
-        const task = state.directTasks.find(t => t.id === taskId);
-        if (task) {
-            task.isReadByEmployee = true;
-            saveToLocalStorage({ ...state, isCloud: false });
-        }
-        return;
-    }
     const { error } = await supabase.from('direct_tasks').update({ is_read_by_employee: true }).eq('id', taskId);
     if (error) throw error;
 };

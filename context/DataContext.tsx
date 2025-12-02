@@ -13,6 +13,7 @@ interface AppState {
 interface DataContextType extends AppState {
     isDataLoading: boolean;
     isCloud: boolean;
+    error: string | null;
     getUserById: (id: string) => User | undefined;
     addReport: (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => Promise<void>;
     updateReport: (updatedReport: Report) => Promise<void>;
@@ -38,16 +39,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [appState, setAppState] = useState<AppState>({ users: [], reports: [], announcements: [], directTasks: [] });
     const [isDataLoading, setIsDataLoading] = useState(true);
     const [isCloud, setIsCloud] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const loadData = useCallback(async () => {
         setIsDataLoading(true);
+        setError(null);
         try {
             const { isCloud: cloudStatus, ...initialState } = await api.fetchInitialData();
             setAppState(initialState);
             setIsCloud(cloudStatus);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to load initial data from API:", error);
-            // In a real app, you might want to set an error state to show in the UI
+            setError(error.message || "حدث خطأ غير متوقع أثناء الاتصال بقاعدة البيانات.");
         } finally {
             setIsDataLoading(false);
         }
@@ -91,6 +94,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ...appState,
         isDataLoading,
         isCloud,
+        error,
         getUserById,
         addReport,
         updateReport,
@@ -109,7 +113,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         updateDirectTaskStatus,
         markDirectTaskAsRead
     }), [
-        appState, isDataLoading, isCloud, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
+        appState, isDataLoading, isCloud, error, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
     ]);
