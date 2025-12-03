@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { Report, User, Role } from '../types';
 import { useData } from '../context/DataContext';
 import TrashIcon from './icons/TrashIcon';
@@ -17,13 +18,18 @@ interface ReportDetailProps {
 }
 
 const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user, viewerRole }) => {
-    const { updateReport } = useData();
+    const { updateReport, users } = useData();
     const [report, setReport] = useState<Report>(initialReport); // Local copy for immediate UI feedback
     const [localRating, setLocalRating] = useState<string>((initialReport.rating ?? '').toString());
     const [isEditingComment, setIsEditingComment] = useState(false);
     const [comment, setComment] = useState(report.managerComment || '');
     
     const isManager = viewerRole === Role.MANAGER;
+
+    // Fetch the manager (Division Official) for the signature
+    const manager = useMemo(() => {
+        return users.find(u => u.role === Role.MANAGER) || { fullName: 'مسؤول الشعبة' };
+    }, [users]);
 
     const handleTaskDelete = async (taskId: string) => {
         const taskComment = prompt("الرجاء إضافة هامش على سبب الحذف:");
@@ -107,7 +113,7 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                     <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{report.notAccomplished || 'لا يوجد'}</dd>
                 </div>
                 {isManager && (
-                    <div className="sm:col-span-1">
+                    <div className="sm:col-span-1 no-print">
                         <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">التقييم (سري)</dt>
                         <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                             <div className="flex items-center max-w-min space-x-2 space-x-reverse">
@@ -129,7 +135,7 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                  <div className="sm:col-span-2">
                     <dt className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-400">
                        <CommentIcon className="w-4 h-4 ml-1 text-gray-500"/>
-                       هامش المسؤول
+                       هامش مسؤول الشعبة
                     </dt>
                     <dd className="mt-1 text-sm">
                         {isManager && isEditingComment ? (
@@ -147,7 +153,7 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                             </div>
                         ) : (
                             <div onClick={() => isManager && setIsEditingComment(true)} 
-                                className={`p-3 rounded-md border ${
+                                className={`p-3 rounded-md border min-h-[60px] ${
                                     isManager 
                                     ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 border-transparent hover:border-gray-200 dark:hover:border-gray-600' 
                                     : report.managerComment 
@@ -158,6 +164,14 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                                 <p className={`whitespace-pre-wrap ${!report.managerComment ? 'text-gray-500 dark:text-gray-400 italic' : 'text-gray-900 dark:text-gray-100'}`}>
                                     {report.managerComment || (isManager ? 'لا يوجد هامش. انقر للإضافة.' : 'لا يوجد هامش.')}
                                 </p>
+                                
+                                {/* Signature Block - Visible only when there is a comment and in print or view */}
+                                {report.managerComment && (
+                                    <div className="mt-4 pt-2 border-t border-gray-300 dark:border-gray-600 text-left">
+                                        <p className="font-bold text-gray-800 dark:text-gray-200">مسؤول الشعبة</p>
+                                        <p className="text-gray-600 dark:text-gray-400">{manager.fullName}</p>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </dd>

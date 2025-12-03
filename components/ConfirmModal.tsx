@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface ConfirmModalProps {
@@ -21,7 +22,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 }) => {
     return (
         <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" 
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60" 
             onClick={onCancel}
             aria-modal="true"
             role="dialog"

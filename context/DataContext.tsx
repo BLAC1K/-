@@ -41,8 +41,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isCloud, setIsCloud] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const loadData = useCallback(async () => {
-        setIsDataLoading(true);
+    // Modified loadData to accept a 'silent' argument.
+    // If silent is true, it won't trigger the global loading spinner.
+    const loadData = useCallback(async (silent = false) => {
+        if (!silent) {
+            setIsDataLoading(true);
+        }
         setError(null);
         try {
             const { isCloud: cloudStatus, ...initialState } = await api.fetchInitialData();
@@ -52,7 +56,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.error("Failed to load initial data from API:", error);
             setError(error.message || "حدث خطأ غير متوقع أثناء الاتصال بقاعدة البيانات.");
         } finally {
-            setIsDataLoading(false);
+            if (!silent) {
+                setIsDataLoading(false);
+            }
         }
     }, []);
 
@@ -65,11 +71,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const performApiAction = useCallback(async (action: Promise<any>) => {
         try {
             await action;
-            await loadData(); // After any change, refetch all data to stay in sync.
+            // Use silent reload so the UI doesn't flash or unmount components
+            await loadData(true); 
         } catch (error) {
             console.error("An API action failed:", error);
-            // In a real app, you might show a toast notification to the user.
-            throw error; // Re-throw so components can handle it if needed.
+            throw error;
         }
     }, [loadData]);
 
