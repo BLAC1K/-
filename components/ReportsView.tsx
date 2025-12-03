@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { Role, User, Report } from '../types';
@@ -8,15 +9,18 @@ import ArrowRightIcon from './icons/ArrowRightIcon';
 import DownloadIcon from './icons/DownloadIcon';
 import UnitFolder from './UnitFolder';
 import ArrowPathIcon from './icons/ArrowPathIcon';
+import TrashIcon from './icons/TrashIcon';
+import ConfirmModal from './ConfirmModal';
 
 const ReportsView: React.FC = () => {
-    const { users, reports, markReportAsViewed } = useData();
+    const { users, reports, markReportAsViewed, deleteReport } = useData();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null);
     const [viewingReport, setViewingReport] = useState<Report | null>(null);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [showOnlyUnread, setShowOnlyUnread] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const employees = useMemo(() => users.filter(u => u.role === Role.EMPLOYEE), [users]);
     
@@ -88,9 +92,17 @@ const ReportsView: React.FC = () => {
         setShowOnlyUnread(false);
     };
 
+    const handleDeleteReport = async () => {
+        if (viewingReport) {
+            await deleteReport(viewingReport.id);
+            setShowDeleteConfirm(false);
+            setViewingReport(null);
+        }
+    };
+
     if (viewingReport && selectedEmployee) {
         return (
-            <div id="printable-report" className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md animate-fade-in">
+            <div id="printable-report" className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md animate-fade-in relative">
                 <div className="flex items-center justify-between pb-4 mb-4 border-b dark:border-gray-700">
                      <div className="flex items-center space-x-3 space-x-reverse">
                          <Avatar src={selectedEmployee.profilePictureUrl} name={selectedEmployee.fullName} size={40} />
@@ -100,12 +112,20 @@ const ReportsView: React.FC = () => {
                          </div>
                     </div>
                     <div className="flex items-center gap-4 no-print">
+                         <button
+                            onClick={() => setShowDeleteConfirm(true)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white transition-colors rounded-md bg-red-600 hover:bg-red-700"
+                            title="حذف التقرير"
+                        >
+                            <TrashIcon className="w-5 h-5" />
+                            <span className="hidden sm:inline">حذف</span>
+                        </button>
                         <button
                             onClick={() => window.print()}
                             className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white transition-colors rounded-md bg-brand-light hover:bg-brand-dark"
                         >
                             <DownloadIcon className="w-5 h-5" />
-                            <span>حفظ كـ PDF</span>
+                            <span className="hidden sm:inline">حفظ كـ PDF</span>
                         </button>
                         <button
                             onClick={() => setViewingReport(null)}
@@ -117,6 +137,17 @@ const ReportsView: React.FC = () => {
                     </div>
                 </div>
                 <ReportDetail report={viewingReport} user={selectedEmployee} viewerRole={Role.MANAGER} />
+                
+                {showDeleteConfirm && (
+                    <ConfirmModal
+                        title="حذف التقرير"
+                        message="هل أنت متأكد من رغبتك في حذف هذا التقرير نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
+                        onConfirm={handleDeleteReport}
+                        onCancel={() => setShowDeleteConfirm(false)}
+                        confirmText="حذف"
+                        confirmButtonClass="bg-red-600 hover:bg-red-700"
+                    />
+                )}
             </div>
         );
     }

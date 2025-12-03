@@ -15,9 +15,10 @@ interface ReportDetailProps {
     report: Report;
     user: User;
     viewerRole: Role;
+    hideMargin?: boolean; // New prop to hide margin
 }
 
-const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user, viewerRole }) => {
+const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user, viewerRole, hideMargin = false }) => {
     const { updateReport, users } = useData();
     const [report, setReport] = useState<Report>(initialReport); // Local copy for immediate UI feedback
     const [localRating, setLocalRating] = useState<string>((initialReport.rating ?? '').toString());
@@ -132,50 +133,55 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                         </dd>
                     </div>
                 )}
-                 <div className="sm:col-span-2">
-                    <dt className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-400">
-                       <CommentIcon className="w-4 h-4 ml-1 text-gray-500"/>
-                       هامش مسؤول الشعبة
-                    </dt>
-                    <dd className="mt-1 text-sm">
-                        {isManager && isEditingComment ? (
-                            <div className="no-print">
-                                <textarea
-                                    value={comment}
-                                    onChange={(e) => setComment(e.target.value)}
-                                    rows={3}
-                                    className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200"
-                                />
-                                <div className="flex justify-end mt-2 space-x-2 space-x-reverse">
-                                    <button onClick={() => setIsEditingComment(false)} className="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 dark:border-gray-500">إلغاء</button>
-                                    <button onClick={handleSaveManagerComment} className="px-3 py-1 text-sm text-white bg-brand-light border border-transparent rounded-md hover:bg-brand-dark">حفظ</button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div onClick={() => isManager && setIsEditingComment(true)} 
-                                className={`p-3 rounded-md border min-h-[60px] ${
-                                    isManager 
-                                    ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 border-transparent hover:border-gray-200 dark:hover:border-gray-600' 
-                                    : report.managerComment 
-                                        ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-800' 
-                                        : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'
-                                }`}
-                            >
-                                <p className={`whitespace-pre-wrap ${!report.managerComment ? 'text-gray-500 dark:text-gray-400 italic' : 'text-gray-900 dark:text-gray-100'}`}>
-                                    {report.managerComment || (isManager ? 'لا يوجد هامش. انقر للإضافة.' : 'لا يوجد هامش.')}
-                                </p>
-                                
-                                {/* Signature Block - Visible only when there is a comment and in print or view */}
-                                {report.managerComment && (
-                                    <div className="mt-4 pt-2 border-t border-gray-300 dark:border-gray-600 text-left">
-                                        <p className="font-bold text-gray-800 dark:text-gray-200">مسؤول الشعبة</p>
-                                        <p className="text-gray-600 dark:text-gray-400">{manager.fullName}</p>
+                
+                {/* Conditionally render Manager Margin based on hideMargin prop */}
+                {!hideMargin && (
+                    <div className="sm:col-span-2">
+                        <dt className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-400">
+                           <CommentIcon className="w-4 h-4 ml-1 text-gray-500"/>
+                           هامش مسؤول الشعبة
+                        </dt>
+                        <dd className="mt-1 text-sm">
+                            {isManager && isEditingComment ? (
+                                <div className="no-print">
+                                    <textarea
+                                        value={comment}
+                                        onChange={(e) => setComment(e.target.value)}
+                                        rows={3}
+                                        className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200"
+                                    />
+                                    <div className="flex justify-end mt-2 space-x-2 space-x-reverse">
+                                        <button onClick={() => setIsEditingComment(false)} className="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 dark:border-gray-500">إلغاء</button>
+                                        <button onClick={handleSaveManagerComment} className="px-3 py-1 text-sm text-white bg-brand-light border border-transparent rounded-md hover:bg-brand-dark">حفظ</button>
                                     </div>
-                                )}
-                            </div>
-                        )}
-                    </dd>
-                </div>
+                                </div>
+                            ) : (
+                                <div onClick={() => isManager && setIsEditingComment(true)} 
+                                    className={`p-3 rounded-md border min-h-[60px] ${
+                                        isManager 
+                                        ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 border-transparent hover:border-gray-200 dark:hover:border-gray-600' 
+                                        : report.managerComment 
+                                            ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-800' 
+                                            : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'
+                                    }`}
+                                >
+                                    <p className={`whitespace-pre-wrap ${!report.managerComment ? 'text-gray-500 dark:text-gray-400 italic' : 'text-gray-900 dark:text-gray-100'}`}>
+                                        {report.managerComment || (isManager ? 'لا يوجد هامش. انقر للإضافة.' : 'لا يوجد هامش.')}
+                                    </p>
+                                    
+                                    {/* Signature Block - Visible only when there is a comment and in print or view */}
+                                    {report.managerComment && (
+                                        <div className="mt-4 pt-2 border-t border-gray-300 dark:border-gray-600 text-left">
+                                            <p className="font-bold text-gray-800 dark:text-gray-200">مسؤول الشعبة</p>
+                                            <p className="text-gray-600 dark:text-gray-400">{manager.fullName}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </dd>
+                    </div>
+                )}
+                
                 <div className="sm:col-span-2 print-page-break">
                     <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">المرفقات</dt>
                     <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">

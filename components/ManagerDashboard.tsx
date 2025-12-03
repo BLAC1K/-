@@ -4,9 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import LogoutIcon from './icons/LogoutIcon';
 import UserManagement from './UserManagement'; 
-import AnnouncementCenter from './AnnouncementCenter';
 import UsersIcon from './icons/UsersIcon';
-import MegaphoneIcon from './icons/MegaphoneIcon';
 import NewReportIcon from './icons/NewReportIcon';
 import Avatar from './Avatar';
 import ReportsView from './ReportsView';
@@ -35,7 +33,6 @@ const ManagerDashboard: React.FC = () => {
     const pageTitles: { [key: string]: string } = {
         reports: 'التقارير',
         employees: 'إدارة المنتسبين',
-        announcements: 'التوجيهات',
         sentTasks: 'المهام المرسلة',
         profile: 'الملف الشخصي'
     };
@@ -43,7 +40,6 @@ const ManagerDashboard: React.FC = () => {
     const renderContent = () => {
         switch(activeTab) {
             case 'employees': return <UserManagement />;
-            case 'announcements': return <AnnouncementCenter />;
             case 'sentTasks': return <SentTasksView />;
             case 'profile': return <ProfileManagement user={currentUser} />;
             case 'reports':
@@ -89,7 +85,6 @@ const ManagerDashboard: React.FC = () => {
             <nav className="flex-grow px-2 py-4 space-y-1">
                 <NavItem tabName="reports" label="التقارير" icon={<NewReportIcon className="w-6 h-6"/>} count={newReportsCount}/>
                 <NavItem tabName="employees" label="إدارة المنتسبين" icon={<UsersIcon className="w-6 h-6"/>} />
-                <NavItem tabName="announcements" label="التوجيهات" icon={<MegaphoneIcon className="w-6 h-6"/>} />
                 <NavItem tabName="sentTasks" label="المهام المرسلة" icon={<ClipboardDocumentListIcon className="w-6 h-6"/>} />
                 <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />
             </nav>

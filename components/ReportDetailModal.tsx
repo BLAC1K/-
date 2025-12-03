@@ -1,21 +1,25 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Report, User, Role } from '../types';
 import { useData } from '../context/DataContext';
 import ReportDetail from './ReportDetail';
 import XCircleIcon from './icons/XCircleIcon';
 import Avatar from './Avatar';
 import DownloadIcon from './icons/DownloadIcon';
+import TrashIcon from './icons/TrashIcon';
+import ConfirmModal from './ConfirmModal';
 
 interface ReportDetailModalProps {
     report: Report;
     user: User;
     viewerRole: Role;
     onClose: () => void;
+    hideMargin?: boolean; // New prop
 }
 
-const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, viewerRole, onClose }) => {
-    const { markReportAsViewed, markCommentAsRead } = useData();
+const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, viewerRole, onClose, hideMargin = false }) => {
+    const { markReportAsViewed, markCommentAsRead, deleteReport } = useData();
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     useEffect(() => {
         if (viewerRole === Role.MANAGER && !report.isViewedByManager) {
@@ -25,6 +29,12 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
             markCommentAsRead(report.id);
         }
     }, [report, viewerRole, markReportAsViewed, markCommentAsRead]);
+
+    const handleDelete = async () => {
+        await deleteReport(report.id);
+        setShowDeleteConfirm(false);
+        onClose();
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" aria-modal="true" role="dialog" onClick={onClose}>
@@ -59,6 +69,16 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                              </div>
                         </div>
                         <div className="flex items-center gap-2">
+                            {viewerRole === Role.MANAGER && (
+                                <button
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white transition-colors rounded-md bg-red-600 hover:bg-red-700"
+                                    title="حذف التقرير"
+                                >
+                                    <TrashIcon className="w-5 h-5" />
+                                    <span className="hidden sm:inline">حذف</span>
+                                </button>
+                            )}
                             <button
                                 onClick={() => window.print()}
                                 className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white transition-colors rounded-md bg-brand-light hover:bg-brand-dark"
@@ -74,9 +94,20 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                 </div>
 
                 <div className="flex-grow overflow-y-auto">
-                    <ReportDetail report={report} user={user} viewerRole={viewerRole} />
+                    <ReportDetail report={report} user={user} viewerRole={viewerRole} hideMargin={hideMargin} />
                 </div>
             </div>
+
+            {showDeleteConfirm && (
+                <ConfirmModal
+                    title="حذف التقرير"
+                    message="هل أنت متأكد من رغبتك في حذف هذا التقرير نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
+                    onConfirm={handleDelete}
+                    onCancel={() => setShowDeleteConfirm(false)}
+                    confirmText="حذف"
+                    confirmButtonClass="bg-red-600 hover:bg-red-700"
+                />
+            )}
         </div>
     );
 };

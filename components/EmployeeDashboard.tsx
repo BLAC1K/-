@@ -11,7 +11,6 @@ import ReportView from './ReportView';
 import NewReportIcon from './icons/NewReportIcon';
 import InboxIcon from './icons/InboxIcon';
 import OutboxIcon from './icons/OutboxIcon';
-import MegaphoneIcon from './icons/MegaphoneIcon';
 import Avatar from './Avatar';
 import ProfileManagement from './ProfileManagement';
 import UserCircleIcon from './icons/UserCircleIcon';
@@ -19,7 +18,6 @@ import ReportDetailModal from './ReportDetailModal';
 import Toast from './Toast';
 import MenuIcon from './icons/MenuIcon';
 import XMarkIcon from './icons/XMarkIcon';
-import CheckCircleIcon from './icons/CheckCircleIcon';
 import JobTitleIcon from './icons/JobTitleIcon';
 import BadgeNumberIcon from './icons/BadgeNumberIcon';
 import HashtagIcon from './icons/HashtagIcon';
@@ -327,7 +325,7 @@ const WelcomeView: React.FC<{ user: User; onStart: () => void }> = ({ user, onSt
 
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
-    const { reports, announcements, markAnnouncementAsRead, directTasks, deleteReport, isCloud } = useData();
+    const { reports, directTasks, deleteReport, isCloud } = useData();
     const [activeTab, setActiveTab] = useState('welcome');
     const [viewingReport, setViewingReport] = useState<Report | null>(null);
     const [notification, setNotification] = useState<string | null>(null);
@@ -336,6 +334,11 @@ const EmployeeDashboard: React.FC = () => {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [draftToDelete, setDraftToDelete] = useState<Report | null>(null);
     
+    // To distinguish if we are viewing a sent report (Outbox) or a received report (Inbox)
+    // 'outbox': User sent it. Margin should be hidden to reflect "as sent".
+    // 'inbox': User received a reply. Margin should be visible.
+    const [reportViewContext, setReportViewContext] = useState<'outbox' | 'inbox'>('outbox');
+
     if (!currentUser) return null;
 
     const myReports = useMemo(() => reports.filter(r => r.userId === currentUser.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [reports, currentUser.id]);
@@ -343,7 +346,6 @@ const EmployeeDashboard: React.FC = () => {
     const myDrafts = useMemo(() => myReports.filter(r => r.status === 'draft'), [myReports]);
     const inboxReports = useMemo(() => submittedReports.filter(r => r.managerComment), [submittedReports]);
     const unreadCommentsCount = useMemo(() => inboxReports.filter(r => !r.isCommentReadByEmployee).length, [inboxReports]);
-    const unreadAnnouncementsCount = useMemo(() => announcements.filter(a => !a.readBy.some(r => r.userId === currentUser.id)).length, [announcements, currentUser.id]);
     const myDirectTasks = useMemo(() => directTasks.filter(t => t.employeeId === currentUser.id), [directTasks, currentUser.id]);
     const unreadDirectTasksCount = useMemo(() => myDirectTasks.filter(t => t.status === 'pending').length, [myDirectTasks]);
 
@@ -382,7 +384,6 @@ const EmployeeDashboard: React.FC = () => {
         inbox: 'البريد الوارد',
         drafts: 'المسودات',
         directTasks: 'المهام الواردة',
-        announcements: 'التوجيهات والتعاميم',
         profile: 'الملف الشخصي',
     };
 
@@ -403,6 +404,16 @@ const EmployeeDashboard: React.FC = () => {
         }
     }, [draftToDelete, deleteReport]);
 
+    const handleViewSentReport = (report: Report) => {
+        setReportViewContext('outbox');
+        setViewingReport(report);
+    };
+
+    const handleViewReceivedReport = (report: Report) => {
+        setReportViewContext('inbox');
+        setViewingReport(report);
+    };
+
     const renderContent = () => {
         switch(activeTab) {
             case 'welcome':
@@ -411,7 +422,13 @@ const EmployeeDashboard: React.FC = () => {
                 return (
                     <div className="space-y-4">
                         {submittedReports.length > 0 ? submittedReports.map(report => (
-                            <ReportView key={report.id} report={report} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setViewingReport(report)} />
+                            <ReportView 
+                                key={report.id} 
+                                report={report} 
+                                user={currentUser} 
+                                viewerRole={Role.EMPLOYEE} 
+                                onClick={() => handleViewSentReport(report)} 
+                            />
                         )) : <p className="text-gray-500 dark:text-gray-400">لم تقم بإرسال أي تقارير بعد.</p>}
                     </div>
                 );
@@ -419,7 +436,13 @@ const EmployeeDashboard: React.FC = () => {
                  return (
                     <div className="space-y-4">
                         {inboxReports.length > 0 ? inboxReports.map(report => (
-                            <ReportView key={report.id} report={report} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setViewingReport(report)} />
+                            <ReportView 
+                                key={report.id} 
+                                report={report} 
+                                user={currentUser} 
+                                viewerRole={Role.EMPLOYEE} 
+                                onClick={() => handleViewReceivedReport(report)} 
+                            />
                         )) : <p className="text-gray-500 dark:text-gray-400">لا توجد لديك أي رسائل في البريد الوارد.</p>}
                     </div>
                 );
@@ -433,41 +456,6 @@ const EmployeeDashboard: React.FC = () => {
                 );
             case 'directTasks':
                 return <DirectTasksView />;
-            case 'announcements':
-                return (
-                    <div className="space-y-4">
-                        {announcements.length > 0 ? announcements.map(a => {
-                            const readEntry = a.readBy.find(r => r.userId === currentUser.id);
-
-                            return (
-                                <div key={a.id} className="p-4 bg-blue-50 dark:bg-gray-800 border-r-4 border-brand-light rounded-md shadow-sm">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">{new Date(a.date).toLocaleString('ar-EG')}</p>
-                                            <p className="mt-2 text-gray-800 dark:text-gray-200">{a.content}</p>
-                                        </div>
-                                        {!readEntry && (
-                                            <button
-                                                onClick={() => markAnnouncementAsRead(a.id, currentUser.id)}
-                                                className="px-3 py-1 text-sm font-semibold text-brand-light bg-white dark:bg-gray-700 border border-brand-light rounded-full hover:bg-brand-light/10 dark:hover:bg-brand-light/20 transition-colors shrink-0"
-                                            >
-                                                تم الاطلاع
-                                            </button>
-                                        )}
-                                    </div>
-                                    {readEntry && (
-                                        <div className="mt-3 pt-2 border-t border-brand-light/20 text-right">
-                                            <p className="flex items-center justify-end text-xs text-green-700 dark:text-green-400 font-medium">
-                                                <CheckCircleIcon className="w-4 h-4 ml-1" />
-                                                <span>تم الاطلاع عليه في: {new Date(readEntry.readAt).toLocaleString('ar-EG')}</span>
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            )
-                        }) : <p className="text-gray-500 dark:text-gray-400">لا توجد توجيهات حالياً.</p>}
-                    </div>
-                );
             case 'profile':
                 return <ProfileManagement user={currentUser} />;
             default: // 'new' tab
@@ -519,7 +507,6 @@ const EmployeeDashboard: React.FC = () => {
                 <NavItem tabName='submitted' label='صادر' icon={<OutboxIcon className="w-6 h-6"/>} />
                 <NavItem tabName='inbox' label='الوارد' icon={<InboxIcon className="w-6 h-6"/>} count={unreadCommentsCount}/>
                 <NavItem tabName='directTasks' label='المهام الواردة' icon={<ClipboardDocumentListIcon className="w-6 h-6"/>} count={unreadDirectTasksCount}/>
-                <NavItem tabName='announcements' label='التوجيهات' icon={<MegaphoneIcon className="w-6 h-6"/>} count={unreadAnnouncementsCount}/>
                 <NavItem tabName='profile' label='الملف الشخصي' icon={<UserCircleIcon className="w-6 h-6"/>} />
             </nav>
             <div className="px-2 py-4 mt-auto border-t dark:border-gray-700">
@@ -599,6 +586,8 @@ const EmployeeDashboard: React.FC = () => {
                     user={currentUser}
                     viewerRole={Role.EMPLOYEE}
                     onClose={() => setViewingReport(null)}
+                    // Hide margin if viewing from 'outbox' (Sent Reports), show if 'inbox' (Received Reports)
+                    hideMargin={reportViewContext === 'outbox'}
                 />
             )}
             {showLogoutConfirm && (
