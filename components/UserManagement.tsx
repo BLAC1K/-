@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback } from 'react';
 import { useData } from '../context/DataContext';
 import { User, Role } from '../types';
@@ -88,7 +89,7 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
                             <input type="text" name="jobTitle" id="jobTitle" value={formData.jobTitle} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" required />
                         </div>
                         <div>
-                            <label htmlFor="badgeNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300">رقم الباج</label>
+                            <label htmlFor="badgeNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300">الرقم الوظيفي</label>
                             <input type="text" name="badgeNumber" id="badgeNumber" value={formData.badgeNumber} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" required />
                         </div>
                     </div>
@@ -224,7 +225,7 @@ const UserManagement: React.FC = () => {
                                 <span className="mr-2 text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full text-xs">{user.unit || 'غير معين'}</span>
                             </p>
                             <p className="text-sm flex items-center">
-                                <span className="font-semibold text-gray-700 dark:text-gray-300 w-20 shrink-0">رقم الباج:</span>
+                                <span className="font-semibold text-gray-700 dark:text-gray-300 w-20 shrink-0">الرقم الوظيفي:</span>
                                 <span className="mr-2 text-gray-600 dark:text-gray-400">{user.badgeNumber}</span>
                             </p>
                         </div>

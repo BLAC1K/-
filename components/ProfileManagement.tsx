@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { User, Role } from '../types';
@@ -135,7 +136,7 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
                         <input type="text" name="jobTitle" id="jobTitle" value={formData.jobTitle} onChange={handleDataChange} readOnly={isEmployee} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-100 dark:read-only:bg-gray-700/50" />
                     </div>
                      <div>
-                        <label htmlFor="badgeNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300">رقم الباج</label>
+                        <label htmlFor="badgeNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300">الرقم الوظيفي</label>
                         <input type="text" name="badgeNumber" id="badgeNumber" value={formData.badgeNumber} onChange={handleDataChange} readOnly={isEmployee} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-100 dark:read-only:bg-gray-700/50" />
                     </div>
                      <div>
