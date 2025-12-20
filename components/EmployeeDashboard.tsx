@@ -26,6 +26,7 @@ import BellIcon from './icons/BellIcon';
 import CameraIcon from './icons/CameraIcon';
 import DocumentTextIcon from './icons/DocumentTextIcon';
 import XMarkIcon from './icons/XMarkIcon';
+import InstallIcon from './icons/InstallIcon';
 
 const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 
@@ -39,11 +40,11 @@ const EmployeeDashboard: React.FC = () => {
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
-    // استخدام Refs لمراقبة التغييرات فورياً دون التسبب في تكرار الإشعارات
     const lastNotifiedTaskId = useRef<string | null>(null);
     const lastNotifiedCommentId = useRef<string | null>(null);
     const lastNotifiedAnnId = useRef<string | null>(null);
@@ -64,9 +65,24 @@ const EmployeeDashboard: React.FC = () => {
         if ('Notification' in window) {
             setNotificationPermission(Notification.permission);
         }
+
+        // رصد حدث إمكانية تثبيت التطبيق
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        });
     }, []);
 
-    // FIX: Add missing requestNotificationPermission function to handle notification permission requests.
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) {
+            setToast({ message: 'التطبيق مثبت بالفعل أو متصفحك لا يدعم التثبيت المباشر.', type: 'info' });
+            return;
+        }
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') setDeferredPrompt(null);
+    };
+
     const requestNotificationPermission = async () => {
         if ('Notification' in window) {
             const permission = await Notification.requestPermission();
@@ -78,33 +94,30 @@ const EmployeeDashboard: React.FC = () => {
     };
 
     const triggerNotification = async (title: string, body: string) => {
-        // تشغيل صوت التنبيه فوراً
         const audio = new Audio(NOTIFICATION_SOUND_URL);
-        audio.play().catch(e => console.log("Audio play blocked", e));
+        audio.play().catch(() => {});
 
-        // إظهار إشعار النظام (System Notification)
         if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
             const registration = await navigator.serviceWorker.ready;
             registration.showNotification(title, {
                 body,
-                icon: '/icon-192.png',
-                badge: '/icon-192.png',
+                icon: 'https://img.icons8.com/fluency/192/task.png',
+                badge: 'https://img.icons8.com/fluency/96/task.png',
                 vibrate: [300, 100, 300],
                 tag: 'task-alert',
-                requireInteraction: true // يبقى الإشعار حتى يتفاعل معه المستخدم
+                requireInteraction: true
             } as any);
         } else if (Notification.permission === 'granted') {
-            new Notification(title, { body, icon: '/icon-192.png' });
+            new Notification(title, { body, icon: 'https://img.icons8.com/fluency/192/task.png' });
         }
         
         setToast({ message: body, type: 'info' });
     };
 
-    // مراقبة التغييرات الفورية وإطلاق الإشعارات
     useEffect(() => {
         if (!currentUser) return;
 
-        // 1. التحقق من المهام الجديدة
+        // 1. المهام الجديدة
         const myPendingTasks = directTasks.filter(t => t.employeeId === currentUser.id && t.status === 'pending');
         if (myPendingTasks.length > 0) {
             const newestTask = myPendingTasks[0];
@@ -114,7 +127,7 @@ const EmployeeDashboard: React.FC = () => {
             }
         }
 
-        // 2. التحقق من تعليقات المسؤول
+        // 2. تعليقات المسؤول
         const myReportsWithNewComments = reports.filter(r => r.userId === currentUser.id && r.managerComment && !r.isCommentReadByEmployee);
         if (myReportsWithNewComments.length > 0) {
             const newestReport = myReportsWithNewComments[0];
@@ -124,7 +137,7 @@ const EmployeeDashboard: React.FC = () => {
             }
         }
 
-        // 3. التحقق من التوجيهات العامة
+        // 3. التوجيهات العامة
         if (announcements.length > 0) {
             const newestAnn = announcements[0];
             if (newestAnn.id !== lastNotifiedAnnId.current) {
@@ -389,6 +402,12 @@ const EmployeeDashboard: React.FC = () => {
                     </nav>
                     
                     <div className="p-4 border-t dark:border-gray-700 space-y-2 mb-safe">
+                        {deferredPrompt && (
+                            <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30">
+                                <InstallIcon className="w-6 h-6"/>
+                                <span className="mr-3">تثبيت التطبيق</span>
+                            </button>
+                        )}
                         {notificationPermission === 'default' && (
                             <button onClick={() => { requestNotificationPermission(); }} className="flex items-center w-full px-4 py-3 text-sm font-bold text-brand-light bg-brand-light/10 rounded-xl active:scale-95 transition-transform">
                                 <BellIcon className="w-6 h-6"/>

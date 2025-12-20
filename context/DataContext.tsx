@@ -41,7 +41,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isCloud, setIsCloud] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
-    // Ref to prevent state closure issues in callbacks
     const stateRef = useRef(appState);
     useEffect(() => { stateRef.current = appState; }, [appState]);
 
@@ -64,18 +63,45 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
-    // تفعيل التزامن الفوري الذكي
+    // المزامنة اللحظية الذكية: تحديث الـ State مباشرة عند استلام حدث من Supabase
     useEffect(() => {
         loadData();
 
         const unsubscribe = api.subscribeToAllChanges((payload) => {
-            console.log("Realtime Sync Payload:", payload);
+            console.log("Realtime event received:", payload);
             
-            // تحديث البيانات فوراً صامتاً لضمان المزامنة
-            loadData(true);
-            
-            // يمكن هنا إضافة منطق لمعالجة الـ Payload وتحديث جزء من الـ State فقط لزيادة السرعة
-            // لكن loadData(true) هي الطريقة الأكثر موثوقية لضمان تطابق البيانات
+            const { table, eventType, new: newRecord, old: oldRecord } = payload;
+
+            setAppState(prev => {
+                const newState = { ...prev };
+
+                if (table === 'reports') {
+                    const mapped = api.mapReport(newRecord);
+                    if (eventType === 'INSERT') newState.reports = [mapped, ...prev.reports];
+                    else if (eventType === 'UPDATE') newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
+                    else if (eventType === 'DELETE') newState.reports = prev.reports.filter(r => r.id !== oldRecord.id);
+                }
+                else if (table === 'direct_tasks') {
+                    const mapped = api.mapDirectTask(newRecord);
+                    if (eventType === 'INSERT') newState.directTasks = [mapped, ...prev.directTasks];
+                    else if (eventType === 'UPDATE') newState.directTasks = prev.directTasks.map(t => t.id === mapped.id ? mapped : t);
+                    else if (eventType === 'DELETE') newState.directTasks = prev.directTasks.filter(t => t.id !== oldRecord.id);
+                }
+                else if (table === 'announcements') {
+                    const mapped = api.mapAnnouncement(newRecord);
+                    if (eventType === 'INSERT') newState.announcements = [mapped, ...prev.announcements];
+                    else if (eventType === 'UPDATE') newState.announcements = prev.announcements.map(a => a.id === mapped.id ? mapped : a);
+                    else if (eventType === 'DELETE') newState.announcements = prev.announcements.filter(a => a.id !== oldRecord.id);
+                }
+                else if (table === 'users') {
+                    const mapped = api.mapUser(newRecord);
+                    if (eventType === 'INSERT') newState.users = [...prev.users, mapped];
+                    else if (eventType === 'UPDATE') newState.users = prev.users.map(u => u.id === mapped.id ? mapped : u);
+                    else if (eventType === 'DELETE') newState.users = prev.users.filter(u => u.id !== oldRecord.id);
+                }
+
+                return newState;
+            });
         });
 
         return () => { unsubscribe(); };
@@ -86,7 +112,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const performApiAction = useCallback(async (action: Promise<any>) => {
         try {
             await action;
-            // لا حاجة لانتظار loadData هنا لأن الاشتراك اللحظي سيقوم بالمهمة
+            // لم نعد بحاجة لـ loadData هنا لأن الاشتراك اللحظي سيحدث الـ State تلقائياً
         } catch (error) {
             console.error("Action failed:", error);
             throw error;

@@ -1,42 +1,33 @@
 
 {
-  "name": "نظام المهام اليومية",
+  "name": "نظام المهام اليومية للمنتسبين",
   "short_name": "مهامي",
-  "description": "تطبيق متكامل لإدارة وتقييم المهام اليومية للمنتسبين.",
+  "description": "تطبيق متكامل لإدارة وتقييم المهام اليومية مع مزامنة فورية.",
   "start_url": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#2B576E",
   "theme_color": "#2B576E",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "https://img.icons8.com/fluency/192/task.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable"
-    },
-    {
-      "src": "icon-512.png",
+      "src": "https://img.icons8.com/fluency/512/task.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     }
   ],
   "categories": ["productivity", "business"],
-  "screenshots": [
+  "shortcuts": [
     {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "الرئيسية"
+      "name": "تقرير جديد",
+      "url": "/?action=new-report",
+      "icons": [{ "src": "https://img.icons8.com/fluency/96/plus.png", "sizes": "96x96" }]
     }
   ]
 }
