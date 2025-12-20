@@ -16,16 +16,14 @@ import UserCircleIcon from './icons/UserCircleIcon';
 import ReportDetailModal from './ReportDetailModal';
 import Toast from './Toast';
 import MenuIcon from './icons/MenuIcon';
-import XMarkIcon from './icons/XMarkIcon';
 import ThemeToggle from './ThemeToggle';
 import AppLogoIcon from './icons/AppLogoIcon';
 import HomeIcon from './icons/HomeIcon';
-import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import DirectTasksView from './DirectTasksView';
 import ArchiveBoxIcon from './icons/ArchiveBoxIcon';
 import ConfirmModal from './ConfirmModal';
-import BellIcon from './icons/BellIcon';
 import InstallIcon from './icons/InstallIcon';
+import BellIcon from './icons/BellIcon';
 
 const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 
@@ -38,10 +36,11 @@ const EmployeeDashboard: React.FC = () => {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
+    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
     
-    // PWA Install Prompt State
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
+    // Refs to track previous counts for notification triggers
     const prevTasksCount = useRef(directTasks.length);
     const prevCommentsCount = useRef(0);
     const prevAnnouncementsCount = useRef(announcements.length);
@@ -58,80 +57,96 @@ const EmployeeDashboard: React.FC = () => {
         attachments: []
     });
 
+    // Check permissions and PWA status
     useEffect(() => {
-        // Handle PWA Install prompt
-        window.addEventListener('beforeinstallprompt', (e) => {
+        if ('Notification' in window) {
+            setNotificationPermission(Notification.permission);
+        }
+
+        const handler = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e);
-        });
-
-        window.addEventListener('appinstalled', () => {
-            setDeferredPrompt(null);
-            setToast({ message: 'تم تثبيت التطبيق بنجاح على جهازك!', type: 'success' });
-        });
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
     }, []);
+
+    const requestNotificationPermission = async () => {
+        if ('Notification' in window) {
+            const permission = await Notification.requestPermission();
+            setNotificationPermission(permission);
+            if (permission === 'granted') {
+                setToast({ message: 'تم تفعيل الإشعارات بنجاح!', type: 'success' });
+            }
+        }
+    };
+
+    const triggerNotification = async (title: string, body: string) => {
+        // Play Sound
+        const audio = new Audio(NOTIFICATION_SOUND_URL);
+        audio.play().catch(e => console.log("Audio play blocked", e));
+
+        // Background Notification via Service Worker
+        if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+            const registration = await navigator.serviceWorker.ready;
+            // Fix: Cast options to 'any' to resolve 'vibrate' property missing in standard NotificationOptions
+            registration.showNotification(title, {
+                body,
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+                vibrate: [200, 100, 200],
+                tag: 'task-alert'
+            } as any);
+        } else if (Notification.permission === 'granted') {
+            new Notification(title, { body, icon: '/icon-192.png' });
+        }
+        
+        setToast({ message: body, type: 'info' });
+    };
+
+    // Monitor changes for notifications
+    useEffect(() => {
+        if (!currentUser) return;
+
+        // 1. Monitor New Direct Tasks
+        const myTasks = directTasks.filter(t => t.employeeId === currentUser.id);
+        if (myTasks.length > prevTasksCount.current) {
+            const newestTask = myTasks[0];
+            triggerNotification("مهمة جديدة واردة", newestTask.content.substring(0, 50) + "...");
+        }
+        prevTasksCount.current = myTasks.length;
+
+        // 2. Monitor New Comments on Reports
+        const myReportsWithNewComments = reports.filter(r => r.userId === currentUser.id && r.managerComment && !r.isCommentReadByEmployee);
+        if (myReportsWithNewComments.length > prevCommentsCount.current) {
+            triggerNotification("تعليق جديد من المسؤول", "قام المسؤول بالتعليق على أحد تقاريرك اليومية.");
+        }
+        prevCommentsCount.current = myReportsWithNewComments.length;
+
+        // 3. Monitor New Announcements
+        if (announcements.length > prevAnnouncementsCount.current) {
+            triggerNotification("توجيه إداري جديد", announcements[0].content.substring(0, 50) + "...");
+        }
+        prevAnnouncementsCount.current = announcements.length;
+
+    }, [directTasks, reports, announcements, currentUser]);
+
+    const myReports = useMemo(() => 
+        reports.filter(r => r.userId === currentUser?.id)
+               .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    , [reports, currentUser]);
+
+    const unreadTasksCount = useMemo(() => 
+        directTasks.filter(t => t.employeeId === currentUser?.id && t.status === 'pending' && !t.isReadByEmployee).length
+    , [directTasks, currentUser]);
+
+    if (!currentUser) return null;
 
     const handleInstallClick = async () => {
         if (!deferredPrompt) return;
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            setDeferredPrompt(null);
-        }
-    };
-
-    if (!currentUser) return null;
-
-    const triggerNotification = (title: string, body: string) => {
-        const audio = new Audio(NOTIFICATION_SOUND_URL);
-        audio.play().catch(e => console.log("Audio play blocked", e));
-
-        if (Notification.permission === 'granted') {
-            new Notification(title, { body, icon: '/icon-192.png' });
-        }
-        setToast({ message: body, type: 'info' });
-    };
-
-    useEffect(() => {
-        if (Notification.permission === 'default') Notification.requestPermission();
-
-        const myTasks = directTasks.filter(t => t.employeeId === currentUser.id);
-        if (myTasks.length > prevTasksCount.current) {
-            triggerNotification("مهمة جديدة", "لقد استلمت مهمة جديدة من المسؤول.");
-        }
-        prevTasksCount.current = myTasks.length;
-
-        const myReportsWithComments = reports.filter(r => r.userId === currentUser.id && r.managerComment && !r.isCommentReadByEmployee);
-        if (myReportsWithComments.length > prevCommentsCount.current) {
-            triggerNotification("تعليق جديد", "قام المسؤول بالتعليق على أحد تقاريرك.");
-        }
-        prevCommentsCount.current = myReportsWithComments.length;
-
-        if (announcements.length > prevAnnouncementsCount.current) {
-            triggerNotification("توجيه جديد", "تم نشر توجيه أو تعميم جديد للجميع.");
-        }
-        prevAnnouncementsCount.current = announcements.length;
-    }, [directTasks, reports, announcements, currentUser.id]);
-
-    const myReports = useMemo(() => 
-        reports.filter(r => r.userId === currentUser.id)
-               .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    , [reports, currentUser.id]);
-
-    const unreadTasksCount = useMemo(() => 
-        directTasks.filter(t => t.employeeId === currentUser.id && t.status === 'pending' && !t.isReadByEmployee).length
-    , [directTasks, currentUser.id]);
-
-    const handleAddTask = () => {
-        setReportForm(prev => ({ ...prev, tasks: [...prev.tasks, { id: Date.now().toString(), text: '' }] }));
-    };
-
-    const handleRemoveTask = (id: string) => {
-        setReportForm(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== id) }));
-    };
-
-    const handleTaskChange = (id: string, text: string) => {
-        setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === id ? { ...t, text } : t) }));
+        if (outcome === 'accepted') setDeferredPrompt(null);
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -227,7 +242,6 @@ const EmployeeDashboard: React.FC = () => {
                              <div className="bg-brand-light/5 dark:bg-brand-light/10 p-6 rounded-xl shadow-md border border-brand-light/20 flex flex-col justify-center items-center text-center">
                                 <AppLogoIcon className="w-16 h-16 text-brand-light mb-2" />
                                 <h3 className="text-lg font-bold text-brand-dark dark:text-brand-light">أهلاً بك، {currentUser.fullName.split(' ')[0]}</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">الرقم الوظيفي: {currentUser.badgeNumber}</p>
                                 <button onClick={() => setActiveTab('new-report')} className="mt-4 px-4 py-2 bg-brand-light text-white rounded-md hover:bg-brand-dark transition-colors text-sm font-bold shadow-sm">إنشاء تقرير اليوم</button>
                             </div>
                         </div>
@@ -240,19 +254,18 @@ const EmployeeDashboard: React.FC = () => {
                             {myReports.slice(0, 3).map(r => (
                                 <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />
                             ))}
-                            {myReports.length === 0 && <p className="text-center py-10 text-gray-500">لا توجد تقارير سابقة.</p>}
                         </div>
                     </div>
                 );
             case 'new-report':
                 return (
                     <form onSubmit={handleSubmitReport} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 space-y-6 animate-fade-in">
-                        <div>
-                            <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100 mb-2 flex items-center">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100 flex items-center">
                                 <NewReportIcon className="w-6 h-6 ml-2" />
                                 إضافة تقرير يومي جديد
                             </h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">تاريخ اليوم: {new Date().toLocaleDateString('ar-EG', { dateStyle: 'full' })}</p>
+                            <span className="text-xs text-gray-500">{new Date().toLocaleDateString('ar-EG')}</span>
                         </div>
                         <div className="space-y-4">
                             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">المهام التي تم العمل عليها اليوم</label>
@@ -261,47 +274,28 @@ const EmployeeDashboard: React.FC = () => {
                                     <input
                                         type="text"
                                         value={task.text}
-                                        onChange={(e) => handleTaskChange(task.id, e.target.value)}
+                                        onChange={(e) => setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === task.id ? { ...t, text: e.target.value } : t) }))}
                                         placeholder={`المهمة ${index + 1}...`}
-                                        className="flex-grow px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200 focus:ring-brand-light transition-all"
+                                        className="flex-grow px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200 focus:ring-brand-light"
                                         required
                                     />
                                     {reportForm.tasks.length > 1 && (
-                                        <button type="button" onClick={() => handleRemoveTask(task.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md">
+                                        <button type="button" onClick={() => setReportForm(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== task.id) }))} className="p-2 text-red-500">
                                             <TrashIcon className="w-5 h-5" />
                                         </button>
                                     )}
                                 </div>
                             ))}
-                            <button type="button" onClick={handleAddTask} className="flex items-center text-sm font-bold text-brand-light hover:text-brand-dark transition-colors">
-                                <PlusIcon className="w-4 h-4 ml-1" />
-                                إضافة حقل مهمة آخر
+                            <button type="button" onClick={() => setReportForm(prev => ({ ...prev, tasks: [...prev.tasks, { id: Date.now().toString(), text: '' }] }))} className="text-brand-light text-sm font-bold flex items-center">
+                                <PlusIcon className="w-4 h-4 ml-1" /> إضافة مهمة
                             </button>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">تفاصيل ما تم إنجازه</label>
-                                <textarea
-                                    value={reportForm.accomplished}
-                                    onChange={(e) => setReportForm(prev => ({ ...prev, accomplished: e.target.value }))}
-                                    rows={4}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">المعوقات أو ما لم ينجز</label>
-                                <textarea
-                                    value={reportForm.notAccomplished}
-                                    onChange={(e) => setReportForm(prev => ({ ...prev, notAccomplished: e.target.value }))}
-                                    rows={4}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200"
-                                />
-                            </div>
+                            <textarea placeholder="ما تم إنجازه..." value={reportForm.accomplished} onChange={e => setReportForm(p => ({...p, accomplished: e.target.value}))} rows={4} className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white" />
+                            <textarea placeholder="المعوقات..." value={reportForm.notAccomplished} onChange={e => setReportForm(p => ({...p, notAccomplished: e.target.value}))} rows={4} className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white" />
                         </div>
                         <div className="flex justify-end pt-4 border-t dark:border-gray-700">
-                            <button type="submit" className="px-8 py-3 bg-brand-light text-white rounded-lg hover:bg-brand-dark transition-all font-bold shadow-md">
-                                إرسال التقرير للمسؤول
-                            </button>
+                            <button type="submit" className="px-8 py-3 bg-brand-light text-white rounded-lg hover:bg-brand-dark transition-all font-bold">إرسال التقرير</button>
                         </div>
                     </form>
                 );
@@ -309,13 +303,10 @@ const EmployeeDashboard: React.FC = () => {
             case 'archive':
                 return (
                     <div className="space-y-4 animate-fade-in">
-                        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center">
-                            <ArchiveBoxIcon className="w-6 h-6 ml-2" />
-                            سجل التقارير اليومية
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center">
+                            <ArchiveBoxIcon className="w-6 h-6 ml-2" /> أرشيف التقارير
                         </h3>
-                        {myReports.map(r => (
-                            <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />
-                        ))}
+                        {myReports.map(r => <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />)}
                     </div>
                 );
             case 'profile': return <ProfileManagement user={currentUser} />;
@@ -331,7 +322,7 @@ const EmployeeDashboard: React.FC = () => {
                 <div className="flex flex-col h-full border-l dark:border-gray-700">
                     <div className="flex items-center justify-center py-6 border-b dark:border-gray-700">
                         <AppLogoIcon className="w-8 h-8 text-brand-dark dark:text-gray-100" />
-                        <h1 className="mr-2 text-lg font-bold text-brand-dark dark:text-gray-100">لوحة المنتسب</h1>
+                        <h1 className="mr-2 text-lg font-bold text-brand-dark dark:text-gray-100">مهامي</h1>
                     </div>
                     
                     <nav className="flex-grow px-3 py-4 space-y-1 overflow-y-auto no-scrollbar">
@@ -343,6 +334,12 @@ const EmployeeDashboard: React.FC = () => {
                     </nav>
                     
                     <div className="p-4 border-t dark:border-gray-700 space-y-2">
+                        {notificationPermission === 'default' && (
+                            <button onClick={requestNotificationPermission} className="flex items-center w-full px-3 py-2 text-sm font-bold text-brand-light bg-brand-light/10 rounded-lg border border-brand-light/20">
+                                <BellIcon className="w-5 h-5"/>
+                                <span className="mr-3">تفعيل التنبيهات</span>
+                            </button>
+                        )}
                         {deferredPrompt && (
                             <button onClick={handleInstallClick} className="flex items-center w-full px-3 py-2 text-sm font-bold text-brand-light bg-brand-light/10 hover:bg-brand-light/20 rounded-lg transition-colors border border-brand-light/20">
                                 <InstallIcon className="w-5 h-5"/>
@@ -352,7 +349,7 @@ const EmployeeDashboard: React.FC = () => {
                         <ThemeToggle />
                         <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
                             <LogoutIcon className="w-5 h-5"/>
-                            <span className="mr-3">خروج</span>
+                            <span className="mr-3 text-right">خروج</span>
                         </button>
                     </div>
                 </div>

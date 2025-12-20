@@ -20,7 +20,8 @@ const AIReportAnalysis: React.FC<AIReportAnalysisProps> = ({ report }) => {
         setAnalysis('');
 
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+            // Fix: Access process.env.API_KEY directly as per GenAI guidelines
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const tasksSummary = report.tasks.map(t => `- ${t.text}`).join('\n');
             
             const prompt = `

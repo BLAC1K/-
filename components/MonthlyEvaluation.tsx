@@ -45,7 +45,8 @@ const MonthlyEvaluation: React.FC<MonthlyEvaluationProps> = ({ employee, reports
             setError('');
 
             try {
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+                // Fix: Access process.env.API_KEY directly as per GenAI guidelines
+                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
                 
                 const accomplishedSummary = reportsForMonth
                     .map(r => r.accomplished)
