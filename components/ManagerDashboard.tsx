@@ -27,7 +27,7 @@ const ManagerDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState('reports');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const [toast, setToast] = useState<{message: string} | null>(null);
+    const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
 
     const prevReportsCount = useRef(reports.length);
@@ -42,6 +42,9 @@ const ManagerDashboard: React.FC = () => {
         if ('Notification' in window) {
             const permission = await Notification.requestPermission();
             setNotificationPermission(permission);
+            if (permission === 'granted') {
+                setToast({ message: 'تم تفعيل التنبيهات بنجاح!', type: 'success' });
+            }
         }
     };
 
@@ -58,7 +61,7 @@ const ManagerDashboard: React.FC = () => {
                 vibrate: [200, 100, 200]
             } as any);
         }
-        setToast({ message: body });
+        setToast({ message: body, type: 'info' });
     };
 
     useEffect(() => {
