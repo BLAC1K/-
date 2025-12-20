@@ -24,6 +24,9 @@ import ArchiveBoxIcon from './icons/ArchiveBoxIcon';
 import ConfirmModal from './ConfirmModal';
 import InstallIcon from './icons/InstallIcon';
 import BellIcon from './icons/BellIcon';
+import CameraIcon from './icons/CameraIcon';
+import DocumentTextIcon from './icons/DocumentTextIcon';
+import XMarkIcon from './icons/XMarkIcon';
 
 const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 
@@ -40,7 +43,10 @@ const EmployeeDashboard: React.FC = () => {
     
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-    // Refs to track previous counts for notification triggers
+    // Refs for file inputs
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
+
     const prevTasksCount = useRef(directTasks.length);
     const prevCommentsCount = useRef(0);
     const prevAnnouncementsCount = useRef(announcements.length);
@@ -57,7 +63,6 @@ const EmployeeDashboard: React.FC = () => {
         attachments: []
     });
 
-    // Check permissions and PWA status
     useEffect(() => {
         if ('Notification' in window) {
             setNotificationPermission(Notification.permission);
@@ -82,14 +87,11 @@ const EmployeeDashboard: React.FC = () => {
     };
 
     const triggerNotification = async (title: string, body: string) => {
-        // Play Sound
         const audio = new Audio(NOTIFICATION_SOUND_URL);
         audio.play().catch(e => console.log("Audio play blocked", e));
 
-        // Background Notification via Service Worker
         if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
             const registration = await navigator.serviceWorker.ready;
-            // Fix: Cast options to 'any' to resolve 'vibrate' property missing in standard NotificationOptions
             registration.showNotification(title, {
                 body,
                 icon: '/icon-192.png',
@@ -104,11 +106,9 @@ const EmployeeDashboard: React.FC = () => {
         setToast({ message: body, type: 'info' });
     };
 
-    // Monitor changes for notifications
     useEffect(() => {
         if (!currentUser) return;
 
-        // 1. Monitor New Direct Tasks
         const myTasks = directTasks.filter(t => t.employeeId === currentUser.id);
         if (myTasks.length > prevTasksCount.current) {
             const newestTask = myTasks[0];
@@ -116,14 +116,12 @@ const EmployeeDashboard: React.FC = () => {
         }
         prevTasksCount.current = myTasks.length;
 
-        // 2. Monitor New Comments on Reports
         const myReportsWithNewComments = reports.filter(r => r.userId === currentUser.id && r.managerComment && !r.isCommentReadByEmployee);
         if (myReportsWithNewComments.length > prevCommentsCount.current) {
             triggerNotification("تعليق جديد من المسؤول", "قام المسؤول بالتعليق على أحد تقاريرك اليومية.");
         }
         prevCommentsCount.current = myReportsWithNewComments.length;
 
-        // 3. Monitor New Announcements
         if (announcements.length > prevAnnouncementsCount.current) {
             triggerNotification("توجيه إداري جديد", announcements[0].content.substring(0, 50) + "...");
         }
@@ -167,7 +165,16 @@ const EmployeeDashboard: React.FC = () => {
                 };
                 reader.readAsDataURL(file);
             });
+            // Reset input so the same file can be selected again if removed
+            e.target.value = '';
         }
+    };
+
+    const removeAttachment = (index: number) => {
+        setReportForm(prev => ({
+            ...prev,
+            attachments: prev.attachments.filter((_, i) => i !== index)
+        }));
     };
 
     const handleSubmitReport = async (e: React.FormEvent) => {
@@ -294,6 +301,75 @@ const EmployeeDashboard: React.FC = () => {
                             <textarea placeholder="ما تم إنجازه..." value={reportForm.accomplished} onChange={e => setReportForm(p => ({...p, accomplished: e.target.value}))} rows={4} className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white" />
                             <textarea placeholder="المعوقات..." value={reportForm.notAccomplished} onChange={e => setReportForm(p => ({...p, notAccomplished: e.target.value}))} rows={4} className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white" />
                         </div>
+                        
+                        {/* Attachments Section */}
+                        <div className="space-y-4 pt-4 border-t dark:border-gray-700">
+                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center">
+                                <PaperclipIcon className="w-5 h-5 ml-1" />
+                                المرفقات (صور أو مستندات PDF)
+                            </label>
+                            
+                            <div className="flex flex-wrap gap-3">
+                                <button 
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="flex items-center px-4 py-2 text-sm font-bold text-brand-dark bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-300 dark:border-gray-600"
+                                >
+                                    <PaperclipIcon className="w-5 h-5 ml-2 text-brand-light" />
+                                    إرفاق ملفات
+                                </button>
+                                <button 
+                                    type="button"
+                                    onClick={() => cameraInputRef.current?.click()}
+                                    className="flex items-center px-4 py-2 text-sm font-bold text-brand-dark bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-300 dark:border-gray-600"
+                                >
+                                    <CameraIcon className="w-5 h-5 ml-2 text-brand-light" />
+                                    التقاط صورة
+                                </button>
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    onChange={handleFileChange} 
+                                    multiple 
+                                    accept="image/*,application/pdf" 
+                                    className="hidden" 
+                                />
+                                <input 
+                                    type="file" 
+                                    ref={cameraInputRef} 
+                                    onChange={handleFileChange} 
+                                    accept="image/*" 
+                                    capture="environment" 
+                                    className="hidden" 
+                                />
+                            </div>
+
+                            {/* Attachments Preview */}
+                            {reportForm.attachments.length > 0 && (
+                                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 pt-2">
+                                    {reportForm.attachments.map((file, index) => (
+                                        <div key={index} className="relative group border dark:border-gray-600 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800 h-24 shadow-sm">
+                                            {file.type.startsWith('image/') ? (
+                                                <img src={file.content} alt={file.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex flex-col items-center justify-center p-1 text-center">
+                                                    <DocumentTextIcon className="w-8 h-8 text-brand-light" />
+                                                    <span className="text-[10px] truncate w-full text-gray-600 dark:text-gray-400">{file.name}</span>
+                                                </div>
+                                            )}
+                                            <button 
+                                                type="button"
+                                                onClick={() => removeAttachment(index)}
+                                                className="absolute top-1 left-1 p-1 bg-red-500 text-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <XMarkIcon className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
                         <div className="flex justify-end pt-4 border-t dark:border-gray-700">
                             <button type="submit" className="px-8 py-3 bg-brand-light text-white rounded-lg hover:bg-brand-dark transition-all font-bold">إرسال التقرير</button>
                         </div>
