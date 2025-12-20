@@ -41,29 +41,39 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isCloud, setIsCloud] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Modified loadData to accept a 'silent' argument.
-    // If silent is true, it won't trigger the global loading spinner.
     const loadData = useCallback(async (silent = false) => {
-        if (!silent) {
-            setIsDataLoading(true);
-        }
+        if (!silent) setIsDataLoading(true);
         setError(null);
         try {
-            const { isCloud: cloudStatus, ...initialState } = await api.fetchInitialData();
-            setAppState(initialState);
-            setIsCloud(cloudStatus);
+            const data = await api.fetchInitialData();
+            setAppState({
+                users: data.users,
+                reports: data.reports,
+                announcements: data.announcements,
+                directTasks: data.directTasks
+            });
+            setIsCloud(data.isCloud);
         } catch (error: any) {
-            console.error("Failed to load initial data from API:", error);
-            setError(error.message || "حدث خطأ غير متوقع أثناء الاتصال بقاعدة البيانات.");
+            console.error("Failed to load data:", error);
+            setError(error.message || "فشل الاتصال بقاعدة البيانات.");
         } finally {
-            if (!silent) {
-                setIsDataLoading(false);
-            }
+            if (!silent) setIsDataLoading(false);
         }
     }, []);
 
+    // تفعيل الاشتراك اللحظي عند تحميل التطبيق
     useEffect(() => {
         loadData();
+
+        // إنشاء اشتراك مباشر للاستماع لأي تغيير في الجداول
+        const unsubscribe = api.subscribeToAllChanges(() => {
+            console.log("Real-time update received! Syncing data...");
+            loadData(true); // تحديث البيانات صامتاً (بدون سبينر) فور حدوث أي تغيير
+        });
+
+        return () => {
+            unsubscribe(); // تنظيف الاشتراك عند إغلاق التطبيق
+        };
     }, [loadData]);
     
     const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);
@@ -71,10 +81,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const performApiAction = useCallback(async (action: Promise<any>) => {
         try {
             await action;
-            // Use silent reload so the UI doesn't flash or unmount components
+            // الميزة الآن أن Real-time سيقوم بالتحديث تلقائياً، 
+            // لكننا نبقي على استدعاء loadData(true) هنا كضمان إضافي (Fallback)
             await loadData(true); 
         } catch (error) {
-            console.error("An API action failed:", error);
+            console.error("Action failed:", error);
             throw error;
         }
     }, [loadData]);
@@ -133,8 +144,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useData = (): DataContextType => {
     const context = useContext(DataContext);
-    if (!context) {
-        throw new Error('useData must be used within a DataProvider');
-    }
+    if (!context) throw new Error('useData must be used within a DataProvider');
     return context;
 };
