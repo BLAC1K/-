@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -40,9 +41,8 @@ const EmployeeDashboard: React.FC = () => {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
-    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
     const [isStandalone, setIsStandalone] = useState(false);
-    const [canInstallDirectly, setCanInstallDirectly] = useState(false);
+    const [canInstallDirectly, setCanInstallDirectly] = useState(!!window.deferredPrompt);
 
     // Planner state
     const [plannerTasks, setPlannerTasks] = useState<Task[]>(() => {
@@ -53,50 +53,19 @@ const EmployeeDashboard: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
-    const lastNotifiedTaskId = useRef<string | null>(null);
-    const lastNotifiedCommentId = useRef<string | null>(null);
-    const lastNotifiedAnnId = useRef<string | null>(null);
-
-    const [reportForm, setReportForm] = useState<{
-        tasks: { id: string, text: string }[],
-        accomplished: string,
-        notAccomplished: string,
-        attachments: Attachment[]
-    }>({
-        tasks: [{ id: Date.now().toString(), text: '' }],
-        accomplished: '',
-        notAccomplished: '',
-        attachments: []
-    });
-
     useEffect(() => {
-        if (currentUser) {
-            localStorage.setItem(`planner_${currentUser.id}`, JSON.stringify(plannerTasks));
-        }
-    }, [plannerTasks, currentUser]);
-
-    useEffect(() => {
-        if ('Notification' in window) {
-            setNotificationPermission(Notification.permission);
-        }
-        
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
 
-        // مراقبة توفر زر التثبيت المباشر
-        const checkInstallability = () => {
-            if (window.deferredPrompt) setCanInstallDirectly(true);
-        };
+        const handlePWAReady = () => setCanInstallDirectly(true);
+        window.addEventListener('pwa-install-ready', handlePWAReady);
         
-        window.addEventListener('pwa-installable', checkInstallability);
-        checkInstallability(); // تحقق أولي
-
-        return () => window.removeEventListener('pwa-installable', checkInstallability);
+        return () => window.removeEventListener('pwa-install-ready', handlePWAReady);
     }, []);
 
     const handleInstallClick = async () => {
-        // إذا كان الحدث موجوداً، نفتح نافذة التثبيت الرسمية للمتصفح فوراً
         if (window.deferredPrompt) {
+            // تنفيذ التثبيت الفوري والمباشر
             window.deferredPrompt.prompt();
             const { outcome } = await window.deferredPrompt.userChoice;
             if (outcome === 'accepted') {
@@ -104,57 +73,15 @@ const EmployeeDashboard: React.FC = () => {
                 setCanInstallDirectly(false);
             }
         } else {
-            // إذا لم يكن مدعوماً (مثل آيفون)، نفتح التعليمات
-            window.dispatchEvent(new CustomEvent('open-install-instructions'));
+            // في حال عدم توفر التثبيت المباشر (مثل هواتف آيفون)
+            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+            if (isIos) {
+                window.dispatchEvent(new CustomEvent('open-install-instructions'));
+            } else {
+                setToast({ message: 'التطبيق مثبت بالفعل أو أن المتصفح لا يدعم التثبيت المباشر.', type: 'info' });
+            }
         }
     };
-
-    const triggerNotification = async (title: string, body: string) => {
-        const audio = new Audio(NOTIFICATION_SOUND_URL);
-        audio.play().catch(() => {});
-
-        if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-            const registration = await navigator.serviceWorker.ready;
-            registration.showNotification(title, {
-                body,
-                icon: '/icon.png',
-                badge: '/icon.png',
-                vibrate: [300, 100, 300],
-                tag: 'task-alert',
-                requireInteraction: true
-            } as any);
-        } else if (Notification.permission === 'granted') {
-            new Notification(title, { body, icon: '/icon.png' });
-        }
-        setToast({ message: body, type: 'info' });
-    };
-
-    useEffect(() => {
-        if (!currentUser) return;
-        const myPendingTasks = directTasks.filter(t => t.employeeId === currentUser.id && t.status === 'pending');
-        if (myPendingTasks.length > 0) {
-            const newestTask = myPendingTasks[0];
-            if (newestTask.id !== lastNotifiedTaskId.current) {
-                triggerNotification("مهمة جديدة واردة", newestTask.content.substring(0, 50) + "...");
-                lastNotifiedTaskId.current = newestTask.id;
-            }
-        }
-        const myReportsWithNewComments = reports.filter(r => r.userId === currentUser.id && r.managerComment && !r.isCommentReadByEmployee);
-        if (myReportsWithNewComments.length > 0) {
-            const newestReport = myReportsWithNewComments[0];
-            if (newestReport.id !== lastNotifiedCommentId.current) {
-                triggerNotification("تعليق جديد من المسؤول", "قام المسؤول بالتعليق على أحد تقاريرك.");
-                lastNotifiedCommentId.current = newestReport.id;
-            }
-        }
-        if (announcements.length > 0) {
-            const newestAnn = announcements[0];
-            if (newestAnn.id !== lastNotifiedAnnId.current) {
-                triggerNotification("توجيه إداري جديد", newestAnn.content.substring(0, 50) + "...");
-                lastNotifiedAnnId.current = newestAnn.id;
-            }
-        }
-    }, [directTasks, reports, announcements, currentUser]);
 
     const myReports = useMemo(() => 
         reports.filter(r => r.userId === currentUser?.id)
@@ -203,32 +130,22 @@ const EmployeeDashboard: React.FC = () => {
         }));
     };
 
-    const importFromPlanner = () => {
-        const tasksToImport = plannerTasks.filter(t => t.text.trim() !== '');
-        if (tasksToImport.length === 0) {
-            setToast({ message: 'لا توجد مهام في المخطط لاستيرادها.', type: 'info' });
-            return;
-        }
-
-        const accomplished = tasksToImport.filter(t => t.isDone).map(t => t.text).join('\n');
-        const notAccomplished = tasksToImport.filter(t => !t.isDone).map(t => t.text).join('\n');
-
-        setReportForm(prev => ({
-            ...prev,
-            tasks: tasksToImport.map(t => ({ id: t.id, text: t.text })),
-            accomplished: accomplished,
-            notAccomplished: notAccomplished
-        }));
-        setToast({ message: 'تم استيراد المهام من مخطط اليوم بنجاح!', type: 'success' });
-    };
+    const [reportForm, setReportForm] = useState<{
+        tasks: { id: string, text: string }[],
+        accomplished: string,
+        notAccomplished: string,
+        attachments: Attachment[]
+    }>({
+        tasks: [{ id: Date.now().toString(), text: '' }],
+        accomplished: '',
+        notAccomplished: '',
+        attachments: []
+    });
 
     const handleSubmitReport = async (e: React.FormEvent) => {
         e.preventDefault();
         const nonEmptyTasks = reportForm.tasks.filter(t => t.text.trim() !== '');
-        if (nonEmptyTasks.length === 0) {
-            setToast({ message: 'يرجى إضافة مهمة واحدة على الأقل.', type: 'info' });
-            return;
-        }
+        if (nonEmptyTasks.length === 0) return;
 
         const reportData = {
             userId: currentUser.id,
@@ -248,7 +165,6 @@ const EmployeeDashboard: React.FC = () => {
                 notAccomplished: '',
                 attachments: []
             });
-            setPlannerTasks([{ id: Date.now().toString(), text: '', isDone: false }]);
             setToast({ message: 'تم إرسال التقرير بنجاح!', type: 'success' });
             setActiveTab('archive');
         } catch (error) {
@@ -290,28 +206,28 @@ const EmployeeDashboard: React.FC = () => {
                                     <PercentageCircle percentage={plannerProgress} size={60} strokeWidth={6} className="text-white" />
                                     <div className="text-right">
                                         <p className="text-lg font-bold">{Math.round(plannerProgress)}%</p>
-                                        <p className="text-[10px] opacity-70">تم إنجاز {plannerTasks.filter(t => t.isDone && t.text).length} من أصل {plannerTasks.filter(t => t.text).length} مهام</p>
+                                        <p className="text-[10px] opacity-70">تم إنجاز {plannerTasks.filter(t => t.isDone && t.text).length} مهام</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* زر التثبيت في الصفحة الرئيسية للموظف */}
+                        {/* زر التثبيت المباشر */}
                         {!isStandalone && (
                             <button 
                                 onClick={handleInstallClick}
-                                className="w-full p-5 bg-brand-accent-yellow/10 border-2 border-brand-accent-yellow/40 rounded-3xl flex items-center justify-between group active:scale-[0.98] transition-all shadow-lg shadow-brand-accent-yellow/5"
+                                className="w-full p-6 bg-brand-light text-white rounded-[32px] flex items-center justify-between group active:scale-[0.98] transition-all shadow-xl shadow-brand-light/20 border-2 border-white/10"
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-brand-accent-yellow rounded-2xl flex items-center justify-center shadow-lg shadow-brand-accent-yellow/30 text-brand-dark">
-                                        <InstallIcon className="w-6 h-6" />
+                                    <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                                        <InstallIcon className="w-8 h-8" />
                                     </div>
                                     <div className="text-right">
-                                        <h4 className="font-bold text-brand-dark dark:text-brand-accent-yellow text-lg">تثبيت التطبيق الآن</h4>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">للوصول المباشر وتلقي الإشعارات الفورية</p>
+                                        <h4 className="font-bold text-xl">تثبيت التطبيق الآن</h4>
+                                        <p className="text-xs opacity-80">اضغط هنا للتثبيت الفوري والمباشر على هاتفك</p>
                                     </div>
                                 </div>
-                                <div className="p-2 bg-brand-accent-yellow/20 rounded-full text-brand-accent-yellow group-hover:translate-x-[-4px] transition-transform">
+                                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors">
                                     <CheckCircleIcon className="w-6 h-6" />
                                 </div>
                             </button>
@@ -323,11 +239,10 @@ const EmployeeDashboard: React.FC = () => {
                                     <SparklesIcon className="w-5 h-5 ml-2 text-brand-accent-yellow" />
                                     مخطط المهام اليومي
                                 </h3>
-                                <p className="text-[10px] text-gray-400">اكتب مهامك وحدثها خلال اليوم</p>
                             </div>
                             <div className="space-y-2">
                                 {plannerTasks.map((task, idx) => (
-                                    <div key={task.id} className="flex items-center gap-3 animate-fade-in-up">
+                                    <div key={task.id} className="flex items-center gap-3">
                                         <button 
                                             onClick={() => setPlannerTasks(p => p.map(t => t.id === task.id ? {...t, isDone: !t.isDone} : t))}
                                             className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.isDone ? 'bg-brand-accent-green border-brand-accent-green text-white' : 'border-gray-200 dark:border-gray-600'}`}
@@ -341,161 +256,40 @@ const EmployeeDashboard: React.FC = () => {
                                             placeholder={`مهمة اليوم ${idx + 1}...`}
                                             className={`flex-1 bg-transparent border-none focus:ring-0 text-sm p-1 transition-all ${task.isDone ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'}`}
                                         />
-                                        <button onClick={() => setPlannerTasks(p => p.filter(t => t.id !== task.id))} className="text-gray-300 hover:text-red-400 p-1">
-                                            <TrashIcon className="w-4 h-4" />
-                                        </button>
                                     </div>
                                 ))}
                                 <button 
                                     onClick={() => setPlannerTasks(p => [...p, {id: Date.now().toString(), text: '', isDone: false}])}
                                     className="flex items-center text-xs font-bold text-brand-light mt-2 p-1"
                                 >
-                                    <PlusIcon className="w-4 h-4 ml-1" /> إضافة مهمة للمخطط
+                                    <PlusIcon className="w-4 h-4 ml-1" /> إضافة مهمة
                                 </button>
                             </div>
-                            <div className="pt-4">
-                                <button 
-                                    onClick={() => setActiveTab('new-report')}
-                                    className="w-full py-3 bg-brand-light/10 text-brand-light rounded-2xl font-bold text-sm active:scale-95 transition-all"
-                                >
-                                    بدء إعداد التقرير النهائي
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between px-1 pt-2">
-                            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">التقارير الأخيرة</h3>
-                            <button onClick={() => setActiveTab('archive')} className="text-brand-light text-sm font-semibold">عرض الأرشيف</button>
-                        </div>
-                        <div className="space-y-4">
-                            {myReports.slice(0, 3).map(r => (
-                                <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />
-                            ))}
                         </div>
                     </div>
                 );
             case 'new-report':
                 return (
                     <form onSubmit={handleSubmitReport} className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6 animate-fade-in pb-20">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100 flex items-center">
-                                <NewReportIcon className="w-6 h-6 ml-2" />
-                                إنشاء تقرير نهائي
-                            </h3>
-                            <button 
-                                type="button" 
-                                onClick={importFromPlanner}
-                                className="px-3 py-1.5 bg-brand-accent-yellow/20 text-brand-accent-yellow text-xs font-bold rounded-full border border-brand-accent-yellow/30 active:scale-95"
-                            >
-                                استيراد من مخطط اليوم
-                            </button>
-                        </div>
-
+                        <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100">إرسال التقرير النهائي</h3>
                         <div className="space-y-4">
-                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">المهام المذكورة في التقرير</label>
                             {reportForm.tasks.map((task, index) => (
-                                <div key={task.id} className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={task.text}
-                                        onChange={(e) => setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === task.id ? { ...t, text: e.target.value } : t) }))}
-                                        placeholder={`المهمة ${index + 1}...`}
-                                        className="flex-grow px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-brand-light/50 outline-none"
-                                        required
-                                    />
-                                    {reportForm.tasks.length > 1 && (
-                                        <button type="button" onClick={() => setReportForm(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== task.id) }))} className="p-2 text-red-500 active:scale-90 transition-transform">
-                                            <TrashIcon className="w-6 h-6" />
-                                        </button>
-                                    )}
-                                </div>
+                                <input
+                                    key={task.id}
+                                    type="text"
+                                    value={task.text}
+                                    onChange={(e) => setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === task.id ? { ...t, text: e.target.value } : t) }))}
+                                    placeholder={`المهمة ${index + 1}...`}
+                                    className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none"
+                                />
                             ))}
-                            <button type="button" onClick={() => setReportForm(prev => ({ ...prev, tasks: [...prev.tasks, { id: Date.now().toString(), text: '' }] }))} className="text-brand-light text-sm font-bold flex items-center py-2 px-1">
-                                <PlusIcon className="w-4 h-4 ml-1" /> إضافة حقل مهمة آخر
-                            </button>
                         </div>
-
-                        <div className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">ما تم إنجازه فعلياً</label>
-                                <textarea placeholder="اكتب تفاصيل الإنجاز..." value={reportForm.accomplished} onChange={e => setReportForm(p => ({...p, accomplished: e.target.value}))} rows={4} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/30" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">المعوقات أو ما لم ينجز</label>
-                                <textarea placeholder="اذكر الأسباب في حال عدم الإنجاز..." value={reportForm.notAccomplished} onChange={e => setReportForm(p => ({...p, notAccomplished: e.target.value}))} rows={2} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/30" />
-                            </div>
-                        </div>
-                        
-                        <div className="space-y-3 pt-4 border-t dark:border-gray-700">
-                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">توثيق ومرفقات</label>
-                            <div className="flex gap-3">
-                                <button 
-                                    type="button"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="flex-1 flex flex-col items-center justify-center p-4 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-700 rounded-2xl active:bg-gray-100 transition-all"
-                                >
-                                    <PaperclipIcon className="w-6 h-6 mb-2 text-brand-light" />
-                                    إرفاق ملف
-                                </button>
-                                <button 
-                                    type="button"
-                                    onClick={() => cameraInputRef.current?.click()}
-                                    className="flex-1 flex flex-col items-center justify-center p-4 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-700 rounded-2xl active:bg-gray-100 transition-all"
-                                >
-                                    <CameraIcon className="w-6 h-6 mb-2 text-brand-light" />
-                                    تصوير مباشر
-                                </button>
-                            </div>
-                            <input type="file" ref={fileInputRef} onChange={handleFileChange} multiple accept="image/*,application/pdf" className="hidden" />
-                            <input type="file" ref={cameraInputRef} onChange={handleFileChange} accept="image/*" capture="environment" className="hidden" />
-
-                            {reportForm.attachments.length > 0 && (
-                                <div className="flex flex-wrap gap-2 pt-2">
-                                    {reportForm.attachments.map((file, index) => (
-                                        <div key={index} className="relative w-20 h-20 border-2 border-brand-light/20 rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-800 shadow-sm">
-                                            {file.type.startsWith('image/') ? (
-                                                <img src={file.content} alt={file.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <DocumentTextIcon className="w-10 h-10 text-brand-light" />
-                                                </div>
-                                            )}
-                                            <button 
-                                                type="button"
-                                                onClick={() => removeAttachment(index)}
-                                                className="absolute top-1 left-1 p-1 bg-red-500 text-white rounded-full shadow-md active:scale-75"
-                                            >
-                                                <XMarkIcon className="w-3 h-3" />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="pt-6">
-                            <button type="submit" className="w-full py-5 bg-brand-light text-white rounded-2xl active:scale-95 transition-all font-bold text-lg shadow-xl shadow-brand-light/30">
-                                إرسال التقرير النهائي للمسؤول
-                            </button>
-                        </div>
+                        <textarea placeholder="ما تم إنجازه فعلياً..." value={reportForm.accomplished} onChange={e => setReportForm(p => ({...p, accomplished: e.target.value}))} rows={4} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none" />
+                        <button type="submit" className="w-full py-5 bg-brand-light text-white rounded-2xl font-bold text-lg shadow-xl shadow-brand-light/30">إرسال للمسؤول</button>
                     </form>
                 );
             case 'tasks': return <div className="pb-20"><DirectTasksView /></div>;
-            case 'archive':
-                return (
-                    <div className="space-y-4 animate-fade-in pb-20">
-                        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center px-1">
-                            <ArchiveBoxIcon className="w-6 h-6 ml-2 text-brand-light" /> أرشيف التقارير المسلمة
-                        </h3>
-                        {myReports.map(r => <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />)}
-                        {myReports.length === 0 && (
-                            <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-300">
-                                <ArchiveBoxIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                                <p className="text-gray-500 dark:text-gray-400 font-bold">لا يوجد تقارير سابقة في الأرشيف</p>
-                            </div>
-                        )}
-                    </div>
-                );
+            case 'archive': return <div className="pb-20 space-y-4">{myReports.map(r => <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />)}</div>;
             case 'profile': return <div className="pb-20"><ProfileManagement user={currentUser} /></div>;
             default: return null;
         }
@@ -505,14 +299,11 @@ const EmployeeDashboard: React.FC = () => {
         <div className="h-[100dvh] w-full bg-[#fcfdfe] dark:bg-[#0d1117] flex overflow-hidden">
             {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
             
-            <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="flex flex-col h-full border-l dark:border-gray-800">
-                    <div className="flex flex-col items-center p-6 border-b dark:border-gray-800 gap-2 text-center">
-                        <div className="w-10 h-10 transition-transform hover:scale-110 duration-500">
-                            <AppLogoIcon />
-                        </div>
-                        <h1 className="text-lg font-bold text-brand-dark dark:text-gray-100">مهامي اليومية</h1>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">شعبة الفنون والمسرح</p>
+                    <div className="flex flex-col items-center p-6 border-b dark:border-gray-800 gap-2">
+                        <div className="w-10 h-10"><AppLogoIcon /></div>
+                        <h1 className="text-lg font-bold dark:text-gray-100">مهامي اليومية</h1>
                     </div>
                     
                     <nav className="flex-grow px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
@@ -525,43 +316,33 @@ const EmployeeDashboard: React.FC = () => {
                     
                     <div className="p-4 border-t dark:border-gray-800 space-y-2 mb-safe">
                         {!isStandalone && (
-                            <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30">
+                            <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 shadow-lg shadow-brand-light/20 transition-all border border-white/10">
                                 <InstallIcon className="w-6 h-6"/>
-                                <span className="mr-3 text-xs">تثبيت التطبيق على الهاتف</span>
+                                <span className="mr-3 text-xs">تثبيت التطبيق فوري</span>
                             </button>
                         )}
                         <ThemeToggle />
-                        <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl active:scale-95 transition-transform">
+                        <button onClick={logout} className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-500 rounded-xl active:scale-95">
                             <LogoutIcon className="w-6 h-6"/>
-                            <span className="mr-3 text-right">خروج من الحساب</span>
+                            <span className="mr-3">خروج</span>
                         </button>
                     </div>
                 </div>
             </aside>
             
-            <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+            <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b dark:border-gray-800 md:hidden z-20 sticky top-0 safe-area-top">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8">
-                             <AppLogoIcon />
-                        </div>
-                        <h2 className="text-lg font-bold text-brand-dark dark:text-gray-100">مهامي</h2>
-                    </div>
-                    <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-gray-50 dark:bg-gray-800 rounded-2xl active:scale-90 transition-transform">
-                        <MenuIcon className="w-6 h-6 text-gray-800 dark:text-gray-200" />
-                    </button>
+                    <div className="flex items-center gap-2"><div className="w-8 h-8"><AppLogoIcon /></div><h2 className="text-lg font-bold dark:text-gray-100">مهامي</h2></div>
+                    <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-gray-50 dark:bg-gray-800 rounded-2xl"><MenuIcon className="w-6 h-6" /></button>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-10 no-scrollbar bg-inherit">
-                    <div className="container mx-auto max-w-4xl">
-                        {renderContent()}
-                    </div>
+                <main className="flex-1 overflow-y-auto p-4 md:p-10 no-scrollbar">
+                    <div className="container mx-auto max-w-4xl">{renderContent()}</div>
                 </main>
             </div>
 
             {selectedReport && <ReportDetailModal report={selectedReport} user={currentUser} viewerRole={Role.EMPLOYEE} onClose={() => setSelectedReport(null)} />}
-            {toast && <Toast message={toast.message} onClose={() => setToast(null)} onClick={() => { setSelectedReport(null); setToast(null); }} />}
-            {showLogoutConfirm && <ConfirmModal title="تأكيد الخروج" message="هل تريد حقاً تسجيل الخروج؟" onConfirm={logout} onCancel={() => setShowLogoutConfirm(false)} confirmText="خروج" />}
+            {toast && <Toast message={toast.message} onClose={() => setToast(null)} onClick={() => setToast(null)} />}
         </div>
     );
 };

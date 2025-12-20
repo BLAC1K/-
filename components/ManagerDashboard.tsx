@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -28,28 +29,19 @@ const ManagerDashboard: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
-    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
     const [isStandalone, setIsStandalone] = useState(false);
-    const [canInstallDirectly, setCanInstallDirectly] = useState(false);
+    const [canInstallDirectly, setCanInstallDirectly] = useState(!!window.deferredPrompt);
 
     const lastNotifiedReportId = useRef<string | null>(null);
 
     useEffect(() => {
-        if ('Notification' in window) {
-            setNotificationPermission(Notification.permission);
-        }
-
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
 
-        const checkInstallability = () => {
-            if (window.deferredPrompt) setCanInstallDirectly(true);
-        };
+        const handlePWAReady = () => setCanInstallDirectly(true);
+        window.addEventListener('pwa-install-ready', handlePWAReady);
         
-        window.addEventListener('pwa-installable', checkInstallability);
-        checkInstallability();
-
-        return () => window.removeEventListener('pwa-installable', checkInstallability);
+        return () => window.removeEventListener('pwa-install-ready', handlePWAReady);
     }, []);
 
     const handleInstallClick = async () => {
@@ -61,7 +53,12 @@ const ManagerDashboard: React.FC = () => {
                 setCanInstallDirectly(false);
             }
         } else {
-            window.dispatchEvent(new CustomEvent('open-install-instructions'));
+             const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+            if (isIos) {
+                window.dispatchEvent(new CustomEvent('open-install-instructions'));
+            } else {
+                setToast({ message: 'التطبيق مثبت بالفعل أو أن المتصفح لا يدعم التثبيت المباشر.', type: 'info' });
+            }
         }
     };
 
@@ -154,9 +151,9 @@ const ManagerDashboard: React.FC = () => {
                     </nav>
                     <div className="p-4 border-t dark:border-gray-700 space-y-2 mb-safe">
                         {!isStandalone && (
-                            <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30">
+                            <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30 border border-white/10">
                                 <InstallIcon className="w-6 h-6"/>
-                                <span className="mr-3 text-xs">تثبيت التطبيق على الهاتف</span>
+                                <span className="mr-3 text-xs">تثبيت التطبيق فوري</span>
                             </button>
                         )}
                         <ThemeToggle />
