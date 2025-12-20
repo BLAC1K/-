@@ -1,8 +1,7 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { Role, Attachment, Report } from '../types';
+import { Role, Attachment, Report, Task } from '../types';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import PaperclipIcon from './icons/PaperclipIcon';
@@ -10,7 +9,6 @@ import LogoutIcon from './icons/LogoutIcon';
 import ReportView from './ReportView';
 import NewReportIcon from './icons/NewReportIcon';
 import InboxIcon from './icons/InboxIcon';
-import Avatar from './Avatar';
 import ProfileManagement from './ProfileManagement';
 import UserCircleIcon from './icons/UserCircleIcon';
 import ReportDetailModal from './ReportDetailModal';
@@ -27,6 +25,9 @@ import CameraIcon from './icons/CameraIcon';
 import DocumentTextIcon from './icons/DocumentTextIcon';
 import XMarkIcon from './icons/XMarkIcon';
 import InstallIcon from './icons/InstallIcon';
+import SparklesIcon from './icons/SparklesIcon';
+import PercentageCircle from './StarRating';
+import CheckCircleIcon from './icons/CheckCircleIcon';
 
 const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 
@@ -41,6 +42,12 @@ const EmployeeDashboard: React.FC = () => {
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+    // Planner state
+    const [plannerTasks, setPlannerTasks] = useState<Task[]>(() => {
+        const saved = localStorage.getItem(`planner_${currentUser?.id}`);
+        return saved ? JSON.parse(saved) : [{ id: Date.now().toString(), text: '', isDone: false }];
+    });
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -62,11 +69,15 @@ const EmployeeDashboard: React.FC = () => {
     });
 
     useEffect(() => {
+        if (currentUser) {
+            localStorage.setItem(`planner_${currentUser.id}`, JSON.stringify(plannerTasks));
+        }
+    }, [plannerTasks, currentUser]);
+
+    useEffect(() => {
         if ('Notification' in window) {
             setNotificationPermission(Notification.permission);
         }
-
-        // رصد حدث إمكانية تثبيت التطبيق
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             setDeferredPrompt(e);
@@ -101,23 +112,20 @@ const EmployeeDashboard: React.FC = () => {
             const registration = await navigator.serviceWorker.ready;
             registration.showNotification(title, {
                 body,
-                icon: 'https://img.icons8.com/fluency/192/task.png',
-                badge: 'https://img.icons8.com/fluency/96/task.png',
+                icon: '/icon.png',
+                badge: '/icon.png',
                 vibrate: [300, 100, 300],
                 tag: 'task-alert',
                 requireInteraction: true
             } as any);
         } else if (Notification.permission === 'granted') {
-            new Notification(title, { body, icon: 'https://img.icons8.com/fluency/192/task.png' });
+            new Notification(title, { body, icon: '/icon.png' });
         }
-        
         setToast({ message: body, type: 'info' });
     };
 
     useEffect(() => {
         if (!currentUser) return;
-
-        // 1. المهام الجديدة
         const myPendingTasks = directTasks.filter(t => t.employeeId === currentUser.id && t.status === 'pending');
         if (myPendingTasks.length > 0) {
             const newestTask = myPendingTasks[0];
@@ -126,8 +134,6 @@ const EmployeeDashboard: React.FC = () => {
                 lastNotifiedTaskId.current = newestTask.id;
             }
         }
-
-        // 2. تعليقات المسؤول
         const myReportsWithNewComments = reports.filter(r => r.userId === currentUser.id && r.managerComment && !r.isCommentReadByEmployee);
         if (myReportsWithNewComments.length > 0) {
             const newestReport = myReportsWithNewComments[0];
@@ -136,8 +142,6 @@ const EmployeeDashboard: React.FC = () => {
                 lastNotifiedCommentId.current = newestReport.id;
             }
         }
-
-        // 3. التوجيهات العامة
         if (announcements.length > 0) {
             const newestAnn = announcements[0];
             if (newestAnn.id !== lastNotifiedAnnId.current) {
@@ -155,6 +159,13 @@ const EmployeeDashboard: React.FC = () => {
     const unreadTasksCount = useMemo(() => 
         directTasks.filter(t => t.employeeId === currentUser?.id && t.status === 'pending' && !t.isReadByEmployee).length
     , [directTasks, currentUser]);
+
+    const plannerProgress = useMemo(() => {
+        const total = plannerTasks.filter(t => t.text.trim() !== '').length;
+        if (total === 0) return 0;
+        const done = plannerTasks.filter(t => t.text.trim() !== '' && t.isDone).length;
+        return (done / total) * 100;
+    }, [plannerTasks]);
 
     if (!currentUser) return null;
 
@@ -187,6 +198,25 @@ const EmployeeDashboard: React.FC = () => {
         }));
     };
 
+    const importFromPlanner = () => {
+        const tasksToImport = plannerTasks.filter(t => t.text.trim() !== '');
+        if (tasksToImport.length === 0) {
+            setToast({ message: 'لا توجد مهام في المخطط لاستيرادها.', type: 'info' });
+            return;
+        }
+
+        const accomplished = tasksToImport.filter(t => t.isDone).map(t => t.text).join('\n');
+        const notAccomplished = tasksToImport.filter(t => !t.isDone).map(t => t.text).join('\n');
+
+        setReportForm(prev => ({
+            ...prev,
+            tasks: tasksToImport.map(t => ({ id: t.id, text: t.text })),
+            accomplished: accomplished,
+            notAccomplished: notAccomplished
+        }));
+        setToast({ message: 'تم استيراد المهام من مخطط اليوم بنجاح!', type: 'success' });
+    };
+
     const handleSubmitReport = async (e: React.FormEvent) => {
         e.preventDefault();
         const nonEmptyTasks = reportForm.tasks.filter(t => t.text.trim() !== '');
@@ -213,6 +243,8 @@ const EmployeeDashboard: React.FC = () => {
                 notAccomplished: '',
                 attachments: []
             });
+            // Clear planner after submission
+            setPlannerTasks([{ id: Date.now().toString(), text: '', isDone: false }]);
             setToast({ message: 'تم إرسال التقرير بنجاح!', type: 'success' });
             setActiveTab('archive');
         } catch (error) {
@@ -230,7 +262,7 @@ const EmployeeDashboard: React.FC = () => {
                 }}
                 className={`flex items-center w-full px-4 py-3 text-sm font-medium transition-colors rounded-xl ${isActive ? 'bg-brand-light text-white shadow-lg shadow-brand-light/30' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}
             >
-                {icon}
+                <div className="w-6 h-6">{icon}</div>
                 <span className="mr-3">{label}</span>
                 {count && count > 0 ? <span className="flex items-center justify-center w-5 h-5 mr-auto text-xs font-bold text-white bg-brand-accent-red rounded-full">{count}</span> : null}
             </button>
@@ -242,31 +274,73 @@ const EmployeeDashboard: React.FC = () => {
             case 'home':
                 return (
                     <div className="space-y-6 animate-fade-in pb-20">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">ملخص الأداء</h3>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                                        <span className="text-gray-600 dark:text-gray-400 text-sm">إجمالي التقارير</span>
-                                        <span className="font-bold text-brand-dark dark:text-gray-100">{myReports.length}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                                        <span className="text-gray-600 dark:text-gray-400 text-sm">مهام واردة</span>
-                                        <span className="font-bold text-brand-dark dark:text-gray-100">{unreadTasksCount}</span>
+                        <div className="bg-gradient-to-br from-brand-light to-brand-dark p-6 rounded-3xl shadow-xl flex flex-col items-center text-center text-white relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                                <AppLogoIcon className="w-24 h-24" />
+                            </div>
+                            <h3 className="text-2xl font-bold z-10">أهلاً بك، {currentUser.fullName.split(' ')[0]}</h3>
+                            <p className="text-white/80 text-sm mt-1 z-10">{new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                            <div className="mt-6 w-full max-w-xs bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
+                                <p className="text-xs font-bold mb-3">إنجازك اليوم</p>
+                                <div className="flex items-center gap-4">
+                                    <PercentageCircle percentage={plannerProgress} size={60} strokeWidth={6} className="text-white" />
+                                    <div className="text-right">
+                                        <p className="text-lg font-bold">{Math.round(plannerProgress)}%</p>
+                                        <p className="text-[10px] opacity-70">تم إنجاز {plannerTasks.filter(t => t.isDone && t.text).length} من أصل {plannerTasks.filter(t => t.text).length} مهام</p>
                                     </div>
                                 </div>
                             </div>
-                             <div className="bg-gradient-to-br from-brand-light to-brand-dark p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center text-center text-white">
-                                <AppLogoIcon className="w-16 h-16 mb-2 opacity-90" />
-                                <h3 className="text-xl font-bold">أهلاً بك، {currentUser.fullName.split(' ')[0]}</h3>
-                                <p className="text-white/80 text-xs mt-1">المزامنة الفورية مفعلة الآن</p>
-                                <button onClick={() => setActiveTab('new-report')} className="mt-4 px-6 py-2 bg-white text-brand-dark rounded-full transition-transform active:scale-95 text-sm font-bold shadow-md">إنشاء تقرير اليوم</button>
+                        </div>
+
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
+                                    <SparklesIcon className="w-5 h-5 ml-2 text-brand-accent-yellow" />
+                                    مخطط المهام اليومي
+                                </h3>
+                                <p className="text-[10px] text-gray-400">اكتب مهامك وحدثها خلال اليوم</p>
+                            </div>
+                            <div className="space-y-2">
+                                {plannerTasks.map((task, idx) => (
+                                    <div key={task.id} className="flex items-center gap-3 animate-fade-in-up">
+                                        <button 
+                                            onClick={() => setPlannerTasks(p => p.map(t => t.id === task.id ? {...t, isDone: !t.isDone} : t))}
+                                            className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.isDone ? 'bg-brand-accent-green border-brand-accent-green text-white' : 'border-gray-200 dark:border-gray-600'}`}
+                                        >
+                                            {task.isDone && <CheckCircleIcon className="w-4 h-4" />}
+                                        </button>
+                                        <input 
+                                            type="text"
+                                            value={task.text}
+                                            onChange={(e) => setPlannerTasks(p => p.map(t => t.id === task.id ? {...t, text: e.target.value} : t))}
+                                            placeholder={`مهمة اليوم ${idx + 1}...`}
+                                            className={`flex-1 bg-transparent border-none focus:ring-0 text-sm p-1 transition-all ${task.isDone ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'}`}
+                                        />
+                                        <button onClick={() => setPlannerTasks(p => p.filter(t => t.id !== task.id))} className="text-gray-300 hover:text-red-400 p-1">
+                                            <TrashIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button 
+                                    onClick={() => setPlannerTasks(p => [...p, {id: Date.now().toString(), text: '', isDone: false}])}
+                                    className="flex items-center text-xs font-bold text-brand-light mt-2 p-1"
+                                >
+                                    <PlusIcon className="w-4 h-4 ml-1" /> إضافة مهمة للمخطط
+                                </button>
+                            </div>
+                            <div className="pt-4">
+                                <button 
+                                    onClick={() => setActiveTab('new-report')}
+                                    className="w-full py-3 bg-brand-light/10 text-brand-light rounded-2xl font-bold text-sm active:scale-95 transition-all"
+                                >
+                                    بدء إعداد التقرير النهائي
+                                </button>
                             </div>
                         </div>
                         
-                        <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center justify-between px-1 pt-2">
                             <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">التقارير الأخيرة</h3>
-                            <button onClick={() => setActiveTab('archive')} className="text-brand-light text-sm font-semibold">عرض الكل</button>
+                            <button onClick={() => setActiveTab('archive')} className="text-brand-light text-sm font-semibold">عرض الأرشيف</button>
                         </div>
                         <div className="space-y-4">
                             {myReports.slice(0, 3).map(r => (
@@ -277,16 +351,23 @@ const EmployeeDashboard: React.FC = () => {
                 );
             case 'new-report':
                 return (
-                    <form onSubmit={handleSubmitReport} className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6 animate-fade-in pb-20">
+                    <form onSubmit={handleSubmitReport} className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6 animate-fade-in pb-20">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-brand-dark dark:text-gray-100 flex items-center">
+                            <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100 flex items-center">
                                 <NewReportIcon className="w-6 h-6 ml-2" />
-                                تقرير جديد
+                                إنشاء تقرير نهائي
                             </h3>
-                            <span className="text-xs text-gray-500">{new Date().toLocaleDateString('ar-EG')}</span>
+                            <button 
+                                type="button" 
+                                onClick={importFromPlanner}
+                                className="px-3 py-1.5 bg-brand-accent-yellow/20 text-brand-accent-yellow text-xs font-bold rounded-full border border-brand-accent-yellow/30 active:scale-95"
+                            >
+                                استيراد من مخطط اليوم
+                            </button>
                         </div>
+
                         <div className="space-y-4">
-                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">المهام اليومية</label>
+                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">المهام المذكورة في التقرير</label>
                             {reportForm.tasks.map((task, index) => (
                                 <div key={task.id} className="flex gap-2">
                                     <input
@@ -294,7 +375,7 @@ const EmployeeDashboard: React.FC = () => {
                                         value={task.text}
                                         onChange={(e) => setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === task.id ? { ...t, text: e.target.value } : t) }))}
                                         placeholder={`المهمة ${index + 1}...`}
-                                        className="flex-grow px-3 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-brand-light/50 outline-none"
+                                        className="flex-grow px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-brand-light/50 outline-none"
                                         required
                                     />
                                     {reportForm.tasks.length > 1 && (
@@ -305,33 +386,39 @@ const EmployeeDashboard: React.FC = () => {
                                 </div>
                             ))}
                             <button type="button" onClick={() => setReportForm(prev => ({ ...prev, tasks: [...prev.tasks, { id: Date.now().toString(), text: '' }] }))} className="text-brand-light text-sm font-bold flex items-center py-2 px-1">
-                                <PlusIcon className="w-4 h-4 ml-1" /> إضافة مهمة أخرى
+                                <PlusIcon className="w-4 h-4 ml-1" /> إضافة حقل مهمة آخر
                             </button>
                         </div>
-                        <div className="space-y-4">
-                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">التفاصيل</label>
-                            <textarea placeholder="ما تم إنجازه..." value={reportForm.accomplished} onChange={e => setReportForm(p => ({...p, accomplished: e.target.value}))} rows={3} className="w-full px-3 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none" />
-                            <textarea placeholder="المعوقات (إن وجدت)..." value={reportForm.notAccomplished} onChange={e => setReportForm(p => ({...p, notAccomplished: e.target.value}))} rows={2} className="w-full px-3 py-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none" />
+
+                        <div className="space-y-5">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">ما تم إنجازه فعلياً</label>
+                                <textarea placeholder="اكتب تفاصيل الإنجاز..." value={reportForm.accomplished} onChange={e => setReportForm(p => ({...p, accomplished: e.target.value}))} rows={4} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/30" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">المعوقات أو ما لم ينجز</label>
+                                <textarea placeholder="اذكر الأسباب في حال عدم الإنجاز..." value={reportForm.notAccomplished} onChange={e => setReportForm(p => ({...p, notAccomplished: e.target.value}))} rows={2} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/30" />
+                            </div>
                         </div>
                         
                         <div className="space-y-3 pt-4 border-t dark:border-gray-700">
-                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">المرفقات</label>
-                            <div className="flex gap-2">
+                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">توثيق ومرفقات</label>
+                            <div className="flex gap-3">
                                 <button 
                                     type="button"
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="flex-1 flex flex-col items-center justify-center p-3 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl active:bg-gray-100"
+                                    className="flex-1 flex flex-col items-center justify-center p-4 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-700 rounded-2xl active:bg-gray-100 transition-all"
                                 >
-                                    <PaperclipIcon className="w-6 h-6 mb-1 text-brand-light" />
+                                    <PaperclipIcon className="w-6 h-6 mb-2 text-brand-light" />
                                     إرفاق ملف
                                 </button>
                                 <button 
                                     type="button"
                                     onClick={() => cameraInputRef.current?.click()}
-                                    className="flex-1 flex flex-col items-center justify-center p-3 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl active:bg-gray-100"
+                                    className="flex-1 flex flex-col items-center justify-center p-4 text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-700 rounded-2xl active:bg-gray-100 transition-all"
                                 >
-                                    <CameraIcon className="w-6 h-6 mb-1 text-brand-light" />
-                                    الكاميرا
+                                    <CameraIcon className="w-6 h-6 mb-2 text-brand-light" />
+                                    تصوير مباشر
                                 </button>
                             </div>
                             <input type="file" ref={fileInputRef} onChange={handleFileChange} multiple accept="image/*,application/pdf" className="hidden" />
@@ -340,18 +427,18 @@ const EmployeeDashboard: React.FC = () => {
                             {reportForm.attachments.length > 0 && (
                                 <div className="flex flex-wrap gap-2 pt-2">
                                     {reportForm.attachments.map((file, index) => (
-                                        <div key={index} className="relative w-16 h-16 border dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800">
+                                        <div key={index} className="relative w-20 h-20 border-2 border-brand-light/20 rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-800 shadow-sm">
                                             {file.type.startsWith('image/') ? (
                                                 <img src={file.content} alt={file.name} className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center">
-                                                    <DocumentTextIcon className="w-8 h-8 text-brand-light" />
+                                                    <DocumentTextIcon className="w-10 h-10 text-brand-light" />
                                                 </div>
                                             )}
                                             <button 
                                                 type="button"
                                                 onClick={() => removeAttachment(index)}
-                                                className="absolute -top-1 -left-1 p-1 bg-red-500 text-white rounded-full shadow-md"
+                                                className="absolute top-1 left-1 p-1 bg-red-500 text-white rounded-full shadow-md active:scale-75"
                                             >
                                                 <XMarkIcon className="w-3 h-3" />
                                             </button>
@@ -361,8 +448,10 @@ const EmployeeDashboard: React.FC = () => {
                             )}
                         </div>
 
-                        <div className="pt-4">
-                            <button type="submit" className="w-full py-4 bg-brand-light text-white rounded-xl active:scale-95 transition-all font-bold shadow-lg shadow-brand-light/30">إرسال التقرير النهائي</button>
+                        <div className="pt-6">
+                            <button type="submit" className="w-full py-5 bg-brand-light text-white rounded-2xl active:scale-95 transition-all font-bold text-lg shadow-xl shadow-brand-light/30">
+                                إرسال التقرير النهائي للمسؤول
+                            </button>
                         </div>
                     </form>
                 );
@@ -370,11 +459,16 @@ const EmployeeDashboard: React.FC = () => {
             case 'archive':
                 return (
                     <div className="space-y-4 animate-fade-in pb-20">
-                        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 flex items-center px-1">
-                            <ArchiveBoxIcon className="w-6 h-6 ml-2" /> أرشيف التقارير
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center px-1">
+                            <ArchiveBoxIcon className="w-6 h-6 ml-2 text-brand-light" /> أرشيف التقارير المسلمة
                         </h3>
                         {myReports.map(r => <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />)}
-                        {myReports.length === 0 && <div className="text-center py-10 text-gray-500">لا يوجد تقارير سابقة</div>}
+                        {myReports.length === 0 && (
+                            <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-300">
+                                <ArchiveBoxIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                                <p className="text-gray-500 dark:text-gray-400 font-bold">لا يوجد تقارير سابقة في الأرشيف</p>
+                            </div>
+                        )}
                     </div>
                 );
             case 'profile': return <div className="pb-20"><ProfileManagement user={currentUser} /></div>;
@@ -383,14 +477,17 @@ const EmployeeDashboard: React.FC = () => {
     };
 
     return (
-        <div className="h-[100dvh] w-full bg-[#f8f9fa] dark:bg-[#121212] flex overflow-hidden">
+        <div className="h-[100dvh] w-full bg-[#fcfdfe] dark:bg-[#0d1117] flex overflow-hidden">
             {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
             
-            <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-800 shadow-2xl transform transition-transform duration-300 ease-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-                <div className="flex flex-col h-full border-l dark:border-gray-700">
-                    <div className="flex items-center p-6 border-b dark:border-gray-700">
-                        <AppLogoIcon className="w-8 h-8 text-brand-light" />
-                        <h1 className="mr-3 text-xl font-bold text-brand-dark dark:text-gray-100">مهامي</h1>
+            <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                <div className="flex flex-col h-full border-l dark:border-gray-800">
+                    <div className="flex flex-col items-center p-6 border-b dark:border-gray-800 gap-2 text-center">
+                        <div className="w-10 h-10 transition-transform hover:scale-110 duration-500">
+                            <AppLogoIcon />
+                        </div>
+                        <h1 className="text-lg font-bold text-brand-dark dark:text-gray-100">مهامي اليومية</h1>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">شعبة الفنون والمسرح</p>
                     </div>
                     
                     <nav className="flex-grow px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
@@ -401,17 +498,11 @@ const EmployeeDashboard: React.FC = () => {
                         <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />
                     </nav>
                     
-                    <div className="p-4 border-t dark:border-gray-700 space-y-2 mb-safe">
+                    <div className="p-4 border-t dark:border-gray-800 space-y-2 mb-safe">
                         {deferredPrompt && (
                             <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30">
                                 <InstallIcon className="w-6 h-6"/>
-                                <span className="mr-3">تثبيت التطبيق</span>
-                            </button>
-                        )}
-                        {notificationPermission === 'default' && (
-                            <button onClick={() => { requestNotificationPermission(); }} className="flex items-center w-full px-4 py-3 text-sm font-bold text-brand-light bg-brand-light/10 rounded-xl active:scale-95 transition-transform">
-                                <BellIcon className="w-6 h-6"/>
-                                <span className="mr-3">تفعيل التنبيهات</span>
+                                <span className="mr-3 text-xs">تثبيت التطبيق على الهاتف</span>
                             </button>
                         )}
                         <ThemeToggle />
@@ -424,18 +515,20 @@ const EmployeeDashboard: React.FC = () => {
             </aside>
             
             <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-                <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b dark:border-gray-700 md:hidden z-20 sticky top-0 safe-area-top">
-                    <div className="flex items-center">
-                        <AppLogoIcon className="w-8 h-8 ml-3 text-brand-light" />
-                        <h2 className="text-xl font-bold text-brand-dark dark:text-gray-100">مهامي</h2>
+                <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b dark:border-gray-800 md:hidden z-20 sticky top-0 safe-area-top">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8">
+                             <AppLogoIcon />
+                        </div>
+                        <h2 className="text-lg font-bold text-brand-dark dark:text-gray-100">مهامي</h2>
                     </div>
-                    <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg active:scale-90 transition-transform">
+                    <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-gray-50 dark:bg-gray-800 rounded-2xl active:scale-90 transition-transform">
                         <MenuIcon className="w-6 h-6 text-gray-800 dark:text-gray-200" />
                     </button>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar bg-inherit">
-                    <div className="container mx-auto max-w-5xl">
+                <main className="flex-1 overflow-y-auto p-4 md:p-10 no-scrollbar bg-inherit">
+                    <div className="container mx-auto max-w-4xl">
                         {renderContent()}
                     </div>
                 </main>

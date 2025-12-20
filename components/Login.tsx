@@ -37,36 +37,38 @@ const Login: React.FC = () => {
 
             <div className="w-full max-w-md p-8 space-y-6 bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl z-10">
                 <div className="flex flex-col items-center text-center">
-                    <AppLogoIcon className="w-32 h-32 mb-4 text-white"/>
-                    <h2 className="text-3xl font-bold text-white">المهام اليومية</h2>
-                    <p className="mt-2 text-sm text-gray-200">نظام تسجيل التقارير الداخلي</p>
-                    <p className="mt-4 text-xs text-gray-200 bg-white/10 p-2 rounded-md">
+                    <div className="w-20 h-20 mb-6 transition-transform hover:scale-110 duration-500">
+                        <AppLogoIcon />
+                    </div>
+                    <h2 className="text-3xl font-bold text-white tracking-tight">المهام اليومية</h2>
+                    <p className="mt-2 text-sm text-gray-200 opacity-90">نظام تسجيل التقارير الداخلي</p>
+                    <p className="mt-4 text-xs text-gray-200 bg-white/10 p-3 rounded-xl border border-white/5">
                         للمنتسبين الجدد، يتم إنشاء الحساب من قبل المسؤول.
                     </p>
                 </div>
-                <form className="mt-8 space-y-6" onSubmit={handleLoginSubmit}>
+                <form className="mt-8 space-y-5" onSubmit={handleLoginSubmit}>
                     <div className="space-y-4 rounded-md">
-                        <div className="relative">
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none transition-colors group-focus-within:text-brand-accent-yellow">
                                 <UserIcon className="w-5 h-5 text-gray-300" />
                             </div>
-                            <input id="username" name="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-3 py-3 text-white placeholder-gray-300 bg-white/10 border border-white/30 rounded-md appearance-none pr-10 focus:outline-none focus:ring-brand-accent-yellow focus:border-brand-accent-yellow sm:text-sm" placeholder="اسم المستخدم" />
+                            <input id="username" name="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-3 py-3 text-white placeholder-gray-400 bg-white/10 border border-white/20 rounded-xl appearance-none pr-10 focus:outline-none focus:ring-2 focus:ring-brand-accent-yellow/50 focus:border-brand-accent-yellow transition-all sm:text-sm" placeholder="اسم المستخدم" />
                         </div>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none transition-colors group-focus-within:text-brand-accent-yellow">
                                 <LockIcon className="w-5 h-5 text-gray-300" />
                             </div>
-                            <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-3 text-white placeholder-gray-300 bg-white/10 border border-white/30 rounded-md appearance-none pr-10 pl-10 focus:outline-none focus:ring-brand-accent-yellow focus:border-brand-accent-yellow sm:text-sm" placeholder="كلمة المرور" />
+                            <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-3 text-white placeholder-gray-400 bg-white/10 border border-white/20 rounded-xl appearance-none pr-10 pl-10 focus:outline-none focus:ring-2 focus:ring-brand-accent-yellow/50 focus:border-brand-accent-yellow transition-all sm:text-sm" placeholder="كلمة المرور" />
                              <button 
                                 type="button" 
                                 onClick={() => setShowPassword(!showPassword)} 
-                                className="absolute inset-y-0 left-0 flex items-center pl-3"
+                                className="absolute inset-y-0 left-0 flex items-center pl-3 hover:text-white transition-colors"
                                 aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
                             >
                                 {showPassword ? (
-                                    <EyeSlashIcon className="w-5 h-5 text-gray-300" />
+                                    <EyeSlashIcon className="w-5 h-5 text-gray-400" />
                                 ) : (
-                                    <EyeIcon className="w-5 h-5 text-gray-300" />
+                                    <EyeIcon className="w-5 h-5 text-gray-400" />
                                 )}
                             </button>
                         </div>
@@ -79,25 +81,25 @@ const Login: React.FC = () => {
                             type="checkbox"
                             checked={rememberMe}
                             onChange={(e) => setRememberMe(e.target.checked)}
-                            className="w-4 h-4 text-brand-accent-yellow bg-gray-100 border-gray-300 rounded focus:ring-brand-accent-yellow"
+                            className="w-4 h-4 text-brand-accent-yellow bg-white/10 border-white/20 rounded focus:ring-brand-accent-yellow"
                         />
-                        <label htmlFor="remember-me" className="block mr-2 text-sm text-gray-200">
+                        <label htmlFor="remember-me" className="block mr-2 text-sm text-gray-200 select-none cursor-pointer">
                             تذكرني
                         </label>
                     </div>
 
-                    {error && <p className="text-sm text-brand-accent-yellow text-center font-semibold">{error}</p>}
+                    {error && <p className="text-sm text-brand-accent-yellow text-center font-semibold bg-brand-accent-yellow/10 py-2 rounded-lg">{error}</p>}
                     <div>
-                        <button type="submit" disabled={loginLoading} className="relative flex justify-center w-full px-4 py-3 text-sm font-bold text-brand-dark bg-brand-accent-yellow border border-transparent rounded-md group hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-brand-accent-yellow disabled:bg-opacity-70 transition-colors">
+                        <button type="submit" disabled={loginLoading} className="relative flex justify-center w-full px-4 py-4 text-sm font-bold text-brand-dark bg-brand-accent-yellow border border-transparent rounded-xl group hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-dark focus:ring-brand-accent-yellow disabled:opacity-70 transition-all active:scale-95">
                             {loginLoading ? 'جارِ التسجيل...' : 'دخول'}
                         </button>
                     </div>
                 </form>
 
             </div>
-            <footer className="absolute bottom-4 text-center text-xs text-gray-300 z-10">
-                <p>جميع الحقوق محفوظة 2025م</p>
-                <p>حسين كاظم</p>
+            <footer className="absolute bottom-6 text-center text-xs text-gray-300/80 z-10">
+                <p>© جميع الحقوق محفوظة 2025م</p>
+                <p className="mt-1 font-semibold">تطوير: حسين كاظم</p>
             </footer>
         </div>
     );

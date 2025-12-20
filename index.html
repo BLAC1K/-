@@ -3,19 +3,19 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/png" href="/icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#2B576E" />
+    <meta name="theme-color" content="#085A8C" />
     <link rel="manifest" href="/manifest.json" />
     
     <!-- iOS Specific -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="مهامي">
-    <link rel="apple-touch-icon" href="/icon-192.png" />
-    <link rel="apple-touch-startup-image" href="/icon-512.png">
+    <link rel="apple-touch-icon" href="/icon.png" />
+    <link rel="apple-touch-startup-image" href="/icon.png">
 
     <title>المهام اليومية</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,10 +23,9 @@
       body {
         font-family: 'Cairo', sans-serif;
         -webkit-tap-highlight-color: transparent;
-        user-select: none; /* يمنع تحديد النصوص بشكل غير مقصود في الموبايل */
-        overscroll-behavior-y: contain; /* يمنع Pull-to-refresh الافتراضي للمتصفح */
+        user-select: none;
+        overscroll-behavior-y: contain;
       }
-      /* تحسين منطقة الأمان للآيفون */
       .safe-area-bottom {
         padding-bottom: env(safe-area-inset-bottom);
       }
@@ -79,7 +78,7 @@
         theme: {
           extend: {
             colors: {
-              'brand-dark': '#2B576E',
+              'brand-dark': '#085A8C',
               'brand-light': '#42A5B3',
               'brand-accent-red': '#E54B22',
               'brand-accent-yellow': '#FBC02D',

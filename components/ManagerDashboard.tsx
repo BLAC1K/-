@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -114,9 +113,11 @@ const ManagerDashboard: React.FC = () => {
             
             <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-800 shadow-2xl transform transition-transform duration-300 ease-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="flex flex-col h-full border-l dark:border-gray-700">
-                    <div className="flex items-center p-6 border-b dark:border-gray-700">
-                        <AppLogoIcon className="w-8 h-8 text-brand-light" />
-                        <h1 className="mr-3 text-xl font-bold text-brand-dark dark:text-gray-100">لوحة التحكم</h1>
+                    <div className="flex items-center p-6 border-b dark:border-gray-700 gap-3">
+                        <div className="w-10 h-10">
+                            <AppLogoIcon />
+                        </div>
+                        <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">لوحة التحكم</h1>
                     </div>
                     <nav className="flex-grow px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
                         <NavItem tabName="reports" label="التقارير" icon={<NewReportIcon className="w-6 h-6"/>} count={newReportsCount}/>
@@ -142,8 +143,10 @@ const ManagerDashboard: React.FC = () => {
             
             <div className="flex-1 flex flex-col h-full overflow-hidden relative">
                 <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b dark:border-gray-700 md:hidden z-20 sticky top-0 safe-area-top">
-                    <div className="flex items-center">
-                        <AppLogoIcon className="w-8 h-8 ml-3 text-brand-light" />
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8">
+                            <AppLogoIcon />
+                        </div>
                         <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
                     </div>
                     <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg active:scale-90 transition-transform">
