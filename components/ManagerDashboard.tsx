@@ -6,7 +6,6 @@ import LogoutIcon from './icons/LogoutIcon';
 import UserManagement from './UserManagement'; 
 import UsersIcon from './icons/UsersIcon';
 import NewReportIcon from './icons/NewReportIcon';
-import Avatar from './Avatar';
 import ReportsView from './ReportsView';
 import ProfileManagement from './ProfileManagement';
 import UserCircleIcon from './icons/UserCircleIcon';
@@ -17,7 +16,6 @@ import AppLogoIcon from './icons/AppLogoIcon';
 import ConfirmModal from './ConfirmModal';
 import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import SentTasksView from './SentTasksView';
-import InstallIcon from './icons/InstallIcon';
 import Toast from './Toast';
 import BellIcon from './icons/BellIcon';
 
@@ -29,7 +27,6 @@ const ManagerDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState('reports');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [toast, setToast] = useState<{message: string} | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
 
@@ -39,11 +36,6 @@ const ManagerDashboard: React.FC = () => {
         if ('Notification' in window) {
             setNotificationPermission(Notification.permission);
         }
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
-        });
     }, []);
 
     const requestNotificationPermission = async () => {
@@ -59,7 +51,6 @@ const ManagerDashboard: React.FC = () => {
 
         if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
             const registration = await navigator.serviceWorker.ready;
-            // Fix: Cast options to 'any' to resolve 'vibrate' property missing in standard NotificationOptions
             registration.showNotification(title, {
                 body,
                 icon: '/icon-192.png',
@@ -70,7 +61,6 @@ const ManagerDashboard: React.FC = () => {
         setToast({ message: body });
     };
 
-    // Monitor new reports
     useEffect(() => {
         if (reports.length > prevReportsCount.current) {
             const newestReport = reports[reports.length - 1];
@@ -81,13 +71,6 @@ const ManagerDashboard: React.FC = () => {
         }
         prevReportsCount.current = reports.length;
     }, [reports, users]);
-
-    const handleInstallClick = async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') setDeferredPrompt(null);
-    };
 
     if (!currentUser) return null;
     
@@ -102,11 +85,11 @@ const ManagerDashboard: React.FC = () => {
 
     const renderContent = () => {
         switch(activeTab) {
-            case 'employees': return <UserManagement />;
-            case 'sentTasks': return <SentTasksView />;
-            case 'profile': return <ProfileManagement user={currentUser} />;
+            case 'employees': return <div className="pb-20"><UserManagement /></div>;
+            case 'sentTasks': return <div className="pb-20"><SentTasksView /></div>;
+            case 'profile': return <div className="pb-20"><ProfileManagement user={currentUser} /></div>;
             case 'reports':
-            default: return <ReportsView />;
+            default: return <div className="pb-20"><ReportsView /></div>;
         }
     };
 
@@ -118,7 +101,7 @@ const ManagerDashboard: React.FC = () => {
                     setActiveTab(tabName);
                     if (window.innerWidth < 768) setIsSidebarOpen(false);
                 }}
-                className={`flex items-center w-full px-3 py-2 text-sm font-medium transition-colors rounded-lg ${isActive ? 'bg-brand-light/10 dark:bg-brand-light/20 text-brand-dark dark:text-gray-100 font-bold' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                className={`flex items-center w-full px-4 py-3 text-sm font-medium transition-colors rounded-xl ${isActive ? 'bg-brand-light text-white shadow-lg shadow-brand-light/30' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}
             >
                 {icon}
                 <span className="mr-3">{label}</span>
@@ -128,55 +111,49 @@ const ManagerDashboard: React.FC = () => {
     }
 
     return (
-        <div className="h-[100dvh] w-full bg-gray-100 dark:bg-gray-900 flex overflow-hidden">
-             {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
+        <div className="h-[100dvh] w-full bg-[#f8f9fa] dark:bg-[#121212] flex overflow-hidden">
+             {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
             
-            <aside className={`fixed inset-y-0 right-0 z-40 w-64 h-full bg-white dark:bg-gray-800 shadow-xl transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-800 shadow-2xl transform transition-transform duration-300 ease-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="flex flex-col h-full border-l dark:border-gray-700">
-                    <div className="flex items-center justify-center py-6 border-b dark:border-gray-700">
-                        <AppLogoIcon className="w-8 h-8 text-brand-dark dark:text-gray-100" />
-                        <h1 className="mr-2 text-lg font-bold text-brand-dark dark:text-gray-100">لوحة التحكم</h1>
+                    <div className="flex items-center p-6 border-b dark:border-gray-700">
+                        <AppLogoIcon className="w-8 h-8 text-brand-light" />
+                        <h1 className="mr-3 text-xl font-bold text-brand-dark dark:text-gray-100">لوحة التحكم</h1>
                     </div>
-                    <nav className="flex-grow px-3 py-4 space-y-1 overflow-y-auto no-scrollbar">
-                        <NavItem tabName="reports" label="التقارير" icon={<NewReportIcon className="w-5 h-5"/>} count={newReportsCount}/>
-                        <NavItem tabName="employees" label="إدارة المنتسبين" icon={<UsersIcon className="w-5 h-5"/>} />
-                        <NavItem tabName="sentTasks" label="المهام المرسلة" icon={<ClipboardDocumentListIcon className="w-5 h-5"/>} />
-                        <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-5 h-5"/>} />
+                    <nav className="flex-grow px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
+                        <NavItem tabName="reports" label="التقارير" icon={<NewReportIcon className="w-6 h-6"/>} count={newReportsCount}/>
+                        <NavItem tabName="employees" label="إدارة المنتسبين" icon={<UsersIcon className="w-6 h-6"/>} />
+                        <NavItem tabName="sentTasks" label="المهام المرسلة" icon={<ClipboardDocumentListIcon className="w-6 h-6"/>} />
+                        <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />
                     </nav>
-                    <div className="p-4 border-t dark:border-gray-700 space-y-2">
+                    <div className="p-4 border-t dark:border-gray-700 space-y-2 mb-safe">
                         {notificationPermission === 'default' && (
-                            <button onClick={requestNotificationPermission} className="flex items-center w-full px-3 py-2 text-sm font-bold text-brand-light bg-brand-light/10 rounded-lg border border-brand-light/20">
-                                <BellIcon className="w-5 h-5"/>
+                            <button onClick={requestNotificationPermission} className="flex items-center w-full px-4 py-3 text-sm font-bold text-brand-light bg-brand-light/10 rounded-xl active:scale-95 transition-transform">
+                                <BellIcon className="w-6 h-6"/>
                                 <span className="mr-3">تنبيهات المتصفح</span>
                             </button>
                         )}
-                        {deferredPrompt && (
-                            <button onClick={handleInstallClick} className="flex items-center w-full px-3 py-2 text-sm font-bold text-brand-light bg-brand-light/10 hover:bg-brand-light/20 rounded-lg transition-colors border border-brand-light/20">
-                                <InstallIcon className="w-5 h-5"/>
-                                <span className="mr-3">تثبيت التطبيق</span>
-                            </button>
-                        )}
                         <ThemeToggle />
-                        <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                            <LogoutIcon className="w-5 h-5"/>
-                            <span className="mr-3">خروج</span>
+                        <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl active:scale-95 transition-transform">
+                            <LogoutIcon className="w-6 h-6"/>
+                            <span className="mr-3">خروج من الحساب</span>
                         </button>
                     </div>
                 </div>
             </aside>
             
             <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-                <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 md:hidden z-20">
+                <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b dark:border-gray-700 md:hidden z-20 sticky top-0 safe-area-top">
                     <div className="flex items-center">
-                        <AppLogoIcon className="w-8 h-8 ml-3 text-brand-dark dark:text-gray-100" />
+                        <AppLogoIcon className="w-8 h-8 ml-3 text-brand-light" />
                         <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
                     </div>
-                    <button onClick={() => setIsSidebarOpen(p => !p)}>
+                    <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg active:scale-90 transition-transform">
                         {isSidebarOpen ? <XMarkIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
                     </button>
                 </header>
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar">
-                    <div className="container mx-auto max-w-6xl pb-10">
+                <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar bg-inherit">
+                    <div className="container mx-auto max-w-6xl">
                         {renderContent()}
                     </div>
                 </main>
