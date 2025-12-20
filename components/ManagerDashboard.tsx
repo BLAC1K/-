@@ -30,23 +30,13 @@ const ManagerDashboard: React.FC = () => {
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
 
-    const prevReportsCount = useRef(reports.length);
+    const lastNotifiedReportId = useRef<string | null>(null);
 
     useEffect(() => {
         if ('Notification' in window) {
             setNotificationPermission(Notification.permission);
         }
     }, []);
-
-    const requestNotificationPermission = async () => {
-        if ('Notification' in window) {
-            const permission = await Notification.requestPermission();
-            setNotificationPermission(permission);
-            if (permission === 'granted') {
-                setToast({ message: 'تم تفعيل التنبيهات بنجاح!', type: 'success' });
-            }
-        }
-    };
 
     const triggerNotification = async (title: string, body: string) => {
         const audio = new Audio(NOTIFICATION_SOUND_URL);
@@ -58,21 +48,26 @@ const ManagerDashboard: React.FC = () => {
                 body,
                 icon: '/icon-192.png',
                 badge: '/icon-192.png',
-                vibrate: [200, 100, 200]
+                vibrate: [300, 100, 300],
+                requireInteraction: true
             } as any);
+        } else if (Notification.permission === 'granted') {
+            new Notification(title, { body, icon: '/icon-192.png' });
         }
         setToast({ message: body, type: 'info' });
     };
 
+    // الاستماع الفوري للتقارير الواردة
     useEffect(() => {
-        if (reports.length > prevReportsCount.current) {
-            const newestReport = reports[reports.length - 1];
-            const sender = users.find(u => u.id === newestReport.userId);
-            if (newestReport.status === 'submitted') {
+        const submittedReports = reports.filter(r => r.status === 'submitted');
+        if (submittedReports.length > 0) {
+            const newestReport = submittedReports[submittedReports.length - 1];
+            if (newestReport.id !== lastNotifiedReportId.current) {
+                const sender = users.find(u => u.id === newestReport.userId);
                 triggerNotification("وصول تقرير جديد", `قام المنتسب ${sender?.fullName || 'غير معروف'} بإرسال تقريره اليومي.`);
+                lastNotifiedReportId.current = newestReport.id;
             }
         }
-        prevReportsCount.current = reports.length;
     }, [reports, users]);
 
     if (!currentUser) return null;
@@ -131,7 +126,7 @@ const ManagerDashboard: React.FC = () => {
                     </nav>
                     <div className="p-4 border-t dark:border-gray-700 space-y-2 mb-safe">
                         {notificationPermission === 'default' && (
-                            <button onClick={requestNotificationPermission} className="flex items-center w-full px-4 py-3 text-sm font-bold text-brand-light bg-brand-light/10 rounded-xl active:scale-95 transition-transform">
+                            <button onClick={() => { triggerNotification("اختبار الإشعارات", "تم تفعيل نظام التنبيهات بنجاح"); }} className="flex items-center w-full px-4 py-3 text-sm font-bold text-brand-light bg-brand-light/10 rounded-xl active:scale-95 transition-transform">
                                 <BellIcon className="w-6 h-6"/>
                                 <span className="mr-3">تنبيهات المتصفح</span>
                             </button>

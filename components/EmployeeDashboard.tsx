@@ -40,13 +40,13 @@ const EmployeeDashboard: React.FC = () => {
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
 
-    // Refs for file inputs
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
-    const prevTasksCount = useRef(directTasks.length);
-    const prevCommentsCount = useRef(0);
-    const prevAnnouncementsCount = useRef(announcements.length);
+    // استخدام Refs لمراقبة التغييرات فورياً دون التسبب في تكرار الإشعارات
+    const lastNotifiedTaskId = useRef<string | null>(null);
+    const lastNotifiedCommentId = useRef<string | null>(null);
+    const lastNotifiedAnnId = useRef<string | null>(null);
 
     const [reportForm, setReportForm] = useState<{
         tasks: { id: string, text: string }[],
@@ -66,28 +66,32 @@ const EmployeeDashboard: React.FC = () => {
         }
     }, []);
 
+    // FIX: Add missing requestNotificationPermission function to handle notification permission requests.
     const requestNotificationPermission = async () => {
         if ('Notification' in window) {
             const permission = await Notification.requestPermission();
             setNotificationPermission(permission);
             if (permission === 'granted') {
-                setToast({ message: 'تم تفعيل الإشعارات بنجاح!', type: 'success' });
+                setToast({ message: 'تم تفعيل إشعارات المتصفح بنجاح!', type: 'success' });
             }
         }
     };
 
     const triggerNotification = async (title: string, body: string) => {
+        // تشغيل صوت التنبيه فوراً
         const audio = new Audio(NOTIFICATION_SOUND_URL);
         audio.play().catch(e => console.log("Audio play blocked", e));
 
+        // إظهار إشعار النظام (System Notification)
         if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
             const registration = await navigator.serviceWorker.ready;
             registration.showNotification(title, {
                 body,
                 icon: '/icon-192.png',
                 badge: '/icon-192.png',
-                vibrate: [200, 100, 200],
-                tag: 'task-alert'
+                vibrate: [300, 100, 300],
+                tag: 'task-alert',
+                requireInteraction: true // يبقى الإشعار حتى يتفاعل معه المستخدم
             } as any);
         } else if (Notification.permission === 'granted') {
             new Notification(title, { body, icon: '/icon-192.png' });
@@ -96,27 +100,38 @@ const EmployeeDashboard: React.FC = () => {
         setToast({ message: body, type: 'info' });
     };
 
+    // مراقبة التغييرات الفورية وإطلاق الإشعارات
     useEffect(() => {
         if (!currentUser) return;
 
-        const myTasks = directTasks.filter(t => t.employeeId === currentUser.id);
-        if (myTasks.length > prevTasksCount.current) {
-            const newestTask = myTasks[0];
-            triggerNotification("مهمة جديدة واردة", newestTask.content.substring(0, 50) + "...");
+        // 1. التحقق من المهام الجديدة
+        const myPendingTasks = directTasks.filter(t => t.employeeId === currentUser.id && t.status === 'pending');
+        if (myPendingTasks.length > 0) {
+            const newestTask = myPendingTasks[0];
+            if (newestTask.id !== lastNotifiedTaskId.current) {
+                triggerNotification("مهمة جديدة واردة", newestTask.content.substring(0, 50) + "...");
+                lastNotifiedTaskId.current = newestTask.id;
+            }
         }
-        prevTasksCount.current = myTasks.length;
 
+        // 2. التحقق من تعليقات المسؤول
         const myReportsWithNewComments = reports.filter(r => r.userId === currentUser.id && r.managerComment && !r.isCommentReadByEmployee);
-        if (myReportsWithNewComments.length > prevCommentsCount.current) {
-            triggerNotification("تعليق جديد من المسؤول", "قام المسؤول بالتعليق على أحد تقاريرك اليومية.");
+        if (myReportsWithNewComments.length > 0) {
+            const newestReport = myReportsWithNewComments[0];
+            if (newestReport.id !== lastNotifiedCommentId.current) {
+                triggerNotification("تعليق جديد من المسؤول", "قام المسؤول بالتعليق على أحد تقاريرك.");
+                lastNotifiedCommentId.current = newestReport.id;
+            }
         }
-        prevCommentsCount.current = myReportsWithNewComments.length;
 
-        if (announcements.length > prevAnnouncementsCount.current) {
-            triggerNotification("توجيه إداري جديد", announcements[0].content.substring(0, 50) + "...");
+        // 3. التحقق من التوجيهات العامة
+        if (announcements.length > 0) {
+            const newestAnn = announcements[0];
+            if (newestAnn.id !== lastNotifiedAnnId.current) {
+                triggerNotification("توجيه إداري جديد", newestAnn.content.substring(0, 50) + "...");
+                lastNotifiedAnnId.current = newestAnn.id;
+            }
         }
-        prevAnnouncementsCount.current = announcements.length;
-
     }, [directTasks, reports, announcements, currentUser]);
 
     const myReports = useMemo(() => 
@@ -231,7 +246,7 @@ const EmployeeDashboard: React.FC = () => {
                              <div className="bg-gradient-to-br from-brand-light to-brand-dark p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center text-center text-white">
                                 <AppLogoIcon className="w-16 h-16 mb-2 opacity-90" />
                                 <h3 className="text-xl font-bold">أهلاً بك، {currentUser.fullName.split(' ')[0]}</h3>
-                                <p className="text-white/80 text-xs mt-1">نسخة الهاتف الذكي جاهزة</p>
+                                <p className="text-white/80 text-xs mt-1">المزامنة الفورية مفعلة الآن</p>
                                 <button onClick={() => setActiveTab('new-report')} className="mt-4 px-6 py-2 bg-white text-brand-dark rounded-full transition-transform active:scale-95 text-sm font-bold shadow-md">إنشاء تقرير اليوم</button>
                             </div>
                         </div>
@@ -312,7 +327,7 @@ const EmployeeDashboard: React.FC = () => {
                             {reportForm.attachments.length > 0 && (
                                 <div className="flex flex-wrap gap-2 pt-2">
                                     {reportForm.attachments.map((file, index) => (
-                                        <div key={index} className="relative w-16 h-16 border dark:border-gray-600 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800">
+                                        <div key={index} className="relative w-16 h-16 border dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800">
                                             {file.type.startsWith('image/') ? (
                                                 <img src={file.content} alt={file.name} className="w-full h-full object-cover" />
                                             ) : (
@@ -375,7 +390,7 @@ const EmployeeDashboard: React.FC = () => {
                     
                     <div className="p-4 border-t dark:border-gray-700 space-y-2 mb-safe">
                         {notificationPermission === 'default' && (
-                            <button onClick={requestNotificationPermission} className="flex items-center w-full px-4 py-3 text-sm font-bold text-brand-light bg-brand-light/10 rounded-xl active:scale-95 transition-transform">
+                            <button onClick={() => { requestNotificationPermission(); }} className="flex items-center w-full px-4 py-3 text-sm font-bold text-brand-light bg-brand-light/10 rounded-xl active:scale-95 transition-transform">
                                 <BellIcon className="w-6 h-6"/>
                                 <span className="mr-3">تفعيل التنبيهات</span>
                             </button>

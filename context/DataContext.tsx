@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect, useRef } from 'react';
 import { User, Report, Announcement, DirectTask } from '../types';
 import * as api from '../services/apiService';
 
@@ -40,10 +40,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isDataLoading, setIsDataLoading] = useState(true);
     const [isCloud, setIsCloud] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    
+    // Ref to prevent state closure issues in callbacks
+    const stateRef = useRef(appState);
+    useEffect(() => { stateRef.current = appState; }, [appState]);
 
     const loadData = useCallback(async (silent = false) => {
         if (!silent) setIsDataLoading(true);
-        setError(null);
         try {
             const data = await api.fetchInitialData();
             setAppState({
@@ -61,19 +64,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
-    // تفعيل الاشتراك اللحظي عند تحميل التطبيق
+    // تفعيل التزامن الفوري الذكي
     useEffect(() => {
         loadData();
 
-        // إنشاء اشتراك مباشر للاستماع لأي تغيير في الجداول
-        const unsubscribe = api.subscribeToAllChanges(() => {
-            console.log("Real-time update received! Syncing data...");
-            loadData(true); // تحديث البيانات صامتاً (بدون سبينر) فور حدوث أي تغيير
+        const unsubscribe = api.subscribeToAllChanges((payload) => {
+            console.log("Realtime Sync Payload:", payload);
+            
+            // تحديث البيانات فوراً صامتاً لضمان المزامنة
+            loadData(true);
+            
+            // يمكن هنا إضافة منطق لمعالجة الـ Payload وتحديث جزء من الـ State فقط لزيادة السرعة
+            // لكن loadData(true) هي الطريقة الأكثر موثوقية لضمان تطابق البيانات
         });
 
-        return () => {
-            unsubscribe(); // تنظيف الاشتراك عند إغلاق التطبيق
-        };
+        return () => { unsubscribe(); };
     }, [loadData]);
     
     const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);
@@ -81,14 +86,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const performApiAction = useCallback(async (action: Promise<any>) => {
         try {
             await action;
-            // الميزة الآن أن Real-time سيقوم بالتحديث تلقائياً، 
-            // لكننا نبقي على استدعاء loadData(true) هنا كضمان إضافي (Fallback)
-            await loadData(true); 
+            // لا حاجة لانتظار loadData هنا لأن الاشتراك اللحظي سيقوم بالمهمة
         } catch (error) {
             console.error("Action failed:", error);
             throw error;
         }
-    }, [loadData]);
+    }, []);
 
     const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => performApiAction(api.createReport(report)), [performApiAction]);
     const updateReport = useCallback(async (updatedReport: Report) => performApiAction(api.updateReport(updatedReport)), [performApiAction]);
@@ -108,27 +111,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const markDirectTaskAsRead = useCallback(async (taskId: string) => performApiAction(api.markDirectTaskAsRead(taskId)), [performApiAction]);
 
     const value = useMemo(() => ({
-        ...appState,
-        isDataLoading,
-        isCloud,
-        error,
-        getUserById,
-        addReport,
-        updateReport,
-        saveOrUpdateDraft,
-        deleteReport,
-        markReportAsViewed,
-        markCommentAsRead,
-        addUser,
-        updateUser,
-        deleteUser,
-        addAnnouncement,
-        updateAnnouncement,
-        deleteAnnouncement,
-        markAnnouncementAsRead,
-        addDirectTask,
-        updateDirectTaskStatus,
-        markDirectTaskAsRead
+        ...appState, isDataLoading, isCloud, error, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
+        markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
+        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
     }), [
         appState, isDataLoading, isCloud, error, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,

@@ -2,16 +2,14 @@
 import { User, Report, Announcement, DirectTask, Role } from '../types';
 import { supabase, isSupabaseConfigured } from './supabaseConfig';
 
-// Define the shape of our data
 interface AppState {
     users: User[];
     reports: Report[];
     announcements: Announcement[];
     directTasks: DirectTask[];
-    isCloud: boolean; // Flag to indicate data source
+    isCloud: boolean;
 }
 
-// Initial Data to seed the application
 const INITIAL_USERS: User[] = [
     { id: 'u1', fullName: 'وسام عبد السلام جلوب', badgeNumber: '12637', username: 'wissam', password: '123', role: Role.MANAGER, jobTitle: 'مسؤول شعبة', unit: 'الإدارة' },
     { id: 'u2', fullName: 'علي حسين عبيد', badgeNumber: '134', username: 'ali134', password: '123', role: Role.EMPLOYEE, jobTitle: 'مسؤول وحدة', unit: 'وحدة التمكين الفني' },
@@ -32,8 +30,7 @@ const INITIAL_USERS: User[] = [
 
 const generateId = () => crypto.randomUUID();
 
-// --- MAPPERS ---
-const mapUser = (row: any): User => ({
+export const mapUser = (row: any): User => ({
     id: row.id,
     fullName: row.full_name,
     badgeNumber: row.badge_number,
@@ -45,7 +42,7 @@ const mapUser = (row: any): User => ({
     profilePictureUrl: row.profile_picture_url
 });
 
-const mapReport = (row: any): Report => ({
+export const mapReport = (row: any): Report => ({
     id: row.id,
     userId: row.user_id,
     sequenceNumber: row.sequence_number,
@@ -62,14 +59,14 @@ const mapReport = (row: any): Report => ({
     status: row.status
 });
 
-const mapAnnouncement = (row: any): Announcement => ({
+export const mapAnnouncement = (row: any): Announcement => ({
     id: row.id,
     content: row.content,
     date: row.date,
     readBy: row.read_by || []
 });
 
-const mapDirectTask = (row: any): DirectTask => ({
+export const mapDirectTask = (row: any): DirectTask => ({
     id: row.id,
     managerId: row.manager_id,
     employeeId: row.employee_id,
@@ -80,8 +77,6 @@ const mapDirectTask = (row: any): DirectTask => ({
     rejectionReason: row.rejection_reason,
     isReadByEmployee: row.is_read_by_employee
 });
-
-// --- CORE API ---
 
 export const fetchInitialData = async (): Promise<AppState> => {
     if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
@@ -118,16 +113,18 @@ export const fetchInitialData = async (): Promise<AppState> => {
 };
 
 /**
- * وظيفة الاشتراك اللحظي في قاعدة البيانات
+ * وظيفة الاشتراك المطور: تستجيب فورياً وبدقة لكل حدث
  */
-export const subscribeToAllChanges = (onUpdate: () => void) => {
+export const subscribeToAllChanges = (onUpdate: (payload: any) => void) => {
     const channel = supabase
-        .channel('db-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, onUpdate)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_tasks' }, onUpdate)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, onUpdate)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, onUpdate)
-        .subscribe();
+        .channel('realtime-updates')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, (p) => onUpdate({ table: 'reports', ...p }))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_tasks' }, (p) => onUpdate({ table: 'direct_tasks', ...p }))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, (p) => onUpdate({ table: 'announcements', ...p }))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (p) => onUpdate({ table: 'users', ...p }))
+        .subscribe((status) => {
+            console.log("Subscription status:", status);
+        });
 
     return () => {
         supabase.removeChannel(channel);
