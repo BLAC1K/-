@@ -42,6 +42,7 @@ const EmployeeDashboard: React.FC = () => {
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [isStandalone, setIsStandalone] = useState(false);
 
     // Planner state
     const [plannerTasks, setPlannerTasks] = useState<Task[]>(() => {
@@ -78,6 +79,11 @@ const EmployeeDashboard: React.FC = () => {
         if ('Notification' in window) {
             setNotificationPermission(Notification.permission);
         }
+        
+        // التحقق من حالة التثبيت
+        const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+        setIsStandalone(!!checkStandalone);
+
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e);
@@ -87,13 +93,15 @@ const EmployeeDashboard: React.FC = () => {
     }, []);
 
     const handleInstallClick = async () => {
-        if (!deferredPrompt) {
-            setToast({ message: 'التطبيق مثبت بالفعل أو متصفحك لا يدعم التثبيت المباشر.', type: 'info' });
-            return;
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') setDeferredPrompt(null);
+        } else {
+            // إذا لم يكن هناك دعم تلقائي (مثل iOS)، نفتح نافذة التعليمات العامة
+            const event = new CustomEvent('open-install-instructions');
+            window.dispatchEvent(event);
         }
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') setDeferredPrompt(null);
     };
 
     const triggerNotification = async (title: string, body: string) => {
@@ -282,6 +290,27 @@ const EmployeeDashboard: React.FC = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* زر التثبيت في الواجهة الرئيسية للموظف */}
+                        {!isStandalone && (
+                            <button 
+                                onClick={handleInstallClick}
+                                className="w-full p-4 bg-brand-accent-yellow/10 border border-brand-accent-yellow/30 rounded-3xl flex items-center justify-between group active:scale-[0.98] transition-all"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-brand-accent-yellow rounded-2xl flex items-center justify-center shadow-lg shadow-brand-accent-yellow/30">
+                                        <InstallIcon className="w-6 h-6 text-brand-dark" />
+                                    </div>
+                                    <div className="text-right">
+                                        <h4 className="font-bold text-brand-dark dark:text-brand-accent-yellow">تثبيت التطبيق على الهاتف</h4>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">للوصول السريع وتلقي التنبيهات المباشرة</p>
+                                    </div>
+                                </div>
+                                <div className="p-2 bg-brand-accent-yellow/20 rounded-full text-brand-accent-yellow group-hover:translate-x-[-4px] transition-transform">
+                                    <PlusIcon className="w-5 h-5" />
+                                </div>
+                            </button>
+                        )}
 
                         <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
                             <div className="flex items-center justify-between">
@@ -490,7 +519,8 @@ const EmployeeDashboard: React.FC = () => {
                     </nav>
                     
                     <div className="p-4 border-t dark:border-gray-800 space-y-2 mb-safe">
-                        {deferredPrompt && (
+                        {/* زر التثبيت في القائمة الجانبية للموظف */}
+                        {!isStandalone && (
                             <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30">
                                 <InstallIcon className="w-6 h-6"/>
                                 <span className="mr-3 text-xs">تثبيت التطبيق على الهاتف</span>

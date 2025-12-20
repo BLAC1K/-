@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import XMarkIcon from './icons/XMarkIcon';
 import AppLogoIcon from './icons/AppLogoIcon';
-import ShareIcon from './icons/ShareIcon'; // سأقوم بإضافته لاحقاً
+import ShareIcon from './icons/ShareIcon';
 import PlusIcon from './icons/PlusIcon';
 
 const InstallPWA: React.FC = () => {
@@ -31,20 +30,29 @@ const InstallPWA: React.FC = () => {
             setIsVisible(true);
         });
 
+        // الاستماع لحدث يدوي لفتح النافذة
+        const handleManualOpen = () => setIsVisible(true);
+        window.addEventListener('open-install-instructions', handleManualOpen);
+
         // لإظهار التلميح في آيفون بعد 3 ثوانٍ من دخول الموقع
         if (isIos) {
             const timer = setTimeout(() => setIsVisible(true), 3000);
             return () => clearTimeout(timer);
         }
+
+        return () => {
+            window.removeEventListener('open-install-instructions', handleManualOpen);
+        };
     }, []);
 
     const handleInstallAndroid = async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            setDeferredPrompt(null);
-            setIsVisible(false);
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                setDeferredPrompt(null);
+                setIsVisible(false);
+            }
         }
     };
 
@@ -96,7 +104,7 @@ const InstallPWA: React.FC = () => {
                             className="w-full py-3 bg-brand-light text-white rounded-xl font-bold hover:bg-brand-dark transition-all shadow-lg flex items-center justify-center gap-2"
                         >
                             <PlusIcon className="w-5 h-5" />
-                            تثبيت الآن
+                            {deferredPrompt ? 'تثبيت الآن' : 'كيفية التثبيت؟'}
                         </button>
                     )}
                 </div>

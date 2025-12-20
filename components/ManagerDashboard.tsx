@@ -30,6 +30,7 @@ const ManagerDashboard: React.FC = () => {
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [isStandalone, setIsStandalone] = useState(false);
 
     const lastNotifiedReportId = useRef<string | null>(null);
 
@@ -37,6 +38,10 @@ const ManagerDashboard: React.FC = () => {
         if ('Notification' in window) {
             setNotificationPermission(Notification.permission);
         }
+
+        const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+        setIsStandalone(!!checkStandalone);
+
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e);
@@ -46,13 +51,14 @@ const ManagerDashboard: React.FC = () => {
     }, []);
 
     const handleInstallClick = async () => {
-        if (!deferredPrompt) {
-            setToast({ message: 'التطبيق مثبت بالفعل أو متصفحك لا يدعم التثبيت المباشر.', type: 'info' });
-            return;
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') setDeferredPrompt(null);
+        } else {
+            const event = new CustomEvent('open-install-instructions');
+            window.dispatchEvent(event);
         }
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') setDeferredPrompt(null);
     };
 
     const triggerNotification = async (title: string, body: string) => {
@@ -74,7 +80,6 @@ const ManagerDashboard: React.FC = () => {
         setToast({ message: body, type: 'info' });
     };
 
-    // الاستماع الفوري للتقارير الواردة
     useEffect(() => {
         const submittedReports = reports.filter(r => r.status === 'submitted');
         if (submittedReports.length > 0) {
@@ -144,7 +149,8 @@ const ManagerDashboard: React.FC = () => {
                         <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />
                     </nav>
                     <div className="p-4 border-t dark:border-gray-700 space-y-2 mb-safe">
-                        {deferredPrompt && (
+                        {/* زر التثبيت في القائمة الجانبية للمسؤول */}
+                        {!isStandalone && (
                             <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30">
                                 <InstallIcon className="w-6 h-6"/>
                                 <span className="mr-3 text-xs">تثبيت التطبيق على الهاتف</span>
