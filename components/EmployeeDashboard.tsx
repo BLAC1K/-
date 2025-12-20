@@ -78,10 +78,12 @@ const EmployeeDashboard: React.FC = () => {
         if ('Notification' in window) {
             setNotificationPermission(Notification.permission);
         }
-        window.addEventListener('beforeinstallprompt', (e) => {
+        const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e);
-        });
+        };
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     }, []);
 
     const handleInstallClick = async () => {
@@ -92,16 +94,6 @@ const EmployeeDashboard: React.FC = () => {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') setDeferredPrompt(null);
-    };
-
-    const requestNotificationPermission = async () => {
-        if ('Notification' in window) {
-            const permission = await Notification.requestPermission();
-            setNotificationPermission(permission);
-            if (permission === 'granted') {
-                setToast({ message: 'تم تفعيل إشعارات المتصفح بنجاح!', type: 'success' });
-            }
-        }
     };
 
     const triggerNotification = async (title: string, body: string) => {
@@ -243,7 +235,6 @@ const EmployeeDashboard: React.FC = () => {
                 notAccomplished: '',
                 attachments: []
             });
-            // Clear planner after submission
             setPlannerTasks([{ id: Date.now().toString(), text: '', isDone: false }]);
             setToast({ message: 'تم إرسال التقرير بنجاح!', type: 'success' });
             setActiveTab('archive');

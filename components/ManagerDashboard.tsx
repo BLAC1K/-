@@ -17,6 +17,7 @@ import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import SentTasksView from './SentTasksView';
 import Toast from './Toast';
 import BellIcon from './icons/BellIcon';
+import InstallIcon from './icons/InstallIcon';
 
 const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 
@@ -28,6 +29,7 @@ const ManagerDashboard: React.FC = () => {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
     const lastNotifiedReportId = useRef<string | null>(null);
 
@@ -35,7 +37,23 @@ const ManagerDashboard: React.FC = () => {
         if ('Notification' in window) {
             setNotificationPermission(Notification.permission);
         }
+        const handleBeforeInstallPrompt = (e: Event) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     }, []);
+
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) {
+            setToast({ message: 'التطبيق مثبت بالفعل أو متصفحك لا يدعم التثبيت المباشر.', type: 'info' });
+            return;
+        }
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') setDeferredPrompt(null);
+    };
 
     const triggerNotification = async (title: string, body: string) => {
         const audio = new Audio(NOTIFICATION_SOUND_URL);
@@ -126,10 +144,10 @@ const ManagerDashboard: React.FC = () => {
                         <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />
                     </nav>
                     <div className="p-4 border-t dark:border-gray-700 space-y-2 mb-safe">
-                        {notificationPermission === 'default' && (
-                            <button onClick={() => { triggerNotification("اختبار الإشعارات", "تم تفعيل نظام التنبيهات بنجاح"); }} className="flex items-center w-full px-4 py-3 text-sm font-bold text-brand-light bg-brand-light/10 rounded-xl active:scale-95 transition-transform">
-                                <BellIcon className="w-6 h-6"/>
-                                <span className="mr-3">تنبيهات المتصفح</span>
+                        {deferredPrompt && (
+                            <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30">
+                                <InstallIcon className="w-6 h-6"/>
+                                <span className="mr-3 text-xs">تثبيت التطبيق على الهاتف</span>
                             </button>
                         )}
                         <ThemeToggle />
