@@ -25,6 +25,7 @@ import DirectTasksView from './DirectTasksView';
 import ArchiveBoxIcon from './icons/ArchiveBoxIcon';
 import ConfirmModal from './ConfirmModal';
 import BellIcon from './icons/BellIcon';
+import InstallIcon from './icons/InstallIcon';
 
 const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 
@@ -38,12 +39,13 @@ const EmployeeDashboard: React.FC = () => {
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     
-    // Tracking for notifications
+    // PWA Install Prompt State
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
     const prevTasksCount = useRef(directTasks.length);
     const prevCommentsCount = useRef(0);
     const prevAnnouncementsCount = useRef(announcements.length);
 
-    // Form state
     const [reportForm, setReportForm] = useState<{
         tasks: { id: string, text: string }[],
         accomplished: string,
@@ -56,53 +58,59 @@ const EmployeeDashboard: React.FC = () => {
         attachments: []
     });
 
+    useEffect(() => {
+        // Handle PWA Install prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        });
+
+        window.addEventListener('appinstalled', () => {
+            setDeferredPrompt(null);
+            setToast({ message: 'تم تثبيت التطبيق بنجاح على جهازك!', type: 'success' });
+        });
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
+
     if (!currentUser) return null;
 
-    // Notifications Logic
     const triggerNotification = (title: string, body: string) => {
-        // 1. Play Sound
         const audio = new Audio(NOTIFICATION_SOUND_URL);
-        audio.play().catch(e => console.log("Audio play blocked by browser", e));
+        audio.play().catch(e => console.log("Audio play blocked", e));
 
-        // 2. Show System Pop-up if permitted
         if (Notification.permission === 'granted') {
-            new Notification(title, {
-                body,
-                icon: '/icon-192.png',
-                badge: '/icon-192.png'
-            });
+            new Notification(title, { body, icon: '/icon-192.png' });
         }
-
-        // 3. Show In-app Toast
         setToast({ message: body, type: 'info' });
     };
 
     useEffect(() => {
-        // Request Notification Permission on mount
-        if (Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
+        if (Notification.permission === 'default') Notification.requestPermission();
 
-        // Monitor Direct Tasks
         const myTasks = directTasks.filter(t => t.employeeId === currentUser.id);
         if (myTasks.length > prevTasksCount.current) {
             triggerNotification("مهمة جديدة", "لقد استلمت مهمة جديدة من المسؤول.");
         }
         prevTasksCount.current = myTasks.length;
 
-        // Monitor Report Comments
         const myReportsWithComments = reports.filter(r => r.userId === currentUser.id && r.managerComment && !r.isCommentReadByEmployee);
         if (myReportsWithComments.length > prevCommentsCount.current) {
             triggerNotification("تعليق جديد", "قام المسؤول بالتعليق على أحد تقاريرك.");
         }
         prevCommentsCount.current = myReportsWithComments.length;
 
-        // Monitor Announcements
         if (announcements.length > prevAnnouncementsCount.current) {
             triggerNotification("توجيه جديد", "تم نشر توجيه أو تعميم جديد للجميع.");
         }
         prevAnnouncementsCount.current = announcements.length;
-
     }, [directTasks, reports, announcements, currentUser.id]);
 
     const myReports = useMemo(() => 
@@ -126,7 +134,6 @@ const EmployeeDashboard: React.FC = () => {
         setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === id ? { ...t, text } : t) }));
     };
 
-    // FIX: Explicitly type 'file' as 'File' to resolve 'unknown' type errors during iteration of FileList.
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) {
@@ -177,7 +184,7 @@ const EmployeeDashboard: React.FC = () => {
             setToast({ message: 'تم إرسال التقرير بنجاح!', type: 'success' });
             setActiveTab('archive');
         } catch (error) {
-            setToast({ message: 'فشل إرسال التقرير. يرجى المحاولة لاحقاً.', type: 'info' });
+            setToast({ message: 'فشل إرسال التقرير.', type: 'info' });
         }
     };
 
@@ -247,7 +254,6 @@ const EmployeeDashboard: React.FC = () => {
                             </h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400">تاريخ اليوم: {new Date().toLocaleDateString('ar-EG', { dateStyle: 'full' })}</p>
                         </div>
-
                         <div className="space-y-4">
                             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">المهام التي تم العمل عليها اليوم</label>
                             {reportForm.tasks.map((task, index) => (
@@ -257,7 +263,7 @@ const EmployeeDashboard: React.FC = () => {
                                         value={task.text}
                                         onChange={(e) => handleTaskChange(task.id, e.target.value)}
                                         placeholder={`المهمة ${index + 1}...`}
-                                        className="flex-grow px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200 focus:ring-brand-light focus:border-brand-light transition-all"
+                                        className="flex-grow px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200 focus:ring-brand-light transition-all"
                                         required
                                     />
                                     {reportForm.tasks.length > 1 && (
@@ -272,7 +278,6 @@ const EmployeeDashboard: React.FC = () => {
                                 إضافة حقل مهمة آخر
                             </button>
                         </div>
-
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">تفاصيل ما تم إنجازه</label>
@@ -280,8 +285,7 @@ const EmployeeDashboard: React.FC = () => {
                                     value={reportForm.accomplished}
                                     onChange={(e) => setReportForm(prev => ({ ...prev, accomplished: e.target.value }))}
                                     rows={4}
-                                    placeholder="اكتب هنا تفاصيل الإنجاز..."
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200 focus:ring-brand-light focus:border-brand-light"
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200"
                                 />
                             </div>
                             <div>
@@ -290,35 +294,10 @@ const EmployeeDashboard: React.FC = () => {
                                     value={reportForm.notAccomplished}
                                     onChange={(e) => setReportForm(prev => ({ ...prev, notAccomplished: e.target.value }))}
                                     rows={4}
-                                    placeholder="اذكر المعوقات إن وجدت..."
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200 focus:ring-brand-light focus:border-brand-light"
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200"
                                 />
                             </div>
                         </div>
-
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                                <PaperclipIcon className="w-5 h-5 ml-1" />
-                                المرفقات (صور أو مستندات)
-                            </label>
-                            <input
-                                type="file"
-                                multiple
-                                onChange={handleFileChange}
-                                className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-light file:text-white hover:file:bg-brand-dark"
-                            />
-                            {reportForm.attachments.length > 0 && (
-                                <div className="mt-4 flex flex-wrap gap-2">
-                                    {reportForm.attachments.map((file, i) => (
-                                        <span key={i} className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-xs rounded-full border dark:border-gray-600 flex items-center">
-                                            {file.name}
-                                            <button onClick={() => setReportForm(p => ({...p, attachments: p.attachments.filter((_, idx) => idx !== i)}))} className="mr-2 text-red-500">×</button>
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
                         <div className="flex justify-end pt-4 border-t dark:border-gray-700">
                             <button type="submit" className="px-8 py-3 bg-brand-light text-white rounded-lg hover:bg-brand-dark transition-all font-bold shadow-md">
                                 إرسال التقرير للمسؤول
@@ -326,8 +305,7 @@ const EmployeeDashboard: React.FC = () => {
                         </div>
                     </form>
                 );
-            case 'tasks':
-                return <DirectTasksView />;
+            case 'tasks': return <DirectTasksView />;
             case 'archive':
                 return (
                     <div className="space-y-4 animate-fade-in">
@@ -338,40 +316,25 @@ const EmployeeDashboard: React.FC = () => {
                         {myReports.map(r => (
                             <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />
                         ))}
-                        {myReports.length === 0 && <p className="text-center py-20 text-gray-500">الأرشيف فارغ حالياً.</p>}
                     </div>
                 );
-            case 'profile':
-                return <ProfileManagement user={currentUser} />;
-            default:
-                return null;
+            case 'profile': return <ProfileManagement user={currentUser} />;
+            default: return null;
         }
     };
 
     return (
         <div className="h-[100dvh] w-full bg-gray-50 dark:bg-gray-900 flex overflow-hidden">
-            {/* Sidebar Mobile Overlay */}
-            {isSidebarOpen && (
-                <div className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)}></div>
-            )}
+            {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
             
-            {/* Sidebar */}
             <aside className={`fixed inset-y-0 right-0 z-40 w-64 h-full bg-white dark:bg-gray-800 shadow-xl transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="flex flex-col h-full border-l dark:border-gray-700">
-                    <div className="flex items-center justify-center py-6 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800">
+                    <div className="flex items-center justify-center py-6 border-b dark:border-gray-700">
                         <AppLogoIcon className="w-8 h-8 text-brand-dark dark:text-gray-100" />
                         <h1 className="mr-2 text-lg font-bold text-brand-dark dark:text-gray-100">لوحة المنتسب</h1>
                     </div>
                     
-                    <div className="flex flex-col items-center p-6 border-b dark:border-gray-700 bg-gray-50/20 dark:bg-gray-800/20">
-                        <Avatar src={currentUser.profilePictureUrl} name={currentUser.fullName} size={64} className="border-2 border-brand-light shadow-sm" />
-                        <div className="mt-3 text-center">
-                            <span className="block font-bold text-gray-800 dark:text-gray-100">{currentUser.fullName.split(' ').slice(0, 2).join(' ')}</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">{currentUser.jobTitle}</span>
-                        </div>
-                    </div>
-
-                    <nav className="flex-grow px-3 py-4 space-y-1 overflow-y-auto">
+                    <nav className="flex-grow px-3 py-4 space-y-1 overflow-y-auto no-scrollbar">
                         <NavItem tabName="home" label="الرئيسية" icon={<HomeIcon className="w-5 h-5"/>} />
                         <NavItem tabName="new-report" label="إرسال تقرير" icon={<NewReportIcon className="w-5 h-5"/>} />
                         <NavItem tabName="tasks" label="المهام الواردة" icon={<InboxIcon className="w-5 h-5"/>} count={unreadTasksCount}/>
@@ -380,6 +343,12 @@ const EmployeeDashboard: React.FC = () => {
                     </nav>
                     
                     <div className="p-4 border-t dark:border-gray-700 space-y-2">
+                        {deferredPrompt && (
+                            <button onClick={handleInstallClick} className="flex items-center w-full px-3 py-2 text-sm font-bold text-brand-light bg-brand-light/10 hover:bg-brand-light/20 rounded-lg transition-colors border border-brand-light/20">
+                                <InstallIcon className="w-5 h-5"/>
+                                <span className="mr-3 text-right">تثبيت التطبيق</span>
+                            </button>
+                        )}
                         <ThemeToggle />
                         <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
                             <LogoutIcon className="w-5 h-5"/>
@@ -389,54 +358,27 @@ const EmployeeDashboard: React.FC = () => {
                 </div>
             </aside>
             
-            {/* Main Content */}
             <div className="flex-1 flex flex-col h-full overflow-hidden relative">
                 <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700 md:hidden z-20 shadow-sm">
                     <div className="flex items-center">
                         <AppLogoIcon className="w-8 h-8 ml-3 text-brand-dark dark:text-gray-100" />
                         <h2 className="text-xl font-bold text-brand-dark dark:text-gray-100">مهامي</h2>
                     </div>
-                    <button onClick={() => setIsSidebarOpen(true)}>
+                    <button onClick={() => setIsSidebarOpen(true)} aria-label="Open Menu">
                         <MenuIcon className="w-6 h-6 text-gray-800 dark:text-gray-200" />
                     </button>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8">
+                <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar">
                     <div className="container mx-auto max-w-5xl">
                         {renderContent()}
                     </div>
                 </main>
-
-                <footer className="py-4 text-xs text-center text-gray-500 dark:text-gray-400 border-t dark:border-gray-700 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md">
-                    <p>المهام اليومية - جميع الحقوق محفوظة 2025م</p>
-                </footer>
             </div>
 
-            {selectedReport && (
-                <ReportDetailModal report={selectedReport} user={currentUser} viewerRole={Role.EMPLOYEE} onClose={() => setSelectedReport(null)} />
-            )}
-
-            {toast && (
-                <Toast 
-                    message={toast.message} 
-                    onClose={() => setToast(null)} 
-                    onClick={() => {
-                        if (toast.message.includes('تعليق')) setActiveTab('archive');
-                        if (toast.message.includes('مهمة')) setActiveTab('tasks');
-                        setToast(null);
-                    }} 
-                />
-            )}
-
-            {showLogoutConfirm && (
-                <ConfirmModal
-                    title="تأكيد الخروج"
-                    message="هل تريد حقاً تسجيل الخروج من النظام؟"
-                    onConfirm={logout}
-                    onCancel={() => setShowLogoutConfirm(false)}
-                    confirmText="خروج"
-                />
-            )}
+            {selectedReport && <ReportDetailModal report={selectedReport} user={currentUser} viewerRole={Role.EMPLOYEE} onClose={() => setSelectedReport(null)} />}
+            {toast && <Toast message={toast.message} onClose={() => setToast(null)} onClick={() => setToast(null)} />}
+            {showLogoutConfirm && <ConfirmModal title="تأكيد الخروج" message="هل تريد حقاً تسجيل الخروج؟" onConfirm={logout} onCancel={() => setShowLogoutConfirm(false)} confirmText="خروج" />}
         </div>
     );
 };
