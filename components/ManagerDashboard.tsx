@@ -29,8 +29,8 @@ const ManagerDashboard: React.FC = () => {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [isStandalone, setIsStandalone] = useState(false);
+    const [canInstallDirectly, setCanInstallDirectly] = useState(false);
 
     const lastNotifiedReportId = useRef<string | null>(null);
 
@@ -42,22 +42,26 @@ const ManagerDashboard: React.FC = () => {
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
 
-        const handleBeforeInstallPrompt = (e: Event) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
+        const checkInstallability = () => {
+            if (window.deferredPrompt) setCanInstallDirectly(true);
         };
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        
+        window.addEventListener('pwa-installable', checkInstallability);
+        checkInstallability();
+
+        return () => window.removeEventListener('pwa-installable', checkInstallability);
     }, []);
 
     const handleInstallClick = async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') setDeferredPrompt(null);
+        if (window.deferredPrompt) {
+            window.deferredPrompt.prompt();
+            const { outcome } = await window.deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                window.deferredPrompt = null;
+                setCanInstallDirectly(false);
+            }
         } else {
-            const event = new CustomEvent('open-install-instructions');
-            window.dispatchEvent(event);
+            window.dispatchEvent(new CustomEvent('open-install-instructions'));
         }
     };
 
@@ -149,7 +153,6 @@ const ManagerDashboard: React.FC = () => {
                         <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />
                     </nav>
                     <div className="p-4 border-t dark:border-gray-700 space-y-2 mb-safe">
-                        {/* زر التثبيت في القائمة الجانبية للمسؤول */}
                         {!isStandalone && (
                             <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30">
                                 <InstallIcon className="w-6 h-6"/>

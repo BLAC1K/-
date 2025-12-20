@@ -41,8 +41,8 @@ const EmployeeDashboard: React.FC = () => {
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [isStandalone, setIsStandalone] = useState(false);
+    const [canInstallDirectly, setCanInstallDirectly] = useState(false);
 
     // Planner state
     const [plannerTasks, setPlannerTasks] = useState<Task[]>(() => {
@@ -80,27 +80,32 @@ const EmployeeDashboard: React.FC = () => {
             setNotificationPermission(Notification.permission);
         }
         
-        // التحقق من حالة التثبيت
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
 
-        const handleBeforeInstallPrompt = (e: Event) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
+        // مراقبة توفر زر التثبيت المباشر
+        const checkInstallability = () => {
+            if (window.deferredPrompt) setCanInstallDirectly(true);
         };
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        
+        window.addEventListener('pwa-installable', checkInstallability);
+        checkInstallability(); // تحقق أولي
+
+        return () => window.removeEventListener('pwa-installable', checkInstallability);
     }, []);
 
     const handleInstallClick = async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') setDeferredPrompt(null);
+        // إذا كان الحدث موجوداً، نفتح نافذة التثبيت الرسمية للمتصفح فوراً
+        if (window.deferredPrompt) {
+            window.deferredPrompt.prompt();
+            const { outcome } = await window.deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                window.deferredPrompt = null;
+                setCanInstallDirectly(false);
+            }
         } else {
-            // إذا لم يكن هناك دعم تلقائي (مثل iOS)، نفتح نافذة التعليمات العامة
-            const event = new CustomEvent('open-install-instructions');
-            window.dispatchEvent(event);
+            // إذا لم يكن مدعوماً (مثل آيفون)، نفتح التعليمات
+            window.dispatchEvent(new CustomEvent('open-install-instructions'));
         }
     };
 
@@ -291,23 +296,23 @@ const EmployeeDashboard: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* زر التثبيت في الواجهة الرئيسية للموظف */}
+                        {/* زر التثبيت في الصفحة الرئيسية للموظف */}
                         {!isStandalone && (
                             <button 
                                 onClick={handleInstallClick}
-                                className="w-full p-4 bg-brand-accent-yellow/10 border border-brand-accent-yellow/30 rounded-3xl flex items-center justify-between group active:scale-[0.98] transition-all"
+                                className="w-full p-5 bg-brand-accent-yellow/10 border-2 border-brand-accent-yellow/40 rounded-3xl flex items-center justify-between group active:scale-[0.98] transition-all shadow-lg shadow-brand-accent-yellow/5"
                             >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-brand-accent-yellow rounded-2xl flex items-center justify-center shadow-lg shadow-brand-accent-yellow/30">
-                                        <InstallIcon className="w-6 h-6 text-brand-dark" />
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-brand-accent-yellow rounded-2xl flex items-center justify-center shadow-lg shadow-brand-accent-yellow/30 text-brand-dark">
+                                        <InstallIcon className="w-6 h-6" />
                                     </div>
                                     <div className="text-right">
-                                        <h4 className="font-bold text-brand-dark dark:text-brand-accent-yellow">تثبيت التطبيق على الهاتف</h4>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">للوصول السريع وتلقي التنبيهات المباشرة</p>
+                                        <h4 className="font-bold text-brand-dark dark:text-brand-accent-yellow text-lg">تثبيت التطبيق الآن</h4>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">للوصول المباشر وتلقي الإشعارات الفورية</p>
                                     </div>
                                 </div>
                                 <div className="p-2 bg-brand-accent-yellow/20 rounded-full text-brand-accent-yellow group-hover:translate-x-[-4px] transition-transform">
-                                    <PlusIcon className="w-5 h-5" />
+                                    <CheckCircleIcon className="w-6 h-6" />
                                 </div>
                             </button>
                         )}
@@ -519,7 +524,6 @@ const EmployeeDashboard: React.FC = () => {
                     </nav>
                     
                     <div className="p-4 border-t dark:border-gray-800 space-y-2 mb-safe">
-                        {/* زر التثبيت في القائمة الجانبية للموظف */}
                         {!isStandalone && (
                             <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30">
                                 <InstallIcon className="w-6 h-6"/>
