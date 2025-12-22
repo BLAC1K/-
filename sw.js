@@ -1,8 +1,9 @@
 
-const CACHE_NAME = 'daily-tasks-cache-v3';
+const CACHE_NAME = 'daily-tasks-cache-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
+  '/manifest.json',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap'
 ];
@@ -10,7 +11,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('SW: Pre-caching core assets');
+      console.log('SW: Pre-caching core assets for offline usage');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -37,7 +38,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       return cachedResponse || fetch(event.request).then((response) => {
-        // تخزين نسخة من الملفات الثابتة في الكاش
+        // تخزين نسخة من الملفات الثابتة في الكاش لضمان التثبيت
         if (event.request.method === 'GET' && response.status === 200) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));

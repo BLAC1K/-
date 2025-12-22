@@ -28,10 +28,12 @@ import SparklesIcon from './icons/SparklesIcon';
 import PercentageCircle from './StarRating';
 import CheckCircleIcon from './icons/CheckCircleIcon';
 import XMarkIcon from './icons/XMarkIcon';
+import EditIcon from './icons/EditIcon';
+import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
-    const { reports, directTasks, addReport } = useData();
+    const { reports, directTasks, addReport, saveOrUpdateDraft, deleteReport } = useData();
     
     const [activeTab, setActiveTab] = useState('home');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -39,18 +41,18 @@ const EmployeeDashboard: React.FC = () => {
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [isStandalone, setIsStandalone] = useState(false);
     const [isPwaReady, setIsPwaReady] = useState(!!window.deferredPrompt);
+    const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
-    // Planner state
     const [plannerTasks, setPlannerTasks] = useState<Task[]>(() => {
         const saved = localStorage.getItem(`planner_${currentUser?.id}`);
         return saved ? JSON.parse(saved) : [{ id: Date.now().toString(), text: '', isDone: false }];
     });
 
     useEffect(() => {
-        // التحقق مما إذا كان التطبيق مثبتاً بالفعل
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
 
@@ -69,7 +71,6 @@ const EmployeeDashboard: React.FC = () => {
                 setIsStandalone(true);
             }
         } else {
-            // إذا لم يكن المتصفح جاهزاً، نظهر نافذة التعليمات
             window.dispatchEvent(new CustomEvent('open-install-instructions'));
         }
     };
@@ -116,7 +117,12 @@ const EmployeeDashboard: React.FC = () => {
     };
 
     const myReports = useMemo(() => 
-        reports.filter(r => r.userId === currentUser?.id)
+        reports.filter(r => r.userId === currentUser?.id && r.status === 'submitted')
+               .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    , [reports, currentUser]);
+
+    const myDrafts = useMemo(() => 
+        reports.filter(r => r.userId === currentUser?.id && r.status === 'draft')
                .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     , [reports, currentUser]);
 
@@ -133,11 +139,57 @@ const EmployeeDashboard: React.FC = () => {
 
     if (!currentUser) return null;
 
+    const resetForm = () => {
+        setReportForm({
+            tasks: [{ id: Date.now().toString(), text: '' }],
+            accomplished: '',
+            notAccomplished: '',
+            attachments: []
+        });
+        setEditingDraftId(null);
+    };
+
+    const handleSaveDraft = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        
+        const nonEmptyTasks = reportForm.tasks.filter(t => t.text.trim() !== '');
+        
+        const draftData: Partial<Report> = {
+            id: editingDraftId || undefined,
+            userId: currentUser.id,
+            date: new Date().toISOString().split('T')[0],
+            day: new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(new Date()),
+            tasks: nonEmptyTasks.map(t => ({ id: t.id, text: t.text })),
+            accomplished: reportForm.accomplished,
+            notAccomplished: reportForm.notAccomplished,
+            attachments: reportForm.attachments
+        };
+
+        try {
+            await saveOrUpdateDraft(draftData);
+            setToast({ message: 'تم حفظ المسودة بنجاح في قسم المسودات.', type: 'success' });
+            resetForm();
+            setActiveTab('drafts');
+        } catch (error) {
+            console.error("Draft Save Error:", error);
+            setToast({ message: 'فشل في حفظ المسودة، يرجى المحاولة لاحقاً.', type: 'info' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const handleSubmitReport = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return;
+        
         const nonEmptyTasks = reportForm.tasks.filter(t => t.text.trim() !== '');
-        if (nonEmptyTasks.length === 0) return;
+        if (nonEmptyTasks.length === 0) {
+            setToast({ message: 'يرجى إضافة مهمة واحدة على الأقل قبل الإرسال.', type: 'info' });
+            return;
+        }
 
+        setIsSubmitting(true);
         const reportData = {
             userId: currentUser.id,
             date: new Date().toISOString().split('T')[0],
@@ -149,17 +201,35 @@ const EmployeeDashboard: React.FC = () => {
         };
 
         try {
+            if (editingDraftId) {
+                await deleteReport(editingDraftId);
+            }
             await addReport(reportData);
-            setReportForm({
-                tasks: [{ id: Date.now().toString(), text: '' }],
-                accomplished: '',
-                notAccomplished: '',
-                attachments: []
-            });
-            setToast({ message: 'تم إرسال التقرير بنجاح!', type: 'success' });
+            resetForm();
+            setToast({ message: 'تم إرسال التقرير النهائي بنجاح!', type: 'success' });
             setActiveTab('archive');
         } catch (error) {
             setToast({ message: 'فشل إرسال التقرير.', type: 'info' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleEditDraft = (draft: Report) => {
+        setReportForm({
+            tasks: draft.tasks.length > 0 ? draft.tasks.map(t => ({...t})) : [{ id: Date.now().toString(), text: '' }],
+            accomplished: draft.accomplished,
+            notAccomplished: draft.notAccomplished,
+            attachments: draft.attachments || []
+        });
+        setEditingDraftId(draft.id);
+        setActiveTab('new-report');
+    };
+
+    const handleDeleteDraft = async (draftId: string) => {
+        if (confirm('هل أنت متأكد من حذف هذه المسودة؟')) {
+            await deleteReport(draftId);
+            setToast({ message: 'تم حذف المسودة بنجاح.', type: 'success' });
         }
     };
 
@@ -203,7 +273,6 @@ const EmployeeDashboard: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* زر التثبيت الكبير في صدر الصفحة */}
                         {!isStandalone && (
                             <button 
                                 onClick={handleInstallClick}
@@ -262,7 +331,12 @@ const EmployeeDashboard: React.FC = () => {
             case 'new-report':
                 return (
                     <form onSubmit={handleSubmitReport} className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6 animate-fade-in pb-20">
-                        <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100">إرسال التقرير النهائي</h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100">{editingDraftId ? 'تعديل المسودة' : 'إرسال التقرير النهائي'}</h3>
+                            {editingDraftId && (
+                                <button type="button" onClick={resetForm} className="text-xs text-red-500 hover:underline">إلغاء التعديل</button>
+                            )}
+                        </div>
                         
                         <div className="space-y-3">
                             <label className="text-sm font-bold text-gray-600 dark:text-gray-400">المهام التي تم العمل عليها:</label>
@@ -341,8 +415,59 @@ const EmployeeDashboard: React.FC = () => {
                             )}
                         </div>
 
-                        <button type="submit" className="w-full py-5 bg-brand-light text-white rounded-2xl font-bold text-lg shadow-xl shadow-brand-light/30 active:scale-[0.98] transition-all">إرسال التقرير للمسؤول</button>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <button 
+                                type="button" 
+                                onClick={handleSaveDraft} 
+                                disabled={isSubmitting}
+                                className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 text-brand-dark dark:text-gray-200 rounded-2xl font-bold shadow-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-all disabled:opacity-50"
+                            >
+                                {isSubmitting ? 'جارِ المعالجة...' : 'حفظ كمسودة'}
+                            </button>
+                            <button 
+                                type="submit" 
+                                disabled={isSubmitting}
+                                className="flex-[2] py-4 bg-brand-light text-white rounded-2xl font-bold text-lg shadow-xl shadow-brand-light/30 active:scale-[0.98] transition-all disabled:opacity-50"
+                            >
+                                {isSubmitting ? 'جارِ الإرسال...' : 'إرسال التقرير للمسؤول'}
+                            </button>
+                        </div>
                     </form>
+                );
+            case 'drafts':
+                return (
+                    <div className="space-y-4 animate-fade-in pb-20">
+                        <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100 mb-4">المسودات المحفوظة ({myDrafts.length})</h3>
+                        {myDrafts.length > 0 ? (
+                            myDrafts.map(draft => (
+                                <div key={draft.id} className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between group hover:border-brand-light transition-all">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-xs font-bold text-brand-light bg-brand-light/10 px-2 py-0.5 rounded-full">مسودة</span>
+                                            <span className="text-xs text-gray-500">{draft.date}</span>
+                                        </div>
+                                        <p className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate max-w-xs">
+                                            {draft.tasks.length > 0 ? draft.tasks[0].text : 'مسودة بدون عنوان'}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => handleEditDraft(draft)} className="p-2 text-brand-light hover:bg-brand-light/10 rounded-xl transition-all" title="تعديل">
+                                            <EditIcon className="w-5 h-5" />
+                                        </button>
+                                        <button onClick={() => handleDeleteDraft(draft.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all" title="حذف">
+                                            <TrashIcon className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
+                                <ArchiveBoxIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <p className="text-gray-500">لا توجد مسودات حالياً.</p>
+                                <button onClick={() => setActiveTab('new-report')} className="mt-4 text-brand-light font-bold text-sm">ابدأ بكتابة تقرير جديد</button>
+                            </div>
+                        )}
+                    </div>
                 );
             case 'tasks': return <div className="pb-20"><DirectTasksView /></div>;
             case 'archive': return <div className="pb-20 space-y-4">{myReports.map(r => <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />)}</div>;
@@ -365,6 +490,7 @@ const EmployeeDashboard: React.FC = () => {
                     <nav className="flex-grow px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
                         <NavItem tabName="home" label="الرئيسية" icon={<HomeIcon className="w-6 h-6"/>} />
                         <NavItem tabName="new-report" label="إرسال تقرير" icon={<NewReportIcon className="w-6 h-6"/>} />
+                        <NavItem tabName="drafts" label="المسودات" icon={<ClipboardDocumentListIcon className="w-6 h-6"/>} count={myDrafts.length} />
                         <NavItem tabName="tasks" label="المهام الواردة" icon={<InboxIcon className="w-6 h-6"/>} count={unreadTasksCount}/>
                         <NavItem tabName="archive" label="الأرشيف" icon={<ArchiveBoxIcon className="w-6 h-6"/>} />
                         <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />
@@ -398,7 +524,7 @@ const EmployeeDashboard: React.FC = () => {
             </div>
 
             {selectedReport && <ReportDetailModal report={selectedReport} user={currentUser} viewerRole={Role.EMPLOYEE} onClose={() => setSelectedReport(null)} />}
-            {toast && <Toast message={toast.message} onClose={() => setToast(null)} onClick={() => setToast(null)} />}
+            {toast && <Toast message={toast.message} onClose={() => setToast(null)} onClick={() => setToast(null)} type={toast.type} />}
         </div>
     );
 };

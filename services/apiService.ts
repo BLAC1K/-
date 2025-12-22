@@ -14,18 +14,6 @@ const INITIAL_USERS: User[] = [
     { id: 'u1', fullName: 'وسام عبد السلام جلوب', badgeNumber: '12637', username: 'wissam', password: '123', role: Role.MANAGER, jobTitle: 'مسؤول شعبة', unit: 'الإدارة' },
     { id: 'u2', fullName: 'علي حسين عبيد', badgeNumber: '134', username: 'ali134', password: '123', role: Role.EMPLOYEE, jobTitle: 'مسؤول وحدة', unit: 'وحدة التمكين الفني' },
     { id: 'u3', fullName: 'سلام محمد عبد الرسول', badgeNumber: '13385', username: 'salam', password: '123', role: Role.EMPLOYEE, jobTitle: 'مسؤول وحدة', unit: 'وحدة التنسيق الفني' },
-    { id: 'u4', fullName: 'عقيل شاكر حسون', badgeNumber: '14146', username: 'aqeel', password: '123', role: Role.EMPLOYEE, jobTitle: 'موظف', unit: 'وحدة التمكين الفني' },
-    { id: 'u5', fullName: 'مثنى عبد علي شلش', badgeNumber: '237', username: 'muthanna', password: '123', role: Role.EMPLOYEE, jobTitle: 'موظف', unit: 'وحدة التنسيق الفني' },
-    { id: 'u6', fullName: 'ليث حامد كاظم', badgeNumber: '22198', username: 'laith', password: '123', role: Role.EMPLOYEE, jobTitle: 'موظف', unit: 'وحدة التمكين الفني' },
-    { id: 'u7', fullName: 'حسين علي عباس', badgeNumber: '1818', username: 'hussain1818', password: '123', role: Role.EMPLOYEE, jobTitle: 'موظف', unit: 'وحدة التنسيق الفني' },
-    { id: 'u8', fullName: 'حسنين حميد حسين', badgeNumber: '15195', username: 'hassanin', password: '123', role: Role.EMPLOYEE, jobTitle: 'موظف', unit: 'وحدة التمكين الفني' },
-    { id: 'u9', fullName: 'اياد عبد علي كريم', badgeNumber: '12616', username: 'ayad', password: '123', role: Role.EMPLOYEE, jobTitle: 'موظف', unit: 'وحدة التنسيق الفني' },
-    { id: 'u10', fullName: 'سجاد حسين مهدي', badgeNumber: '28010', username: 'sajjad', password: '123', role: Role.EMPLOYEE, jobTitle: 'موظف', unit: 'وحدة التمكين الفني' },
-    { id: 'u11', fullName: 'عباس علي هادي', badgeNumber: '25279', username: 'abbas', password: '123', role: Role.EMPLOYEE, jobTitle: 'موظف', unit: 'وحدة التنسيق الفني' },
-    { id: 'u12', fullName: 'حسن حسين شهيد', badgeNumber: '30508', username: 'hassan', password: '123', role: Role.EMPLOYEE, jobTitle: 'موظف', unit: 'وحدة التمكين الفني' },
-    { id: 'u13', fullName: 'حسين كاظم علي', badgeNumber: '27857', username: 'hussain27857', password: '123', role: Role.EMPLOYEE, jobTitle: 'موظف', unit: 'وحدة التنسيق الفني' },
-    { id: 'u14', fullName: 'علي ستار بزون', badgeNumber: '32761', username: 'ali32761', password: '123', role: Role.EMPLOYEE, jobTitle: 'موظف', unit: 'وحدة التمكين الفني' },
-    { id: 'u15', fullName: 'عبد الله عباس امين', badgeNumber: '17117', username: 'abdullah', password: '123', role: Role.EMPLOYEE, jobTitle: 'موظف', unit: 'وحدة التنسيق الفني' },
 ];
 
 const generateId = () => crypto.randomUUID();
@@ -112,9 +100,6 @@ export const fetchInitialData = async (): Promise<AppState> => {
     }
 };
 
-/**
- * وظيفة الاشتراك المطور: تستجيب فورياً وبدقة لكل حدث
- */
 export const subscribeToAllChanges = (onUpdate: (payload: any) => void) => {
     const channel = supabase
         .channel('realtime-updates')
@@ -122,9 +107,7 @@ export const subscribeToAllChanges = (onUpdate: (payload: any) => void) => {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_tasks' }, (p) => onUpdate({ table: 'direct_tasks', ...p }))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, (p) => onUpdate({ table: 'announcements', ...p }))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (p) => onUpdate({ table: 'users', ...p }))
-        .subscribe((status) => {
-            console.log("Subscription status:", status);
-        });
+        .subscribe();
 
     return () => {
         supabase.removeChannel(channel);
@@ -147,9 +130,15 @@ export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' 
 
 export const updateReport = async (updatedReport: Report): Promise<Report> => {
     const dbReport = {
-        tasks: updatedReport.tasks, accomplished: updatedReport.accomplished, not_accomplished: updatedReport.notAccomplished,
-        attachments: updatedReport.attachments, manager_comment: updatedReport.managerComment, rating: updatedReport.rating,
-        status: updatedReport.status, is_viewed_by_manager: updatedReport.isViewedByManager, is_comment_read_by_employee: updatedReport.isCommentReadByEmployee
+        tasks: updatedReport.tasks, 
+        accomplished: updatedReport.accomplished, 
+        not_accomplished: updatedReport.notAccomplished,
+        attachments: updatedReport.attachments, 
+        manager_comment: updatedReport.managerComment, 
+        rating: updatedReport.rating,
+        status: updatedReport.status, 
+        is_viewed_by_manager: updatedReport.isViewedByManager, 
+        is_comment_read_by_employee: updatedReport.isCommentReadByEmployee
     };
     const { error } = await supabase.from('reports').update(dbReport).eq('id', updatedReport.id);
     if (error) throw error;
@@ -157,15 +146,29 @@ export const updateReport = async (updatedReport: Report): Promise<Report> => {
 };
 
 export const saveOrUpdateDraft = async (draft: Partial<Report>): Promise<Report> => {
+    // التأكد من أن جميع الحقول تتوافق مع تسميات قاعدة البيانات
+    const dbPayload = {
+        user_id: draft.userId,
+        date: draft.date,
+        day: draft.day,
+        tasks: draft.tasks || [],
+        accomplished: draft.accomplished || '',
+        not_accomplished: draft.notAccomplished || '',
+        attachments: draft.attachments || [],
+        status: 'draft',
+        is_viewed_by_manager: false,
+        is_comment_read_by_employee: false
+    };
+
     if (draft.id) {
-        const dbDraft = { tasks: draft.tasks, accomplished: draft.accomplished, not_accomplished: draft.notAccomplished, attachments: draft.attachments, date: draft.date, day: draft.day };
-        const { error } = await supabase.from('reports').update(dbDraft).eq('id', draft.id);
+        // تحديث مسودة موجودة
+        const { error } = await supabase.from('reports').update(dbPayload).eq('id', draft.id);
         if (error) throw error;
-        return draft as Report;
+        return { ...draft, status: 'draft' } as Report;
     } else {
+        // إنشاء مسودة جديدة
         const newId = generateId();
-        const dbDraft = { id: newId, user_id: draft.userId, date: draft.date, day: draft.day, tasks: draft.tasks || [], accomplished: draft.accomplished || '', not_accomplished: draft.notAccomplished || '', attachments: draft.attachments || [], status: 'draft', is_viewed_by_manager: false, is_comment_read_by_employee: false };
-        const { error } = await supabase.from('reports').insert(dbDraft);
+        const { error } = await supabase.from('reports').insert({ id: newId, ...dbPayload });
         if (error) throw error;
         return { ...draft, id: newId, status: 'draft' } as Report;
     }
