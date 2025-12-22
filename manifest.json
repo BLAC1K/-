@@ -2,41 +2,27 @@
 {
   "name": "نظام المهام اليومية",
   "short_name": "مهامي",
-  "description": "تطبيق متكامل لإدارة وتقييم المهام اليومية للمنتسبين.",
-  "start_url": "/",
+  "description": "تطبيق متكامل لإدارة وتقييم المهام اليومية لشعبة الفنون.",
+  "id": "/index.html",
+  "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"],
-  "background_color": "#2B576E",
-  "theme_color": "#2B576E",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
+  "background_color": "#085A8C",
+  "theme_color": "#085A8C",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "https://img.icons8.com/fluency/192/task.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable"
-    },
-    {
-      "src": "icon-512.png",
+      "src": "https://img.icons8.com/fluency/512/task.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     }
   ],
-  "categories": ["productivity", "business"],
-  "screenshots": [
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "الرئيسية"
-    }
-  ]
+  "categories": ["productivity", "business"]
 }

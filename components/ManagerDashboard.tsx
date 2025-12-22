@@ -18,8 +18,9 @@ import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import SentTasksView from './SentTasksView';
 import Toast from './Toast';
 import BellIcon from './icons/BellIcon';
-
-const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+import InstallIcon from './icons/InstallIcon';
+// Fix: Import missing PlusIcon
+import PlusIcon from './icons/PlusIcon';
 
 const ManagerDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
@@ -27,50 +28,32 @@ const ManagerDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState('reports');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const [toast, setToast] = useState<{message: string} | null>(null);
-    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-
-    const prevReportsCount = useRef(reports.length);
+    const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
+    const [isStandalone, setIsStandalone] = useState(false);
+    const [isPwaReady, setIsPwaReady] = useState(!!window.deferredPrompt);
 
     useEffect(() => {
-        if ('Notification' in window) {
-            setNotificationPermission(Notification.permission);
-        }
+        const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+        setIsStandalone(!!checkStandalone);
+
+        const handlePromptReady = () => setIsPwaReady(true);
+        window.addEventListener('pwa-prompt-ready', handlePromptReady);
+        return () => window.removeEventListener('pwa-prompt-ready', handlePromptReady);
     }, []);
 
-    const requestNotificationPermission = async () => {
-        if ('Notification' in window) {
-            const permission = await Notification.requestPermission();
-            setNotificationPermission(permission);
-        }
-    };
-
-    const triggerNotification = async (title: string, body: string) => {
-        const audio = new Audio(NOTIFICATION_SOUND_URL);
-        audio.play().catch(() => {});
-
-        if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-            const registration = await navigator.serviceWorker.ready;
-            registration.showNotification(title, {
-                body,
-                icon: '/icon-192.png',
-                badge: '/icon-192.png',
-                vibrate: [200, 100, 200]
-            } as any);
-        }
-        setToast({ message: body });
-    };
-
-    useEffect(() => {
-        if (reports.length > prevReportsCount.current) {
-            const newestReport = reports[reports.length - 1];
-            const sender = users.find(u => u.id === newestReport.userId);
-            if (newestReport.status === 'submitted') {
-                triggerNotification("وصول تقرير جديد", `قام المنتسب ${sender?.fullName || 'غير معروف'} بإرسال تقريره اليومي.`);
+    const handleInstallClick = async () => {
+        if (window.deferredPrompt) {
+            window.deferredPrompt.prompt();
+            const { outcome } = await window.deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                window.deferredPrompt = null;
+                setIsPwaReady(false);
+                setIsStandalone(true);
             }
+        } else {
+            window.dispatchEvent(new CustomEvent('open-install-instructions'));
         }
-        prevReportsCount.current = reports.length;
-    }, [reports, users]);
+    };
 
     if (!currentUser) return null;
     
@@ -116,9 +99,11 @@ const ManagerDashboard: React.FC = () => {
             
             <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-800 shadow-2xl transform transition-transform duration-300 ease-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="flex flex-col h-full border-l dark:border-gray-700">
-                    <div className="flex items-center p-6 border-b dark:border-gray-700">
-                        <AppLogoIcon className="w-8 h-8 text-brand-light" />
-                        <h1 className="mr-3 text-xl font-bold text-brand-dark dark:text-gray-100">لوحة التحكم</h1>
+                    <div className="flex items-center p-6 border-b dark:border-gray-700 gap-3">
+                        <div className="w-10 h-10">
+                            <AppLogoIcon />
+                        </div>
+                        <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">لوحة التحكم</h1>
                     </div>
                     <nav className="flex-grow px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
                         <NavItem tabName="reports" label="التقارير" icon={<NewReportIcon className="w-6 h-6"/>} count={newReportsCount}/>
@@ -127,16 +112,16 @@ const ManagerDashboard: React.FC = () => {
                         <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />
                     </nav>
                     <div className="p-4 border-t dark:border-gray-700 space-y-2 mb-safe">
-                        {notificationPermission === 'default' && (
-                            <button onClick={requestNotificationPermission} className="flex items-center w-full px-4 py-3 text-sm font-bold text-brand-light bg-brand-light/10 rounded-xl active:scale-95 transition-transform">
-                                <BellIcon className="w-6 h-6"/>
-                                <span className="mr-3">تنبيهات المتصفح</span>
+                        {!isStandalone && (
+                            <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30 border border-white/10">
+                                <InstallIcon className="w-6 h-6"/>
+                                <span className="mr-3 text-xs">تثبيت التطبيق الآن</span>
                             </button>
                         )}
                         <ThemeToggle />
                         <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl active:scale-95 transition-transform">
                             <LogoutIcon className="w-6 h-6"/>
-                            <span className="mr-3">خروج من الحساب</span>
+                            <span className="mr-3">خروج</span>
                         </button>
                     </div>
                 </div>
@@ -144,8 +129,10 @@ const ManagerDashboard: React.FC = () => {
             
             <div className="flex-1 flex flex-col h-full overflow-hidden relative">
                 <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b dark:border-gray-700 md:hidden z-20 sticky top-0 safe-area-top">
-                    <div className="flex items-center">
-                        <AppLogoIcon className="w-8 h-8 ml-3 text-brand-light" />
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8">
+                            <AppLogoIcon />
+                        </div>
                         <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
                     </div>
                     <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg active:scale-90 transition-transform">
@@ -154,6 +141,24 @@ const ManagerDashboard: React.FC = () => {
                 </header>
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar bg-inherit">
                     <div className="container mx-auto max-w-6xl">
+                        {/* بطاقة التثبيت السريعة للمدير أيضاً */}
+                        {activeTab === 'reports' && !isStandalone && (
+                             <button 
+                                onClick={handleInstallClick}
+                                className="w-full mb-6 p-4 bg-brand-light text-white rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                                        <InstallIcon className="w-6 h-6" />
+                                    </div>
+                                    <div className="text-right">
+                                        <h4 className="font-bold text-sm">ثبت النظام على هاتفك</h4>
+                                        <p className="text-[10px] opacity-80">للوصول السريع وتلقي تنبيهات التقارير</p>
+                                    </div>
+                                </div>
+                                <PlusIcon className="w-5 h-5 opacity-50" />
+                            </button>
+                        )}
                         {renderContent()}
                     </div>
                 </main>

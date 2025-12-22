@@ -1,11 +1,16 @@
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { User, Role } from '../types';
 import Avatar from './Avatar';
 import LockIcon from './icons/LockIcon';
 import EyeIcon from './icons/EyeIcon';
 import EyeSlashIcon from './icons/EyeSlashIcon';
+import BellIcon from './icons/BellIcon';
+import CheckCircleIcon from './icons/CheckCircleIcon';
+import ExclamationCircleIcon from './icons/ExclamationCircleIcon';
+// Fix: Import missing UserCircleIcon
+import UserCircleIcon from './icons/UserCircleIcon';
 
 const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
     const { updateUser } = useData();
@@ -22,6 +27,7 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
     const [imagePreview, setImagePreview] = useState<string | null>(user.profilePictureUrl || null);
     const [isSaving, setIsSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
+    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
 
     // Password state
     const [currentPassword, setCurrentPassword] = useState('');
@@ -34,6 +40,11 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+    useEffect(() => {
+        if ('Notification' in window) {
+            setNotificationPermission(Notification.permission);
+        }
+    }, []);
 
     const handleDataChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -105,122 +116,171 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
 
     }, [user, currentPassword, newPassword, confirmPassword, updateUser]);
 
+    const requestNotificationPermission = async () => {
+        if ('Notification' in window) {
+            const permission = await Notification.requestPermission();
+            setNotificationPermission(permission);
+            if (permission === 'granted') {
+                setSuccessMessage('تم تفعيل إشعارات المتصفح بنجاح!');
+                setTimeout(() => setSuccessMessage(''), 3000);
+            }
+        }
+    };
+
     return (
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-2xl mx-auto">
-            <h3 className="text-2xl font-semibold text-brand-dark dark:text-gray-100 border-b dark:border-gray-700 pb-3 mb-6">الملف الشخصي</h3>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="flex flex-col items-center space-y-4">
-                    <Avatar src={imagePreview || undefined} name={formData.fullName} size={128} />
-                    <div>
-                        <label htmlFor="profile-picture-upload" className="cursor-pointer px-4 py-2 text-sm font-medium text-white bg-brand-light border border-transparent rounded-md shadow-sm hover:bg-brand-dark transition-colors">
-                            تغيير الصورة
-                        </label>
-                        <input 
-                            id="profile-picture-upload"
-                            type="file" 
-                            accept="image/*"
-                            onChange={handleProfilePictureUpload}
-                            className="hidden"
-                        />
+        <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm max-w-2xl mx-auto space-y-8 animate-fade-in">
+            <div>
+                <h3 className="text-2xl font-bold text-brand-dark dark:text-gray-100 border-b dark:border-gray-700 pb-3 mb-6 flex items-center">
+                    <UserCircleIcon className="w-7 h-7 ml-2 text-brand-light" />
+                    الملف الشخصي
+                </h3>
+                
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="flex flex-col items-center space-y-4">
+                        <Avatar src={imagePreview || undefined} name={formData.fullName} size={110} className="ring-4 ring-brand-light/10" />
+                        <div>
+                            <label htmlFor="profile-picture-upload" className="cursor-pointer px-5 py-2 text-sm font-bold text-white bg-brand-light rounded-full shadow-md hover:bg-brand-dark transition-all active:scale-95 inline-block">
+                                تغيير الصورة
+                            </label>
+                            <input 
+                                id="profile-picture-upload"
+                                type="file" 
+                                accept="image/*"
+                                onChange={handleProfilePictureUpload}
+                                className="hidden"
+                            />
+                        </div>
                     </div>
-                </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                        <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">الاسم الثلاثي</label>
-                        <input type="text" name="fullName" id="fullName" value={formData.fullName} onChange={handleDataChange} readOnly={isEmployee} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-100 dark:read-only:bg-gray-700/50" />
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <div>
+                            <label htmlFor="fullName" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">الاسم الثلاثي</label>
+                            <input type="text" name="fullName" id="fullName" value={formData.fullName} onChange={handleDataChange} readOnly={isEmployee} className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-brand-light/50 outline-none bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-50 dark:read-only:bg-gray-800" />
+                        </div>
+                        <div>
+                            <label htmlFor="jobTitle" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">الصفة الوظيفية</label>
+                            <input type="text" name="jobTitle" id="jobTitle" value={formData.jobTitle} onChange={handleDataChange} readOnly={isEmployee} className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-brand-light/50 outline-none bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-50 dark:read-only:bg-gray-800" />
+                        </div>
+                        <div>
+                            <label htmlFor="badgeNumber" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">الرقم الوظيفي</label>
+                            <input type="text" name="badgeNumber" id="badgeNumber" value={formData.badgeNumber} onChange={handleDataChange} readOnly={isEmployee} className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-brand-light/50 outline-none bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-50 dark:read-only:bg-gray-800" />
+                        </div>
+                        <div>
+                            <label htmlFor="username" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">اسم المستخدم</label>
+                            <input type="text" name="username" id="username" value={formData.username} onChange={handleDataChange} readOnly={isEmployee} className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-brand-light/50 outline-none bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-50 dark:read-only:bg-gray-800" />
+                        </div>
                     </div>
-                     <div>
-                        <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-700 dark:text-gray-300">الصفة الوظيفية</label>
-                        <input type="text" name="jobTitle" id="jobTitle" value={formData.jobTitle} onChange={handleDataChange} readOnly={isEmployee} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-100 dark:read-only:bg-gray-700/50" />
-                    </div>
-                     <div>
-                        <label htmlFor="badgeNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300">الرقم الوظيفي</label>
-                        <input type="text" name="badgeNumber" id="badgeNumber" value={formData.badgeNumber} onChange={handleDataChange} readOnly={isEmployee} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-100 dark:read-only:bg-gray-700/50" />
-                    </div>
-                     <div>
-                        <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">اسم المستخدم</label>
-                        <input type="text" name="username" id="username" value={formData.username} onChange={handleDataChange} readOnly={isEmployee} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200 read-only:bg-gray-100 dark:read-only:bg-gray-700/50" />
-                    </div>
-                </div>
 
-                <div className="pt-4 border-t dark:border-gray-700 flex items-center justify-end">
-                    {successMessage && <p className="text-green-600 text-sm mr-4">{successMessage}</p>}
-                    <button
-                        type="submit"
-                        disabled={isSaving || !isProfileChanged}
-                        className="px-6 py-2 text-sm font-medium text-white bg-brand-light border border-transparent rounded-md shadow-sm hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light disabled:bg-opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        {isSaving ? 'جارِ الحفظ...' : 'حفظ التعديلات'}
-                    </button>
+                    <div className="pt-2 flex items-center justify-end">
+                        {successMessage && <p className="text-green-600 font-bold text-sm ml-4 animate-fade-in">{successMessage}</p>}
+                        <button
+                            type="submit"
+                            disabled={isSaving || !isProfileChanged}
+                            className="px-8 py-3 text-sm font-bold text-white bg-brand-light rounded-xl shadow-lg shadow-brand-light/20 hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                        >
+                            {isSaving ? 'جارِ الحفظ...' : 'حفظ التعديلات'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            {/* Notification Settings Section */}
+            <div className="pt-8 border-t dark:border-gray-700">
+                <h4 className="text-xl font-bold text-brand-dark dark:text-gray-100 mb-4 flex items-center">
+                    <BellIcon className="w-6 h-6 ml-2 text-brand-light" />
+                    إعدادات التنبيهات
+                </h4>
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-2xl border border-gray-100 dark:border-gray-700">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="text-center sm:text-right">
+                            <p className="font-bold text-gray-800 dark:text-gray-200">إشعارات المتصفح</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">تلقي تنبيهات فورية عند وصول مهام أو تقارير جديدة حتى أثناء إغلاق التطبيق</p>
+                        </div>
+                        
+                        {notificationPermission === 'granted' ? (
+                            <div className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-xl font-bold text-sm">
+                                <CheckCircleIcon className="w-5 h-5" />
+                                مفعلة
+                            </div>
+                        ) : notificationPermission === 'denied' ? (
+                            <div className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-xl font-bold text-sm">
+                                <ExclamationCircleIcon className="w-5 h-5" />
+                                محظورة من المتصفح
+                            </div>
+                        ) : (
+                            <button 
+                                onClick={requestNotificationPermission}
+                                className="px-6 py-2 bg-brand-light text-white rounded-xl font-bold text-sm hover:bg-brand-dark transition-all active:scale-95 shadow-md shadow-brand-light/20"
+                            >
+                                تفعيل الآن
+                            </button>
+                        )}
+                    </div>
+                    {notificationPermission === 'denied' && (
+                        <p className="mt-3 text-[10px] text-center text-red-500 dark:text-red-400 font-medium">
+                            لقد قمت بحظر الإشعارات مسبقاً. يرجى تفعيلها من إعدادات المتصفح (أيقونة القفل بجانب الرابط) لتلقي التنبيهات.
+                        </p>
+                    )}
                 </div>
-            </form>
+            </div>
 
             {user.role === Role.MANAGER && (
-                <div className="pt-6 mt-6 border-t dark:border-gray-700">
-                    <h4 className="text-xl font-semibold text-brand-dark dark:text-gray-100 mb-4">تغيير كلمة المرور</h4>
+                <div className="pt-8 border-t dark:border-gray-700">
+                    <h4 className="text-xl font-bold text-brand-dark dark:text-gray-100 mb-4 flex items-center">
+                        <LockIcon className="w-6 h-6 ml-2 text-brand-light" />
+                        تغيير كلمة المرور
+                    </h4>
                     <form onSubmit={handlePasswordSubmit} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">كلمة المرور الحالية</label>
-                            <div className="relative mt-1">
-                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                    <LockIcon className="w-5 h-5 text-gray-400" />
-                                </div>
-                                <input type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full pr-10 pl-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200" required />
+                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">كلمة المرور الحالية</label>
+                            <div className="relative">
+                                <input type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-brand-light/50 outline-none bg-white dark:bg-gray-700 dark:text-gray-200" required />
                                 <button
                                     type="button"
                                     onClick={() => setShowCurrentPassword(p => !p)}
-                                    className="absolute inset-y-0 left-0 flex items-center pl-3"
-                                    aria-label={showCurrentPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                                    className="absolute inset-y-0 left-0 flex items-center pl-4"
                                 >
                                     {showCurrentPassword ? <EyeSlashIcon className="w-5 h-5 text-gray-400" /> : <EyeIcon className="w-5 h-5 text-gray-400" />}
                                 </button>
                             </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">كلمة المرور الجديدة</label>
-                            <div className="relative mt-1">
-                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                    <LockIcon className="w-5 h-5 text-gray-400" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">كلمة المرور الجديدة</label>
+                                <div className="relative">
+                                    <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-brand-light/50 outline-none bg-white dark:bg-gray-700 dark:text-gray-200" required />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNewPassword(p => !p)}
+                                        className="absolute inset-y-0 left-0 flex items-center pl-4"
+                                    >
+                                        {showNewPassword ? <EyeSlashIcon className="w-5 h-5 text-gray-400" /> : <EyeIcon className="w-5 h-5 text-gray-400" />}
+                                    </button>
                                 </div>
-                                <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full pr-10 pl-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200" required />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowNewPassword(p => !p)}
-                                    className="absolute inset-y-0 left-0 flex items-center pl-3"
-                                    aria-label={showNewPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-                                >
-                                    {showNewPassword ? <EyeSlashIcon className="w-5 h-5 text-gray-400" /> : <EyeIcon className="w-5 h-5 text-gray-400" />}
-                                </button>
                             </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">تأكيد كلمة المرور الجديدة</label>
-                            <div className="relative mt-1">
-                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                    <LockIcon className="w-5 h-5 text-gray-400" />
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">تأكيد كلمة المرور</label>
+                                <div className="relative">
+                                    <input type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-brand-light/50 outline-none bg-white dark:bg-gray-700 dark:text-gray-200" required />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(p => !p)}
+                                        className="absolute inset-y-0 left-0 flex items-center pl-4"
+                                    >
+                                        {showConfirmPassword ? <EyeSlashIcon className="w-5 h-5 text-gray-400" /> : <EyeIcon className="w-5 h-5 text-gray-400" />}
+                                    </button>
                                 </div>
-                                <input type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full pr-10 pl-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200" required />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirmPassword(p => !p)}
-                                    className="absolute inset-y-0 left-0 flex items-center pl-3"
-                                    aria-label={showConfirmPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-                                >
-                                    {showConfirmPassword ? <EyeSlashIcon className="w-5 h-5 text-gray-400" /> : <EyeIcon className="w-5 h-5 text-gray-400" />}
-                                </button>
                             </div>
                         </div>
                         
-                        {passwordError && <p className="text-red-600 text-sm text-center">{passwordError}</p>}
-                        {passwordSuccess && <p className="text-green-600 text-sm text-center">{passwordSuccess}</p>}
+                        {passwordError && <p className="text-red-600 font-bold text-xs text-center">{passwordError}</p>}
+                        {passwordSuccess && <p className="text-green-600 font-bold text-xs text-center">{passwordSuccess}</p>}
                         
                         <div className="pt-2 flex justify-end">
                              <button
                                 type="submit"
                                 disabled={isSavingPassword}
-                                className="px-6 py-2 text-sm font-medium text-white bg-brand-light border border-transparent rounded-md shadow-sm hover:bg-brand-dark disabled:bg-opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="px-8 py-3 text-sm font-bold text-white bg-brand-light rounded-xl shadow-lg shadow-brand-light/20 hover:bg-brand-dark transition-all active:scale-95"
                             >
                                 {isSavingPassword ? 'جارِ الحفظ...' : 'تغيير كلمة المرور'}
                             </button>

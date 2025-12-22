@@ -26,6 +26,7 @@ export interface Task {
     id: string;
     text: string;
     isDeleted?: boolean;
+    isDone?: boolean; // New: To track progress in the planner
     managerComment?: string;
 }
 

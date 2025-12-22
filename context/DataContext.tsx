@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect, useRef } from 'react';
 import { User, Report, Announcement, DirectTask } from '../types';
 import * as api from '../services/apiService';
 
@@ -40,10 +40,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isDataLoading, setIsDataLoading] = useState(true);
     const [isCloud, setIsCloud] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    
+    const stateRef = useRef(appState);
+    useEffect(() => { stateRef.current = appState; }, [appState]);
 
     const loadData = useCallback(async (silent = false) => {
         if (!silent) setIsDataLoading(true);
-        setError(null);
         try {
             const data = await api.fetchInitialData();
             setAppState({
@@ -61,19 +63,48 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
-    // تفعيل الاشتراك اللحظي عند تحميل التطبيق
+    // المزامنة اللحظية الذكية: تحديث الـ State مباشرة عند استلام حدث من Supabase
     useEffect(() => {
         loadData();
 
-        // إنشاء اشتراك مباشر للاستماع لأي تغيير في الجداول
-        const unsubscribe = api.subscribeToAllChanges(() => {
-            console.log("Real-time update received! Syncing data...");
-            loadData(true); // تحديث البيانات صامتاً (بدون سبينر) فور حدوث أي تغيير
+        const unsubscribe = api.subscribeToAllChanges((payload) => {
+            console.log("Realtime event received:", payload);
+            
+            const { table, eventType, new: newRecord, old: oldRecord } = payload;
+
+            setAppState(prev => {
+                const newState = { ...prev };
+
+                if (table === 'reports') {
+                    const mapped = api.mapReport(newRecord);
+                    if (eventType === 'INSERT') newState.reports = [mapped, ...prev.reports];
+                    else if (eventType === 'UPDATE') newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
+                    else if (eventType === 'DELETE') newState.reports = prev.reports.filter(r => r.id !== oldRecord.id);
+                }
+                else if (table === 'direct_tasks') {
+                    const mapped = api.mapDirectTask(newRecord);
+                    if (eventType === 'INSERT') newState.directTasks = [mapped, ...prev.directTasks];
+                    else if (eventType === 'UPDATE') newState.directTasks = prev.directTasks.map(t => t.id === mapped.id ? mapped : t);
+                    else if (eventType === 'DELETE') newState.directTasks = prev.directTasks.filter(t => t.id !== oldRecord.id);
+                }
+                else if (table === 'announcements') {
+                    const mapped = api.mapAnnouncement(newRecord);
+                    if (eventType === 'INSERT') newState.announcements = [mapped, ...prev.announcements];
+                    else if (eventType === 'UPDATE') newState.announcements = prev.announcements.map(a => a.id === mapped.id ? mapped : a);
+                    else if (eventType === 'DELETE') newState.announcements = prev.announcements.filter(a => a.id !== oldRecord.id);
+                }
+                else if (table === 'users') {
+                    const mapped = api.mapUser(newRecord);
+                    if (eventType === 'INSERT') newState.users = [...prev.users, mapped];
+                    else if (eventType === 'UPDATE') newState.users = prev.users.map(u => u.id === mapped.id ? mapped : u);
+                    else if (eventType === 'DELETE') newState.users = prev.users.filter(u => u.id !== oldRecord.id);
+                }
+
+                return newState;
+            });
         });
 
-        return () => {
-            unsubscribe(); // تنظيف الاشتراك عند إغلاق التطبيق
-        };
+        return () => { unsubscribe(); };
     }, [loadData]);
     
     const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);
@@ -81,14 +112,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const performApiAction = useCallback(async (action: Promise<any>) => {
         try {
             await action;
-            // الميزة الآن أن Real-time سيقوم بالتحديث تلقائياً، 
-            // لكننا نبقي على استدعاء loadData(true) هنا كضمان إضافي (Fallback)
-            await loadData(true); 
+            // لم نعد بحاجة لـ loadData هنا لأن الاشتراك اللحظي سيحدث الـ State تلقائياً
         } catch (error) {
             console.error("Action failed:", error);
             throw error;
         }
-    }, [loadData]);
+    }, []);
 
     const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => performApiAction(api.createReport(report)), [performApiAction]);
     const updateReport = useCallback(async (updatedReport: Report) => performApiAction(api.updateReport(updatedReport)), [performApiAction]);
@@ -108,27 +137,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const markDirectTaskAsRead = useCallback(async (taskId: string) => performApiAction(api.markDirectTaskAsRead(taskId)), [performApiAction]);
 
     const value = useMemo(() => ({
-        ...appState,
-        isDataLoading,
-        isCloud,
-        error,
-        getUserById,
-        addReport,
-        updateReport,
-        saveOrUpdateDraft,
-        deleteReport,
-        markReportAsViewed,
-        markCommentAsRead,
-        addUser,
-        updateUser,
-        deleteUser,
-        addAnnouncement,
-        updateAnnouncement,
-        deleteAnnouncement,
-        markAnnouncementAsRead,
-        addDirectTask,
-        updateDirectTaskStatus,
-        markDirectTaskAsRead
+        ...appState, isDataLoading, isCloud, error, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
+        markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
+        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
     }), [
         appState, isDataLoading, isCloud, error, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
