@@ -4,127 +4,70 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#2B576E" />
     <link rel="manifest" href="/manifest.json" />
+    
+    <!-- iOS Specific -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="مهامي">
     <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-startup-image" href="/icon-512.png">
 
     <title>المهام اليومية</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body {
         font-family: 'Cairo', sans-serif;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none; /* يمنع تحديد النصوص بشكل غير مقصود في الموبايل */
+        overscroll-behavior-y: contain; /* يمنع Pull-to-refresh الافتراضي للمتصفح */
       }
+      /* تحسين منطقة الأمان للآيفون */
+      .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      .safe-area-top {
+        padding-top: env(safe-area-inset-top);
+      }
+      
       .animate-blob {
         animation: blob 7s infinite;
       }
       @keyframes blob {
-        0% {
-          transform: translate(0px, 0px) scale(1);
-        }
-        33% {
-          transform: translate(30px, -50px) scale(1.1);
-        }
-        66% {
-          transform: translate(-20px, 20px) scale(0.9);
-        }
-        100% {
-          transform: translate(0px, 0px) scale(1);
-        }
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
       }
-      .animation-delay-2000 {
-        animation-delay: 2s;
+      .animate-fade-in-up {
+        animation: fadeInUp 0.4s ease-out forwards;
       }
-      .animation-delay-4000 {
-        animation-delay: 4s;
+      @keyframes fadeInUp {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
       }
-      .animate-fade-in-right {
-        animation: fade-in-right 0.5s ease-out forwards;
-      }
-      @keyframes fade-in-right {
-        0% {
-          opacity: 0;
-          transform: translateX(20px);
-        }
-        100% {
-          opacity: 1;
-          transform: translateX(0);
-        }
-      }
+      
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
       @media print {
-        html.dark {
-            --tw-bg-opacity: 1 !important;
-            background-color: #fff !important;
-        }
-        body * {
-          visibility: hidden;
-        }
-        #printable-report, #printable-report * {
-          visibility: visible;
-        }
+        html.dark { background-color: #fff !important; }
+        body * { visibility: hidden; }
+        #printable-report, #printable-report * { visibility: visible; }
         #printable-report {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
-          margin: 0;
-          padding: 1.5cm;
-          box-shadow: none !important;
-          border: none !important;
-          font-size: 14px;
-          --tw-bg-opacity: 1 !important;
+          position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 1.5cm;
+          box-shadow: none !important; border: none !important; font-size: 14px;
           background-color: #fff !important;
         }
-        #printable-report div, #printable-report p, #printable-report span, #printable-report dt, #printable-report dd, #printable-report h3, #printable-report ul, #printable-report li {
-            color: #000 !important;
-            background-color: transparent !important;
-        }
-        .no-print, .no-print * {
-          display: none !important;
-        }
-        @page {
-          size: A4;
-          margin: 0;
-        }
-        body {
-          background-color: #fff;
-        }
-        img {
-          max-width: 100% !important;
-        }
-        .print-page-break {
-            page-break-before: always !important;
-        }
-        #printable-report .report-detail-grid {
-            display: block !important;
-        }
-        #printable-report .report-detail-grid > div {
-            margin-bottom: 24px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #eee;
-        }
-        #printable-report .report-detail-grid > div:last-child {
-            border-bottom: none;
-        }
-        #printable-report .attachments-grid-print {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-        }
-        #printable-report dt {
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 4px;
-        }
-        #printable-report dd {
-            color: #111827;
-        }
+        .no-print { display: none !important; }
+        @page { size: A4; margin: 0; }
       }
     </style>
     <script>
-      // Prevents "flash of incorrect theme"
       if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         document.documentElement.classList.add('dark');
       } else {
@@ -163,21 +106,16 @@
 }
 </script>
 </head>
-  <body class="bg-white dark:bg-gray-900">
+  <body class="bg-white dark:bg-gray-900 selection:bg-brand-light selection:text-white safe-area-top safe-area-bottom">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 
-    <!-- PWA Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            })
-            .catch(error => {
-              console.log('ServiceWorker registration failed: ', error);
-            });
+            .then(reg => console.log('SW Registered'))
+            .catch(err => console.log('SW Failed', err));
         });
       }
     </script>

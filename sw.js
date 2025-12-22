@@ -1,90 +1,68 @@
-const CACHE_NAME = 'daily-tasks-cache-v1';
-const APP_SHELL_URLS = [
+
+const CACHE_NAME = 'daily-tasks-v5';
+const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png'
 ];
 
-// On install, cache the app shell
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Opened cache and caching app shell');
-        return cache.addAll(APP_SHELL_URLS);
-      })
-      .catch(err => {
-        console.error('Failed to cache app shell:', err);
-      })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE))
   );
+  self.skipWaiting();
 });
 
-// On fetch, use a network-first strategy for navigation and cache-first for others.
-self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') {
-    return;
-  }
-  
-  // For navigation requests, try network first, then cache.
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          // If fetch is successful, clone and cache it.
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseToCache);
-          });
-          return response;
-        })
-        .catch(() => {
-          // If network fails, serve from cache.
-          return caches.match(event.request)
-            .then(response => response || caches.match('/index.html'));
-        })
-    );
-    return;
-  }
-
-  // For other requests (CSS, JS, images), use a cache-first strategy.
-  event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-
-        return fetch(event.request).then(
-          networkResponse => {
-            if (!networkResponse || networkResponse.status !== 200) {
-              return networkResponse;
-            }
-
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return networkResponse;
-          }
-        );
-      })
-  );
-});
-
-// On activate, clean up old caches
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
+    caches.keys().then(keys => Promise.all(
+      keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+    ))
+  );
+  self.clients.claim();
+});
+
+// التعامل مع حدث الـ Push (في حال تم تفعيل VAPID مستقبلاً)
+self.addEventListener('push', event => {
+  const data = event.data ? event.data.json() : { title: 'تنبيه جديد', body: 'لديك تحديث في تطبيق المهام.' };
+  const options = {
+    body: data.body,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    vibrate: [200, 100, 200],
+    tag: 'task-notification',
+    renotify: true,
+    data: { url: data.url || '/' }
+  };
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+
+// عند النقر على الإشعار
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const urlToOpen = event.notification.data.url || '/';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // إذا كان التطبيق مفتوحاً، قم بالتركيز عليه
+      for (let client of windowClients) {
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // إذا لم يكن مفتوحاً، قم بفتحه
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
     })
+  );
+});
+
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET' || event.request.url.includes('supabase.co')) return;
+  event.respondWith(
+    caches.match(event.request).then(response => response || fetch(event.request))
   );
 });

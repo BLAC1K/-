@@ -48,7 +48,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                             <p className="font-semibold text-lg">الوحدة: {user.unit || 'غير محدد'}</p>
                             <p className="font-medium mt-2">الاسم: {user.fullName}</p>
                             <p className="font-medium">العنوان الوظيفي: {user.jobTitle}</p>
-                            <p className="font-medium">رقم الباج: {user.badgeNumber}</p>
+                            <p className="font-medium">الرقم الوظيفي: {user.badgeNumber}</p>
                         </div>
                         <div className="text-left space-y-1 mt-4">
                              <p className="font-bold text-lg">العدد: {report.sequenceNumber}</p>
