@@ -33,7 +33,7 @@ import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
-    const { reports, directTasks, addReport, saveOrUpdateDraft, deleteReport } = useData();
+    const { reports, directTasks, addReport, saveOrUpdateDraft, deleteReport, notification, clearNotification } = useData();
     
     const [activeTab, setActiveTab] = useState('home');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -60,6 +60,14 @@ const EmployeeDashboard: React.FC = () => {
         window.addEventListener('pwa-prompt-ready', handlePromptReady);
         return () => window.removeEventListener('pwa-prompt-ready', handlePromptReady);
     }, []);
+
+    // تفعيل التنبيهات اللحظية القادمة من السياق العام
+    useEffect(() => {
+        if (notification) {
+            setToast({ message: notification.message, type: notification.type });
+            // إذا كان التنبيه عن مهمة عمل، يمكننا توجيه المستخدم إذا أراد بالضغط على التوست
+        }
+    }, [notification]);
 
     const handleInstallClick = async () => {
         if (window.deferredPrompt) {
@@ -150,9 +158,6 @@ const EmployeeDashboard: React.FC = () => {
     };
 
     const handleSaveDraft = async () => {
-        if (isSubmitting) return;
-        setIsSubmitting(true);
-        
         const nonEmptyTasks = reportForm.tasks.filter(t => t.text.trim() !== '');
         
         const draftData: Partial<Report> = {
@@ -168,14 +173,11 @@ const EmployeeDashboard: React.FC = () => {
 
         try {
             await saveOrUpdateDraft(draftData);
-            setToast({ message: 'تم حفظ المسودة بنجاح في قسم المسودات.', type: 'success' });
+            setToast({ message: 'تم حفظ المسودة بنجاح.', type: 'success' });
             resetForm();
             setActiveTab('drafts');
         } catch (error) {
-            console.error("Draft Save Error:", error);
-            setToast({ message: 'فشل في حفظ المسودة، يرجى المحاولة لاحقاً.', type: 'info' });
-        } finally {
-            setIsSubmitting(false);
+            setToast({ message: 'خطأ أثناء الحفظ.', type: 'info' });
         }
     };
 
@@ -185,7 +187,7 @@ const EmployeeDashboard: React.FC = () => {
         
         const nonEmptyTasks = reportForm.tasks.filter(t => t.text.trim() !== '');
         if (nonEmptyTasks.length === 0) {
-            setToast({ message: 'يرجى إضافة مهمة واحدة على الأقل قبل الإرسال.', type: 'info' });
+            setToast({ message: 'يرجى إضافة مهمة واحدة على الأقل.', type: 'info' });
             return;
         }
 
@@ -206,10 +208,10 @@ const EmployeeDashboard: React.FC = () => {
             }
             await addReport(reportData);
             resetForm();
-            setToast({ message: 'تم إرسال التقرير النهائي بنجاح!', type: 'success' });
+            setToast({ message: 'تم إرسال التقرير النهائي!', type: 'success' });
             setActiveTab('archive');
         } catch (error) {
-            setToast({ message: 'فشل إرسال التقرير.', type: 'info' });
+            setToast({ message: 'فشل الإرسال.', type: 'info' });
         } finally {
             setIsSubmitting(false);
         }
@@ -227,9 +229,9 @@ const EmployeeDashboard: React.FC = () => {
     };
 
     const handleDeleteDraft = async (draftId: string) => {
-        if (confirm('هل أنت متأكد من حذف هذه المسودة؟')) {
+        if (confirm('هل تريد حذف هذه المسودة؟')) {
             await deleteReport(draftId);
-            setToast({ message: 'تم حذف المسودة بنجاح.', type: 'success' });
+            setToast({ message: 'تم الحذف بنجاح.', type: 'success' });
         }
     };
 
@@ -419,17 +421,16 @@ const EmployeeDashboard: React.FC = () => {
                             <button 
                                 type="button" 
                                 onClick={handleSaveDraft} 
-                                disabled={isSubmitting}
-                                className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 text-brand-dark dark:text-gray-200 rounded-2xl font-bold shadow-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-all disabled:opacity-50"
+                                className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 text-brand-dark dark:text-gray-200 rounded-2xl font-bold shadow-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
                             >
-                                {isSubmitting ? 'جارِ المعالجة...' : 'حفظ كمسودة'}
+                                حفظ كمسودة
                             </button>
                             <button 
                                 type="submit" 
                                 disabled={isSubmitting}
                                 className="flex-[2] py-4 bg-brand-light text-white rounded-2xl font-bold text-lg shadow-xl shadow-brand-light/30 active:scale-[0.98] transition-all disabled:opacity-50"
                             >
-                                {isSubmitting ? 'جارِ الإرسال...' : 'إرسال التقرير للمسؤول'}
+                                {isSubmitting ? 'جارِ الإرسال...' : 'إرسال التقرير النهائي'}
                             </button>
                         </div>
                     </form>
@@ -437,7 +438,7 @@ const EmployeeDashboard: React.FC = () => {
             case 'drafts':
                 return (
                     <div className="space-y-4 animate-fade-in pb-20">
-                        <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100 mb-4">المسودات المحفوظة ({myDrafts.length})</h3>
+                        <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100 mb-4">المسودات ({myDrafts.length})</h3>
                         {myDrafts.length > 0 ? (
                             myDrafts.map(draft => (
                                 <div key={draft.id} className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between group hover:border-brand-light transition-all">
@@ -447,14 +448,14 @@ const EmployeeDashboard: React.FC = () => {
                                             <span className="text-xs text-gray-500">{draft.date}</span>
                                         </div>
                                         <p className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate max-w-xs">
-                                            {draft.tasks.length > 0 ? draft.tasks[0].text : 'مسودة بدون عنوان'}
+                                            {draft.tasks.length > 0 ? draft.tasks[0].text : 'مسودة فارغة'}
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button onClick={() => handleEditDraft(draft)} className="p-2 text-brand-light hover:bg-brand-light/10 rounded-xl transition-all" title="تعديل">
+                                        <button onClick={() => handleEditDraft(draft)} className="p-2 text-brand-light hover:bg-brand-light/10 rounded-xl transition-all">
                                             <EditIcon className="w-5 h-5" />
                                         </button>
-                                        <button onClick={() => handleDeleteDraft(draft.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all" title="حذف">
+                                        <button onClick={() => handleDeleteDraft(draft.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all">
                                             <TrashIcon className="w-5 h-5" />
                                         </button>
                                     </div>
@@ -463,8 +464,7 @@ const EmployeeDashboard: React.FC = () => {
                         ) : (
                             <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
                                 <ArchiveBoxIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                <p className="text-gray-500">لا توجد مسودات حالياً.</p>
-                                <button onClick={() => setActiveTab('new-report')} className="mt-4 text-brand-light font-bold text-sm">ابدأ بكتابة تقرير جديد</button>
+                                <p className="text-gray-500">لا توجد مسودات.</p>
                             </div>
                         )}
                     </div>
@@ -524,7 +524,7 @@ const EmployeeDashboard: React.FC = () => {
             </div>
 
             {selectedReport && <ReportDetailModal report={selectedReport} user={currentUser} viewerRole={Role.EMPLOYEE} onClose={() => setSelectedReport(null)} />}
-            {toast && <Toast message={toast.message} onClose={() => setToast(null)} onClick={() => setToast(null)} type={toast.type} />}
+            {toast && <Toast message={toast.message} onClose={() => { setToast(null); clearNotification(); }} onClick={() => setToast(null)} type={toast.type} />}
         </div>
     );
 };

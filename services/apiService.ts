@@ -146,7 +146,6 @@ export const updateReport = async (updatedReport: Report): Promise<Report> => {
 };
 
 export const saveOrUpdateDraft = async (draft: Partial<Report>): Promise<Report> => {
-    // التأكد من أن جميع الحقول تتوافق مع تسميات قاعدة البيانات
     const dbPayload = {
         user_id: draft.userId,
         date: draft.date,
@@ -157,16 +156,15 @@ export const saveOrUpdateDraft = async (draft: Partial<Report>): Promise<Report>
         attachments: draft.attachments || [],
         status: 'draft',
         is_viewed_by_manager: false,
-        is_comment_read_by_employee: false
+        is_comment_read_by_employee: false,
+        sequence_number: null // المسودة لا تملك رقم تسلسل
     };
 
     if (draft.id) {
-        // تحديث مسودة موجودة
         const { error } = await supabase.from('reports').update(dbPayload).eq('id', draft.id);
         if (error) throw error;
         return { ...draft, status: 'draft' } as Report;
     } else {
-        // إنشاء مسودة جديدة
         const newId = generateId();
         const { error } = await supabase.from('reports').insert({ id: newId, ...dbPayload });
         if (error) throw error;

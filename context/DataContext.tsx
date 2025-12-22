@@ -14,6 +14,8 @@ interface DataContextType extends AppState {
     isDataLoading: boolean;
     isCloud: boolean;
     error: string | null;
+    notification: { message: string, type: 'info' | 'success', id: number } | null;
+    clearNotification: () => void;
     getUserById: (id: string) => User | undefined;
     addReport: (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => Promise<void>;
     updateReport: (updatedReport: Report) => Promise<void>;
@@ -40,9 +42,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isDataLoading, setIsDataLoading] = useState(true);
     const [isCloud, setIsCloud] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [notification, setNotification] = useState<{ message: string, type: 'info' | 'success', id: number } | null>(null);
     
-    const stateRef = useRef(appState);
-    useEffect(() => { stateRef.current = appState; }, [appState]);
+    const currentUserIdRef = useRef<string | null>(null);
+
+    const clearNotification = useCallback(() => setNotification(null), []);
 
     const loadData = useCallback(async (silent = false) => {
         if (!silent) setIsDataLoading(true);
@@ -63,13 +67,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
-    // المزامنة اللحظية الذكية: تحديث الـ State مباشرة عند استلام حدث من Supabase
     useEffect(() => {
         loadData();
 
+        // استرجاع المعرف الحالي من التخزين لمقارنته في التنبيهات
+        currentUserIdRef.current = localStorage.getItem('loggedInUserId') || sessionStorage.getItem('loggedInUserId');
+
         const unsubscribe = api.subscribeToAllChanges((payload) => {
-            console.log("Realtime event received:", payload);
-            
             const { table, eventType, new: newRecord, old: oldRecord } = payload;
 
             setAppState(prev => {
@@ -77,19 +81,36 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
                 if (table === 'reports') {
                     const mapped = api.mapReport(newRecord);
-                    if (eventType === 'INSERT') newState.reports = [mapped, ...prev.reports];
-                    else if (eventType === 'UPDATE') newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
-                    else if (eventType === 'DELETE') newState.reports = prev.reports.filter(r => r.id !== oldRecord.id);
+                    if (eventType === 'INSERT' || eventType === 'UPDATE') {
+                        const exists = prev.reports.findIndex(r => r.id === mapped.id);
+                        if (exists > -1) {
+                            newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
+                        } else {
+                            newState.reports = [mapped, ...prev.reports];
+                        }
+                    }
+                    else if (eventType === 'DELETE') {
+                        newState.reports = prev.reports.filter(r => r.id !== oldRecord.id);
+                    }
                 }
                 else if (table === 'direct_tasks') {
                     const mapped = api.mapDirectTask(newRecord);
-                    if (eventType === 'INSERT') newState.directTasks = [mapped, ...prev.directTasks];
+                    if (eventType === 'INSERT') {
+                        newState.directTasks = [mapped, ...prev.directTasks];
+                        // تنبيه المستخدم إذا كانت المهمة موجهة له
+                        if (mapped.employeeId === currentUserIdRef.current) {
+                            setNotification({ message: 'وصلتك مهمة عمل جديدة!', type: 'info', id: Date.now() });
+                        }
+                    }
                     else if (eventType === 'UPDATE') newState.directTasks = prev.directTasks.map(t => t.id === mapped.id ? mapped : t);
                     else if (eventType === 'DELETE') newState.directTasks = prev.directTasks.filter(t => t.id !== oldRecord.id);
                 }
                 else if (table === 'announcements') {
                     const mapped = api.mapAnnouncement(newRecord);
-                    if (eventType === 'INSERT') newState.announcements = [mapped, ...prev.announcements];
+                    if (eventType === 'INSERT') {
+                        newState.announcements = [mapped, ...prev.announcements];
+                        setNotification({ message: 'توجيه إداري جديد للجميع.', type: 'info', id: Date.now() });
+                    }
                     else if (eventType === 'UPDATE') newState.announcements = prev.announcements.map(a => a.id === mapped.id ? mapped : a);
                     else if (eventType === 'DELETE') newState.announcements = prev.announcements.filter(a => a.id !== oldRecord.id);
                 }
@@ -108,40 +129,81 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [loadData]);
     
     const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);
-    
-    const performApiAction = useCallback(async (action: Promise<any>) => {
+
+    const saveOrUpdateDraft = useCallback(async (draft: Partial<Report>) => {
+        // تحديث فوري محلي (Optimistic UI)
+        const tempId = draft.id || `temp-${Date.now()}`;
+        const tempDraft = {
+            id: tempId,
+            status: 'draft',
+            userId: draft.userId,
+            date: draft.date,
+            day: draft.day,
+            tasks: draft.tasks || [],
+            accomplished: draft.accomplished || '',
+            notAccomplished: draft.notAccomplished || '',
+            attachments: draft.attachments || [],
+            isViewedByManager: false,
+            isCommentReadByEmployee: false
+        } as Report;
+
+        setAppState(prev => {
+            const exists = prev.reports.find(r => r.id === draft.id);
+            if (exists) {
+                return { ...prev, reports: prev.reports.map(r => r.id === draft.id ? { ...r, ...tempDraft } : r) };
+            }
+            return { ...prev, reports: [tempDraft, ...prev.reports] };
+        });
+
         try {
-            await action;
-            // لم نعد بحاجة لـ loadData هنا لأن الاشتراك اللحظي سيحدث الـ State تلقائياً
+            await api.saveOrUpdateDraft(draft);
         } catch (error) {
-            console.error("Action failed:", error);
+            loadData(true);
             throw error;
         }
+    }, [loadData]);
+
+    const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => {
+        try {
+            await api.createReport(report);
+        } catch (error) { throw error; }
     }, []);
 
-    const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => performApiAction(api.createReport(report)), [performApiAction]);
-    const updateReport = useCallback(async (updatedReport: Report) => performApiAction(api.updateReport(updatedReport)), [performApiAction]);
-    const saveOrUpdateDraft = useCallback(async (draft: Partial<Report>) => performApiAction(api.saveOrUpdateDraft(draft)), [performApiAction]);
-    const deleteReport = useCallback(async (reportId: string) => performApiAction(api.deleteReport(reportId)), [performApiAction]);
-    const markReportAsViewed = useCallback(async (reportId: string) => performApiAction(api.markReportAsViewed(reportId)), [performApiAction]);
-    const markCommentAsRead = useCallback(async (reportId: string) => performApiAction(api.markCommentAsRead(reportId)), [performApiAction]);
-    const addUser = useCallback(async (user: Omit<User, 'id'>) => performApiAction(api.createUser(user)), [performApiAction]);
-    const updateUser = useCallback(async (updatedUser: User) => performApiAction(api.updateUser(updatedUser)), [performApiAction]);
-    const deleteUser = useCallback(async (userId: string) => performApiAction(api.deleteUser(userId)), [performApiAction]);
-    const addAnnouncement = useCallback(async (content: string) => performApiAction(api.createAnnouncement(content)), [performApiAction]);
-    const updateAnnouncement = useCallback(async (announcementId: string, content: string) => performApiAction(api.updateAnnouncement(announcementId, content)), [performApiAction]);
-    const deleteAnnouncement = useCallback(async (announcementId: string) => performApiAction(api.deleteAnnouncement(announcementId)), [performApiAction]);
-    const markAnnouncementAsRead = useCallback(async (announcementId: string, userId: string) => performApiAction(api.markAnnouncementAsRead(announcementId, userId)), [performApiAction]);
-    const addDirectTask = useCallback(async (task: Omit<DirectTask, 'id' | 'sentAt' | 'status' | 'isReadByEmployee'>) => performApiAction(api.createDirectTask(task)), [performApiAction]);
-    const updateDirectTaskStatus = useCallback(async (taskId: string, status: 'acknowledged' | 'rejected', rejectionReason?: string) => performApiAction(api.updateDirectTaskStatus(taskId, status, rejectionReason)), [performApiAction]);
-    const markDirectTaskAsRead = useCallback(async (taskId: string) => performApiAction(api.markDirectTaskAsRead(taskId)), [performApiAction]);
+    const updateReport = useCallback(async (updatedReport: Report) => {
+        setAppState(prev => ({
+            ...prev,
+            reports: prev.reports.map(r => r.id === updatedReport.id ? updatedReport : r)
+        }));
+        try { await api.updateReport(updatedReport); } catch (error) { loadData(true); throw error; }
+    }, [loadData]);
+
+    const deleteReport = useCallback(async (reportId: string) => {
+        setAppState(prev => ({
+            ...prev,
+            reports: prev.reports.filter(r => r.id !== reportId)
+        }));
+        try { await api.deleteReport(reportId); } catch (error) { loadData(true); throw error; }
+    }, [loadData]);
+
+    const markReportAsViewed = useCallback(async (reportId: string) => api.markReportAsViewed(reportId), []);
+    const markCommentAsRead = useCallback(async (reportId: string) => api.markCommentAsRead(reportId), []);
+    const addUser = useCallback(async (user: Omit<User, 'id'>) => api.createUser(user), []);
+    const updateUser = useCallback(async (updatedUser: User) => api.updateUser(updatedUser), []);
+    const deleteUser = useCallback(async (userId: string) => api.deleteUser(userId), []);
+    const addAnnouncement = useCallback(async (content: string) => api.createAnnouncement(content), []);
+    const updateAnnouncement = useCallback(async (announcementId: string, content: string) => api.updateAnnouncement(announcementId, content), []);
+    const deleteAnnouncement = useCallback(async (announcementId: string) => api.deleteAnnouncement(announcementId), []);
+    const markAnnouncementAsRead = useCallback(async (announcementId: string, userId: string) => api.markAnnouncementAsRead(announcementId, userId), []);
+    const addDirectTask = useCallback(async (task: Omit<DirectTask, 'id' | 'sentAt' | 'status' | 'isReadByEmployee'>) => api.createDirectTask(task), []);
+    const updateDirectTaskStatus = useCallback(async (taskId: string, status: 'acknowledged' | 'rejected', rejectionReason?: string) => api.updateDirectTaskStatus(taskId, status, rejectionReason), []);
+    const markDirectTaskAsRead = useCallback(async (taskId: string) => api.markDirectTaskAsRead(taskId), []);
 
     const value = useMemo(() => ({
-        ...appState, isDataLoading, isCloud, error, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
+        ...appState, isDataLoading, isCloud, error, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
     }), [
-        appState, isDataLoading, isCloud, error, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
+        appState, isDataLoading, isCloud, error, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
     ]);
