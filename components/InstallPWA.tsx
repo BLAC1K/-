@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import XMarkIcon from './icons/XMarkIcon';
 import AppLogoIcon from './icons/AppLogoIcon';
@@ -27,27 +28,30 @@ const InstallPWA: React.FC = () => {
             setPlatform('desktop');
         }
 
-        const handlePromptReady = () => setIsPwaReady(true);
+        const handlePromptReady = () => {
+            console.log('PWA: Prompt is ready to be shown');
+            setIsPwaReady(true);
+        };
         const handleManualOpen = () => setIsVisible(true);
-        const handleInstalled = () => setIsVisible(false);
+        const handleInstalled = () => {
+            setIsVisible(false);
+            setIsPwaReady(false);
+        };
 
         window.addEventListener('pwa-prompt-ready', handlePromptReady);
         window.addEventListener('open-install-instructions', handleManualOpen);
         window.addEventListener('pwa-installed-success', handleInstalled);
 
-        // لمستخدمي آيفون: إظهار التلميح بعد 8 ثوانٍ من التصفح لأول مرة
-        if (isIos) {
-            const timer = setTimeout(() => {
-                const hasShown = localStorage.getItem('pwa_hint_shown');
-                if (!hasShown) {
-                    setIsVisible(true);
-                    localStorage.setItem('pwa_hint_shown', 'true');
-                }
-            }, 8000);
-            return () => clearTimeout(timer);
-        }
+        // إظهار التنبيه تلقائياً بعد فترة بسيطة إذا لم يكن في وضع الـ Standalone
+        const timer = setTimeout(() => {
+            const hasShown = localStorage.getItem('pwa_prompt_dismissed');
+            if (!hasShown) {
+                setIsVisible(true);
+            }
+        }, 3000);
 
         return () => {
+            clearTimeout(timer);
             window.removeEventListener('pwa-prompt-ready', handlePromptReady);
             window.removeEventListener('open-install-instructions', handleManualOpen);
             window.removeEventListener('pwa-installed-success', handleInstalled);
@@ -58,23 +62,30 @@ const InstallPWA: React.FC = () => {
         if (window.deferredPrompt) {
             window.deferredPrompt.prompt();
             const { outcome } = await window.deferredPrompt.userChoice;
+            console.log(`User response to install prompt: ${outcome}`);
             if (outcome === 'accepted') {
                 window.deferredPrompt = null;
                 setIsVisible(false);
             }
         } else {
-            // في حال فقدان المتصفح للإشارة لسبب ما
-            alert('المتصفح يجهز ملفات التثبيت، يرجى المحاولة بعد قليل أو التثبيت يدوياً من قائمة المتصفح.');
+            // إذا لم يكن الطلب التلقائي متاحاً، نعرض التعليمات اليدوية
+            setIsPwaReady(false); 
         }
+    };
+
+    const dismissPrompt = () => {
+        setIsVisible(false);
+        // حفظ التجاهل لمدة 24 ساعة فقط لإعادة التذكير لاحقاً
+        localStorage.setItem('pwa_prompt_dismissed', Date.now().toString());
     };
 
     if (!isVisible) return null;
 
     return (
-        <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in no-print">
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in no-print">
             <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-t-[32px] sm:rounded-[32px] shadow-2xl p-6 relative animate-fade-in-up border border-gray-100 dark:border-gray-800">
                 <button 
-                    onClick={() => setIsVisible(false)}
+                    onClick={dismissPrompt}
                     className="absolute top-4 left-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-50 dark:bg-gray-800 rounded-full transition-colors"
                 >
                     <XMarkIcon className="w-5 h-5" />
@@ -84,8 +95,8 @@ const InstallPWA: React.FC = () => {
                     <div className="w-16 h-16 bg-brand-light/10 rounded-2xl flex items-center justify-center mb-4 ring-4 ring-brand-light/5">
                         <AppLogoIcon className="w-12 h-12 text-brand-light" />
                     </div>
-                    <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100">تثبيت تطبيق المهام</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">للحصول على وصول سريع وإشعارات المهام الفورية</p>
+                    <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100">استخدم التطبيق الآن</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">قم بتثبيت التطبيق على هاتفك للوصول السريع والإشعارات اللحظية.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -93,16 +104,15 @@ const InstallPWA: React.FC = () => {
                         <div className="space-y-3">
                             <button 
                                 onClick={handleInstallDirectly}
-                                className="w-full py-4 bg-brand-light text-white rounded-2xl font-bold text-lg hover:bg-brand-dark transition-all shadow-xl shadow-brand-light/20 flex items-center justify-center gap-3 active:scale-95"
+                                className="w-full py-4 bg-brand-light text-white rounded-2xl font-bold text-lg hover:bg-brand-dark transition-all shadow-xl shadow-brand-light/20 flex items-center justify-center gap-3 active:scale-95 animate-pulse"
                             >
                                 <InstallIcon className="w-6 h-6" />
-                                تثبيت الآن فوري
+                                تثبيت فوري
                             </button>
-                            <p className="text-[10px] text-center text-gray-400">يدعم أندرويد و ويندوز</p>
                         </div>
                     ) : (
                         <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-5 space-y-4 border border-gray-100 dark:border-gray-700">
-                            <p className="text-sm font-bold text-brand-dark dark:text-brand-accent-yellow text-center">خطوات التثبيت اليدوي:</p>
+                            <p className="text-sm font-bold text-brand-dark dark:text-brand-accent-yellow text-center">خطوات التثبيت على {platform === 'ios' ? 'آيفون' : 'أندرويد'}:</p>
                             
                             {platform === 'ios' ? (
                                 <div className="space-y-4 text-right">
@@ -110,7 +120,7 @@ const InstallPWA: React.FC = () => {
                                         <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center shrink-0">
                                             <ShareIcon className="w-5 h-5" />
                                         </div>
-                                        <span>اضغط على زر <b>المشاركة</b> في متصفح سفاري بالأسفل</span>
+                                        <span>اضغط على زر <b>المشاركة (Share)</b> في أسفل المتصفح</span>
                                     </div>
                                     <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
                                         <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 flex items-center justify-center shrink-0">
@@ -125,7 +135,7 @@ const InstallPWA: React.FC = () => {
                                         <div className="w-8 h-8 rounded-full bg-brand-light/10 text-brand-light flex items-center justify-center shrink-0">
                                             <MenuIcon className="w-5 h-5" />
                                         </div>
-                                        <span>اضغط على <b>نقاط القائمة</b> في الزاوية</span>
+                                        <span>اضغط على <b>النقاط الثلاث</b> في أعلى المتصفح</span>
                                     </div>
                                     <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
                                         <div className="w-8 h-8 rounded-full bg-brand-light/10 text-brand-light flex items-center justify-center shrink-0">
@@ -139,12 +149,15 @@ const InstallPWA: React.FC = () => {
                     )}
                 </div>
 
-                <button 
-                    onClick={() => setIsVisible(false)} 
-                    className="mt-6 w-full py-2 text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                >
-                    تجاهل الآن
-                </button>
+                <div className="mt-6 flex flex-col gap-2">
+                    <p className="text-[10px] text-center text-gray-400">سيعمل التطبيق بكامل طاقته حتى بدون إنترنت بعد التثبيت.</p>
+                    <button 
+                        onClick={dismissPrompt} 
+                        className="w-full py-2 text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    >
+                        سأقوم بذلك لاحقاً
+                    </button>
+                </div>
             </div>
         </div>
     );
