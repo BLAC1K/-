@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -20,26 +21,27 @@ import HomeIcon from './icons/HomeIcon';
 import DirectTasksView from './DirectTasksView';
 import ArchiveBoxIcon from './icons/ArchiveBoxIcon';
 import ConfirmModal from './ConfirmModal';
-import BellIcon from './icons/BellIcon';
 import CameraIcon from './icons/CameraIcon';
 import DocumentTextIcon from './icons/DocumentTextIcon';
-import XMarkIcon from './icons/XMarkIcon';
 import InstallIcon from './icons/InstallIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import PercentageCircle from './StarRating';
 import CheckCircleIcon from './icons/CheckCircleIcon';
+import XMarkIcon from './icons/XMarkIcon';
 
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
-    const { reports, directTasks, announcements, addReport } = useData();
+    const { reports, directTasks, addReport } = useData();
     
     const [activeTab, setActiveTab] = useState('home');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [isStandalone, setIsStandalone] = useState(false);
-    const [canInstallDirectly, setCanInstallDirectly] = useState(!!window.deferredPrompt);
+    const [isPwaReady, setIsPwaReady] = useState(!!window.deferredPrompt);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
 
     // Planner state
     const [plannerTasks, setPlannerTasks] = useState<Task[]>(() => {
@@ -51,42 +53,76 @@ const EmployeeDashboard: React.FC = () => {
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
 
-        const handlePWAReady = () => setCanInstallDirectly(true);
+        const handlePromptReady = () => setIsPwaReady(true);
         const handleInstalled = () => {
             setIsStandalone(true);
-            setCanInstallDirectly(false);
+            setIsPwaReady(false);
         };
 
-        window.addEventListener('pwa-install-ready', handlePWAReady);
+        window.addEventListener('pwa-prompt-ready', handlePromptReady);
         window.addEventListener('pwa-installed-success', handleInstalled);
-        
-        // التحقق الأولي
-        if (window.deferredPrompt) setCanInstallDirectly(true);
 
         return () => {
-            window.removeEventListener('pwa-install-ready', handlePWAReady);
+            window.removeEventListener('pwa-prompt-ready', handlePromptReady);
             window.removeEventListener('pwa-installed-success', handleInstalled);
         };
     }, []);
 
     const handleInstallClick = async () => {
         if (window.deferredPrompt) {
-            // تنفيذ التثبيت الفوري والمباشر (نافذة المتصفح الرسمية)
             window.deferredPrompt.prompt();
             const { outcome } = await window.deferredPrompt.userChoice;
             if (outcome === 'accepted') {
                 window.deferredPrompt = null;
-                setCanInstallDirectly(false);
+                setIsPwaReady(false);
             }
         } else {
-            // فقط في حال كان آيفون، نظهر التعليمات لأن آيفون لا يدعم الضغطة الواحدة برمجياً
             const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
             if (isIos) {
                 window.dispatchEvent(new CustomEvent('open-install-instructions'));
-            } else if (!isStandalone) {
-                setToast({ message: 'المتصفح يجهز ملفات التثبيت، حاول مرة أخرى بعد قليل.', type: 'info' });
             }
         }
+    };
+
+    const [reportForm, setReportForm] = useState<{
+        tasks: { id: string, text: string }[],
+        accomplished: string,
+        notAccomplished: string,
+        attachments: Attachment[]
+    }>({
+        tasks: [{ id: Date.now().toString(), text: '' }],
+        accomplished: '',
+        notAccomplished: '',
+        attachments: []
+    });
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files) {
+            Array.from(files).forEach((file: File) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setReportForm(prev => ({
+                        ...prev,
+                        attachments: [...prev.attachments, {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            content: reader.result as string
+                        }]
+                    }));
+                };
+                reader.readAsDataURL(file);
+            });
+            e.target.value = '';
+        }
+    };
+
+    const removeAttachment = (index: number) => {
+        setReportForm(prev => ({
+            ...prev,
+            attachments: prev.attachments.filter((_, i) => i !== index)
+        }));
     };
 
     const myReports = useMemo(() => 
@@ -106,18 +142,6 @@ const EmployeeDashboard: React.FC = () => {
     }, [plannerTasks]);
 
     if (!currentUser) return null;
-
-    const [reportForm, setReportForm] = useState<{
-        tasks: { id: string, text: string }[],
-        accomplished: string,
-        notAccomplished: string,
-        attachments: Attachment[]
-    }>({
-        tasks: [{ id: Date.now().toString(), text: '' }],
-        accomplished: '',
-        notAccomplished: '',
-        attachments: []
-    });
 
     const handleSubmitReport = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -192,19 +216,19 @@ const EmployeeDashboard: React.FC = () => {
                         {!isStandalone && (
                             <button 
                                 onClick={handleInstallClick}
-                                className="w-full p-6 bg-brand-light text-white rounded-[32px] flex items-center justify-between group active:scale-[0.98] transition-all shadow-xl shadow-brand-light/20 border-2 border-white/10"
+                                className="w-full p-6 bg-brand-light text-white rounded-[32px] flex items-center justify-between group active:scale-[0.98] transition-all shadow-xl shadow-brand-light/20 border-2 border-white/10 animate-fade-in"
                             >
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-4 text-right">
                                     <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
                                         <InstallIcon className="w-8 h-8" />
                                     </div>
-                                    <div className="text-right">
+                                    <div>
                                         <h4 className="font-bold text-xl">تثبيت التطبيق الآن</h4>
-                                        <p className="text-xs opacity-80">اضغط هنا للتثبيت الفوري والمباشر على جهازك</p>
+                                        <p className="text-xs opacity-80">حوّل الموقع إلى تطبيق فوري على هاتفك</p>
                                     </div>
                                 </div>
                                 <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                                    <CheckCircleIcon className="w-6 h-6" />
+                                    <PlusIcon className="w-6 h-6" />
                                 </div>
                             </button>
                         )}
@@ -248,20 +272,85 @@ const EmployeeDashboard: React.FC = () => {
                 return (
                     <form onSubmit={handleSubmitReport} className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6 animate-fade-in pb-20">
                         <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100">إرسال التقرير النهائي</h3>
-                        <div className="space-y-4">
+                        
+                        <div className="space-y-3">
+                            <label className="text-sm font-bold text-gray-600 dark:text-gray-400">المهام التي تم العمل عليها:</label>
                             {reportForm.tasks.map((task, index) => (
-                                <input
-                                    key={task.id}
-                                    type="text"
-                                    value={task.text}
-                                    onChange={(e) => setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === task.id ? { ...t, text: e.target.value } : t) }))}
-                                    placeholder={`المهمة ${index + 1}...`}
-                                    className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none"
-                                />
+                                <div key={task.id} className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={task.text}
+                                        onChange={(e) => setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === task.id ? { ...t, text: e.target.value } : t) }))}
+                                        placeholder={`المهمة ${index + 1}...`}
+                                        className="flex-1 px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none"
+                                    />
+                                    {index > 0 && (
+                                        <button type="button" onClick={() => setReportForm(p => ({...p, tasks: p.tasks.filter(t => t.id !== task.id)}))} className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl">
+                                            <TrashIcon className="w-5 h-5" />
+                                        </button>
+                                    )}
+                                </div>
                             ))}
+                            <button type="button" onClick={() => setReportForm(p => ({...p, tasks: [...p.tasks, {id: Date.now().toString(), text: ''}]}))} className="flex items-center text-xs font-bold text-brand-light">
+                                <PlusIcon className="w-4 h-4 ml-1" /> إضافة سطر مهمة
+                            </button>
                         </div>
-                        <textarea placeholder="ما تم إنجازه فعلياً..." value={reportForm.accomplished} onChange={e => setReportForm(p => ({...p, accomplished: e.target.value}))} rows={4} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none" />
-                        <button type="submit" className="w-full py-5 bg-brand-light text-white rounded-2xl font-bold text-lg shadow-xl shadow-brand-light/30">إرسال للمسؤول</button>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-sm font-bold text-gray-600 dark:text-gray-400 block mb-2">ما تم إنجازه فعلياً:</label>
+                                <textarea placeholder="اكتب تفاصيل الإنجاز..." value={reportForm.accomplished} onChange={e => setReportForm(p => ({...p, accomplished: e.target.value}))} rows={3} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/50" />
+                            </div>
+                            
+                            <div>
+                                <label className="text-sm font-bold text-gray-600 dark:text-gray-400 block mb-2">ما لم يتم إنجازه / المعوقات:</label>
+                                <textarea placeholder="اكتب مالم يتم إنجازه أو أي معوقات واجهتك..." value={reportForm.notAccomplished} onChange={e => setReportForm(p => ({...p, notAccomplished: e.target.value}))} rows={3} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/50" />
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="text-sm font-bold text-gray-600 dark:text-gray-400 block">المرفقات والوثائق:</label>
+                            <div className="flex gap-3">
+                                <button type="button" onClick={() => fileInputRef.current?.click()} className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-100 dark:bg-gray-700 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300">
+                                    <DocumentTextIcon className="w-6 h-6" />
+                                    <span>ملف / مستند</span>
+                                </button>
+                                <button type="button" onClick={() => cameraInputRef.current?.click()} className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-100 dark:bg-gray-700 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300">
+                                    <CameraIcon className="w-6 h-6" />
+                                    <span>صورة كاميرا</span>
+                                </button>
+                            </div>
+                            
+                            <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileChange} />
+                            <input type="file" ref={cameraInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
+
+                            {reportForm.attachments.length > 0 && (
+                                <div className="grid grid-cols-2 gap-3 mt-4">
+                                    {reportForm.attachments.map((file, idx) => (
+                                        <div key={idx} className="relative group p-2 bg-gray-50 dark:bg-gray-700 rounded-xl border dark:border-gray-600">
+                                            <button type="button" onClick={() => removeAttachment(idx)} className="absolute -top-2 -left-2 bg-red-500 text-white rounded-full p-1 shadow-lg z-10">
+                                                <XMarkIcon className="w-4 h-4" />
+                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                {file.type.startsWith('image/') ? (
+                                                    <img src={file.content} className="w-10 h-10 rounded-lg object-cover" />
+                                                ) : (
+                                                    <div className="w-10 h-10 bg-brand-light/10 text-brand-light rounded-lg flex items-center justify-center">
+                                                        <PaperclipIcon className="w-5 h-5" />
+                                                    </div>
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[10px] font-bold truncate text-gray-700 dark:text-gray-200">{file.name}</p>
+                                                    <p className="text-[8px] text-gray-500">{(file.size / 1024).toFixed(0)} KB</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <button type="submit" className="w-full py-5 bg-brand-light text-white rounded-2xl font-bold text-lg shadow-xl shadow-brand-light/30 active:scale-[0.98] transition-all">إرسال التقرير للمسؤول</button>
                     </form>
                 );
             case 'tasks': return <div className="pb-20"><DirectTasksView /></div>;
@@ -294,7 +383,7 @@ const EmployeeDashboard: React.FC = () => {
                         {!isStandalone && (
                             <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 shadow-lg shadow-brand-light/20 transition-all border border-white/10">
                                 <InstallIcon className="w-6 h-6"/>
-                                <span className="mr-3 text-xs">تثبيت التطبيق فوري</span>
+                                <span className="mr-3 text-xs">تثبيت التطبيق الآن</span>
                             </button>
                         )}
                         <ThemeToggle />

@@ -9,22 +9,21 @@ declare global {
   }
 }
 
-// التقاط حدث التثبيت وتخزينه عالمياً بمجرد توفره
+// التقاط حدث التثبيت وتخزينه عالمياً فوراً
 window.addEventListener('beforeinstallprompt', (e) => {
-  // منع المتصفح من إظهار النافذة التلقائية المزعجة
+  // منع النافذة التلقائية للتحكم بها يدوياً عبر الأزرار
   e.preventDefault();
-  // تخزين الحدث ليتم استدعاؤه لاحقاً عند ضغط المستخدم على زر التثبيت
   window.deferredPrompt = e;
-  // إرسال حدث مخصص لإبلاغ المكونات بأن التثبيت المباشر متاح الآن
-  window.dispatchEvent(new CustomEvent('pwa-install-ready'));
-  console.log('PWA: Install prompt is captured and ready');
+  // إعلام التطبيق أن التثبيت المباشر متاح الآن لتحديث الأزرار
+  window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+  console.log('PWA: Native install prompt is ready to be triggered');
 });
 
-// تنظيف المتغير عند نجاح التثبيت
+// تنظيف الطلب بعد نجاح التثبيت وإخفاء الأزرار
 window.addEventListener('appinstalled', () => {
   window.deferredPrompt = null;
   window.dispatchEvent(new CustomEvent('pwa-installed-success'));
-  console.log('PWA: App installed successfully');
+  console.log('PWA: App was installed successfully');
 });
 
 const rootElement = document.getElementById('root');

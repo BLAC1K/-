@@ -29,7 +29,7 @@ const ManagerDashboard: React.FC = () => {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [isStandalone, setIsStandalone] = useState(false);
-    const [canInstallDirectly, setCanInstallDirectly] = useState(!!window.deferredPrompt);
+    const [isPwaReady, setIsPwaReady] = useState(!!window.deferredPrompt);
 
     const lastNotifiedReportId = useRef<string | null>(null);
 
@@ -37,19 +37,17 @@ const ManagerDashboard: React.FC = () => {
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
 
-        const handlePWAReady = () => setCanInstallDirectly(true);
+        const handlePromptReady = () => setIsPwaReady(true);
         const handleInstalled = () => {
             setIsStandalone(true);
-            setCanInstallDirectly(false);
+            setIsPwaReady(false);
         };
 
-        window.addEventListener('pwa-install-ready', handlePWAReady);
+        window.addEventListener('pwa-prompt-ready', handlePromptReady);
         window.addEventListener('pwa-installed-success', handleInstalled);
-        
-        if (window.deferredPrompt) setCanInstallDirectly(true);
 
         return () => {
-            window.removeEventListener('pwa-install-ready', handlePWAReady);
+            window.removeEventListener('pwa-prompt-ready', handlePromptReady);
             window.removeEventListener('pwa-installed-success', handleInstalled);
         };
     }, []);
@@ -60,14 +58,14 @@ const ManagerDashboard: React.FC = () => {
             const { outcome } = await window.deferredPrompt.userChoice;
             if (outcome === 'accepted') {
                 window.deferredPrompt = null;
-                setCanInstallDirectly(false);
+                setIsPwaReady(false);
             }
         } else {
              const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
             if (isIos) {
                 window.dispatchEvent(new CustomEvent('open-install-instructions'));
             } else if (!isStandalone) {
-                setToast({ message: 'يرجى المحاولة بعد قليل، المتصفح يجهز ملفات التثبيت.', type: 'info' });
+                setToast({ message: 'المتصفح يجهز ملفات التثبيت، حاول مرة أخرى بعد قليل.', type: 'info' });
             }
         }
     };
@@ -163,7 +161,7 @@ const ManagerDashboard: React.FC = () => {
                         {!isStandalone && (
                             <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30 border border-white/10">
                                 <InstallIcon className="w-6 h-6"/>
-                                <span className="mr-3 text-xs">تثبيت التطبيق فوري</span>
+                                <span className="mr-3 text-xs">تثبيت التطبيق الآن</span>
                             </button>
                         )}
                         <ThemeToggle />
