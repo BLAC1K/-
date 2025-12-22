@@ -14,6 +14,7 @@ interface DataContextType extends AppState {
     isDataLoading: boolean;
     isCloud: boolean;
     error: string | null;
+    isSyncing: boolean;
     notification: { message: string, type: 'info' | 'success', id: number } | null;
     clearNotification: () => void;
     getUserById: (id: string) => User | undefined;
@@ -40,6 +41,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [appState, setAppState] = useState<AppState>({ users: [], reports: [], announcements: [], directTasks: [] });
     const [isDataLoading, setIsDataLoading] = useState(true);
+    const [isSyncing, setIsSyncing] = useState(false);
     const [isCloud, setIsCloud] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [notification, setNotification] = useState<{ message: string, type: 'info' | 'success', id: number } | null>(null);
@@ -48,8 +50,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const clearNotification = useCallback(() => setNotification(null), []);
 
+    // دالة لإرسال إشعار للمتصفح
+    const sendBrowserNotification = (title: string, body: string) => {
+        if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(title, {
+                body: body,
+                icon: '/icon.png',
+                badge: '/icon.png'
+            });
+        }
+    };
+
     const loadData = useCallback(async (silent = false) => {
         if (!silent) setIsDataLoading(true);
+        else setIsSyncing(true);
+        
         try {
             const data = await api.fetchInitialData();
             setAppState({
@@ -60,17 +75,32 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
             setIsCloud(data.isCloud);
         } catch (error: any) {
-            console.error("Failed to load data:", error);
-            setError(error.message || "فشل الاتصال بقاعدة البيانات.");
+            console.error("Sync Error:", error);
+            if (!silent) setError(error.message || "فشل الاتصال بقاعدة البيانات.");
         } finally {
-            if (!silent) setIsDataLoading(false);
+            setIsDataLoading(false);
+            setIsSyncing(false);
         }
     }, []);
 
+    // المزامنة عند عودة المستخدم للتطبيق (Tab Focus)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                loadData(true);
+            }
+        };
+        window.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', () => loadData(true));
+        
+        return () => {
+            window.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', () => loadData(true));
+        };
+    }, [loadData]);
+
     useEffect(() => {
         loadData();
-
-        // استرجاع المعرف الحالي من التخزين لمقارنته في التنبيهات
         currentUserIdRef.current = localStorage.getItem('loggedInUserId') || sessionStorage.getItem('loggedInUserId');
 
         const unsubscribe = api.subscribeToAllChanges((payload) => {
@@ -82,11 +112,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (table === 'reports') {
                     const mapped = api.mapReport(newRecord);
                     if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                        const exists = prev.reports.findIndex(r => r.id === mapped.id);
-                        if (exists > -1) {
+                        const existsIndex = prev.reports.findIndex(r => r.id === mapped.id);
+                        if (existsIndex > -1) {
                             newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
                         } else {
                             newState.reports = [mapped, ...prev.reports];
+                            // إشعار للمدير بوصول تقرير جديد
+                            const currentUser = prev.users.find(u => u.id === currentUserIdRef.current);
+                            if (currentUser?.role === 'manager' && eventType === 'INSERT') {
+                                const sender = prev.users.find(u => u.id === mapped.userId);
+                                sendBrowserNotification('تقرير جديد', `أرسل ${sender?.fullName || 'منتسب'} تقريراً جديداً.`);
+                                setNotification({ message: `تقرير جديد من ${sender?.fullName}`, type: 'info', id: Date.now() });
+                            }
                         }
                     }
                     else if (eventType === 'DELETE') {
@@ -97,8 +134,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     const mapped = api.mapDirectTask(newRecord);
                     if (eventType === 'INSERT') {
                         newState.directTasks = [mapped, ...prev.directTasks];
-                        // تنبيه المستخدم إذا كانت المهمة موجهة له
                         if (mapped.employeeId === currentUserIdRef.current) {
+                            sendBrowserNotification('مهمة جديدة', 'لقد وجه إليك المسؤول مهمة عمل جديدة.');
                             setNotification({ message: 'وصلتك مهمة عمل جديدة!', type: 'info', id: Date.now() });
                         }
                     }
@@ -109,16 +146,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     const mapped = api.mapAnnouncement(newRecord);
                     if (eventType === 'INSERT') {
                         newState.announcements = [mapped, ...prev.announcements];
+                        sendBrowserNotification('تعميم إداري', 'يوجد توجيه إداري جديد من المسؤول.');
                         setNotification({ message: 'توجيه إداري جديد للجميع.', type: 'info', id: Date.now() });
                     }
-                    else if (eventType === 'UPDATE') newState.announcements = prev.announcements.map(a => a.id === mapped.id ? mapped : a);
-                    else if (eventType === 'DELETE') newState.announcements = prev.announcements.filter(a => a.id !== oldRecord.id);
                 }
                 else if (table === 'users') {
                     const mapped = api.mapUser(newRecord);
                     if (eventType === 'INSERT') newState.users = [...prev.users, mapped];
                     else if (eventType === 'UPDATE') newState.users = prev.users.map(u => u.id === mapped.id ? mapped : u);
-                    else if (eventType === 'DELETE') newState.users = prev.users.filter(u => u.id !== oldRecord.id);
                 }
 
                 return newState;
@@ -131,20 +166,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);
 
     const saveOrUpdateDraft = useCallback(async (draft: Partial<Report>) => {
-        // تحديث فوري محلي (Optimistic UI)
         const tempId = draft.id || `temp-${Date.now()}`;
         const tempDraft = {
             id: tempId,
             status: 'draft',
-            userId: draft.userId,
-            date: draft.date,
-            day: draft.day,
-            tasks: draft.tasks || [],
-            accomplished: draft.accomplished || '',
-            notAccomplished: draft.notAccomplished || '',
-            attachments: draft.attachments || [],
-            isViewedByManager: false,
-            isCommentReadByEmployee: false
+            ...draft
         } as Report;
 
         setAppState(prev => {
@@ -164,24 +190,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [loadData]);
 
     const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => {
-        try {
-            await api.createReport(report);
-        } catch (error) { throw error; }
+        try { await api.createReport(report); } catch (error) { throw error; }
     }, []);
 
     const updateReport = useCallback(async (updatedReport: Report) => {
-        setAppState(prev => ({
-            ...prev,
-            reports: prev.reports.map(r => r.id === updatedReport.id ? updatedReport : r)
-        }));
+        setAppState(prev => ({ ...prev, reports: prev.reports.map(r => r.id === updatedReport.id ? updatedReport : r) }));
         try { await api.updateReport(updatedReport); } catch (error) { loadData(true); throw error; }
     }, [loadData]);
 
     const deleteReport = useCallback(async (reportId: string) => {
-        setAppState(prev => ({
-            ...prev,
-            reports: prev.reports.filter(r => r.id !== reportId)
-        }));
+        setAppState(prev => ({ ...prev, reports: prev.reports.filter(r => r.id !== reportId) }));
         try { await api.deleteReport(reportId); } catch (error) { loadData(true); throw error; }
     }, [loadData]);
 
@@ -199,11 +217,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const markDirectTaskAsRead = useCallback(async (taskId: string) => api.markDirectTaskAsRead(taskId), []);
 
     const value = useMemo(() => ({
-        ...appState, isDataLoading, isCloud, error, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
+        ...appState, isDataLoading, isCloud, error, isSyncing, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
     }), [
-        appState, isDataLoading, isCloud, error, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
+        appState, isDataLoading, isCloud, error, isSyncing, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
     ]);

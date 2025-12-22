@@ -1,9 +1,10 @@
 
-const CACHE_NAME = 'daily-tasks-cache-v4';
+const CACHE_NAME = 'daily-tasks-cache-v5';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/icon.png',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap'
 ];
@@ -11,7 +12,6 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('SW: Pre-caching core assets for offline usage');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -29,8 +29,33 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// التعامل مع الإشعارات القادمة من الـ Server-Push (إذا توفرت مستقبلاً)
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : { title: 'تنبيه جديد', body: 'يوجد تحديث في نظام المهام.' };
+  const options = {
+    body: data.body,
+    icon: '/icon.png',
+    badge: '/icon.png',
+    vibrate: [100, 50, 100],
+    data: { url: '/' }
+  };
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+
+// فتح التطبيق عند الضغط على الإشعار
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === '/' && 'focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow('/');
+    })
+  );
+});
+
 self.addEventListener('fetch', (event) => {
-  // للطلبات الخارجية (API) نستخدم استراتيجية الشبكة أولاً
   if (event.request.url.includes('supabase') || event.request.url.includes('google')) {
     return;
   }
@@ -38,7 +63,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       return cachedResponse || fetch(event.request).then((response) => {
-        // تخزين نسخة من الملفات الثابتة في الكاش لضمان التثبيت
         if (event.request.method === 'GET' && response.status === 200) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
