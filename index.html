@@ -114,26 +114,37 @@
     <script type="module" src="index.tsx"></script>
 
     <script>
+      /**
+       * تسجيل الـ Service Worker بطريقة آمنة وذكية.
+       * يتم تخطي التسجيل في بيئات المعاينة (Sandbox) لتفادي أخطاء Origin Mismatch.
+       */
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          // بناء رابط الـ Service Worker برمجياً نسبةً لموقع الصفحة الحالي لضمان نفس الـ Origin
-          // استخدام كائن URL يضمن معالجة المسارات بشكل صحيح وتجنب أخطاء الدمج اليدوي للسلاسل النصية
-          const swUrl = new URL('sw.js', window.location.href).href;
+          // 1. التحقق مما إذا كان التطبيق يعمل داخل IFrame (بيئة المعاينة تكون عادة في iframe)
+          const isInsideIframe = window.self !== window.top;
           
-          console.log('PWA: Registering Service Worker at dynamic URL:', swUrl);
+          // 2. التحقق من النطاق (Hostname)
+          const host = window.location.hostname;
+          const isPreviewHost = host.includes('usercontent.goog') || 
+                               host.includes('ai.studio') || 
+                               host.includes('stackblitz') || 
+                               host.includes('webcontainer');
 
-          navigator.serviceWorker.register(swUrl)
+          // إذا كنا في بيئة معاينة أو داخل إطار، نمنع التسجيل لتجنب أخطاء المتصفح
+          if (isInsideIframe || isPreviewHost) {
+            console.log('PWA: تم إيقاف تسجيل Service Worker لأننا في بيئة معاينة أو إطار عمل معزول.');
+            return;
+          }
+
+          // تسجيل الـ Service Worker فقط في البيئة الحقيقية (مثل mham.vercel.app)
+          navigator.serviceWorker.register('sw.js')
             .then(reg => {
-              console.log('PWA: Service Worker Registered. Scope:', reg.scope);
+              console.log('PWA: تم تسجيل Service Worker بنجاح. النطاق:', reg.scope);
             })
             .catch(err => {
-              console.error('PWA: Service Worker Registration failed:', err);
-              // محاولة أخيرة باستخدام مسار نسبي صريح إذا فشل الرابط المطلق المبني
-              if (err.message.includes('Origin')) {
-                console.log('PWA: Attempting fallback to plain relative registration...');
-                navigator.serviceWorker.register('sw.js').catch(e => {
-                  console.error('PWA: Final registration attempt failed:', e);
-                });
+              // لا تظهر خطأ إذا كان السبب هو تعارض النطاقات في المتصفح
+              if (!err.message.includes('Origin')) {
+                console.error('PWA: فشل تسجيل Service Worker:', err);
               }
             });
         });
