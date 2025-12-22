@@ -3,23 +3,23 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/icon.png" />
-    <link rel="shortcut icon" href="/icon.png" type="image/png" />
+    <link rel="icon" type="image/png" href="icon.png" />
+    <link rel="shortcut icon" href="icon.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#085A8C" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="manifest.json" />
     
     <!-- iOS Specific -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="مهامي">
-    <link rel="apple-touch-icon" href="/icon.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/icon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icon.png" />
-    <link rel="apple-touch-icon" sizes="167x167" href="/icon.png" />
+    <link rel="apple-touch-icon" href="icon.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icon.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="icon.png" />
 
     <title>المهام اليومية</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -111,27 +111,38 @@
 </head>
   <body class="bg-white dark:bg-gray-900 selection:bg-brand-light selection:text-white safe-area-top safe-area-bottom">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="index.tsx"></script>
 
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => {
-              console.log('SW Registered with scope:', reg.scope);
-              // التحقق من وجود تحديثات فورية
-              reg.onupdatefound = () => {
-                const installingWorker = reg.installing;
-                if (installingWorker) {
-                  installingWorker.onstatechange = () => {
-                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                      console.log('New SW content is available; please refresh.');
-                    }
-                  };
+          // دالة لبناء رابط الـ Service Worker بشكل مطلق ومضمون ضمن نفس الـ Origin
+          const registerSW = () => {
+            const origin = window.location.origin;
+            const path = window.location.pathname;
+            // استخراج المجلد الحالي (مثلاً /abc/def/ بدلاً من /abc/def/index.html)
+            const directory = path.substring(0, path.lastIndexOf('/') + 1);
+            const swUrl = origin + directory + 'sw.js';
+
+            console.log('PWA: Registering Service Worker at:', swUrl);
+
+            navigator.serviceWorker.register(swUrl)
+              .then(reg => {
+                console.log('PWA: SW Registered successfully with scope:', reg.scope);
+              })
+              .catch(err => {
+                console.error('PWA: SW Registration failed:', err);
+                // محاولة أخيرة باستخدام المسار النسبي البسيط جداً في حال فشل الرابط المطلق
+                if (err.message.includes('Origin') || err.message.includes('scriptURL')) {
+                  console.log('PWA: Attempting final fallback registration...');
+                  navigator.serviceWorker.register('./sw.js').catch(e => {
+                    console.error('PWA: All registration attempts failed:', e);
+                  });
                 }
-              };
-            })
-            .catch(err => console.error('SW Registration Failed:', err));
+              });
+          };
+
+          registerSW();
         });
       }
     </script>
