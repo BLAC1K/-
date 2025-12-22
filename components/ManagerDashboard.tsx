@@ -19,15 +19,17 @@ import ConfirmModal from './ConfirmModal';
 import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import SentTasksView from './SentTasksView';
 import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
+import InformationCircleIcon from './icons/InfoCircleIcon';
 
 
 const ManagerDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
     const { reports, isCloud } = useData();
-    const { installable, showInstallPrompt } = usePWA();
+    const { installable, showInstallPrompt, isStandalone } = usePWA();
     const [activeTab, setActiveTab] = useState('reports');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [showPWAInfo, setShowPWAInfo] = useState(false);
 
     if (!currentUser) return null;
     
@@ -94,10 +96,10 @@ const ManagerDashboard: React.FC = () => {
                 <NavItem tabName="sentTasks" label="المهام المرسلة" icon={<ClipboardDocumentListIcon className="w-5 h-5"/>} />
                 <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-5 h-5"/>} />
 
-                {installable && (
+                {!isStandalone && (
                      <button
-                        onClick={showInstallPrompt}
-                        className="flex items-center w-full px-3 py-2 text-sm font-bold transition-colors rounded-lg text-brand-light bg-brand-light/10 hover:bg-brand-light/20 mt-4 border border-brand-light/30"
+                        onClick={installable ? showInstallPrompt : () => setShowPWAInfo(true)}
+                        className={`flex items-center w-full px-3 py-2 text-sm font-bold transition-all rounded-lg text-white bg-brand-light hover:bg-brand-dark mt-4 border border-brand-light shadow-md ${installable ? 'animate-pulse' : ''}`}
                     >
                         <ArrowDownTrayIcon className="w-5 h-5"/>
                         <span className="mr-3">تثبيت التطبيق</span>
@@ -176,6 +178,44 @@ const ManagerDashboard: React.FC = () => {
                     onCancel={() => setShowLogoutConfirm(false)}
                     confirmText="خروج"
                 />
+            )}
+
+            {showPWAInfo && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowPWAInfo(false)}>
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">كيفية تثبيت التطبيق</h3>
+                            <button onClick={() => setShowPWAInfo(false)}><XMarkIcon className="w-6 h-6 text-gray-400" /></button>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <h4 className="font-bold text-brand-dark dark:text-brand-light flex items-center gap-2">
+                                    <span className="w-6 h-6 bg-brand-light text-white rounded-full flex items-center justify-center text-xs">1</span>
+                                    لأجهزة الأندرويد (Chrome):
+                                </h4>
+                                <p className="text-sm mt-2 text-gray-600 dark:text-gray-300">
+                                    افتح القائمة الجانبية واضغط على زر <span className="font-bold">"تثبيت التطبيق"</span>.
+                                </p>
+                            </div>
+                            <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <h4 className="font-bold text-brand-dark dark:text-brand-light flex items-center gap-2">
+                                    <span className="w-6 h-6 bg-brand-light text-white rounded-full flex items-center justify-center text-xs">2</span>
+                                    لأجهزة الآيفون (iOS/Safari):
+                                </h4>
+                                <div className="text-sm mt-2 text-gray-600 dark:text-gray-300">
+                                    <p>1. اضغط على أيقونة <span className="font-bold">"المشاركة"</span> في أسفل المتصفح.</p>
+                                    <p>2. اختر <span className="font-bold">"إضافة إلى الصفحة الرئيسية"</span>.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setShowPWAInfo(false)}
+                            className="w-full mt-6 py-2 bg-brand-light text-white font-bold rounded-lg hover:bg-brand-dark transition-colors"
+                        >
+                            حسناً، فهمت
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );

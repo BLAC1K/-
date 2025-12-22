@@ -299,22 +299,13 @@ const WelcomeView: React.FC<{ user: User; onStart: () => void; onShowPWAInfo: ()
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">للوصول السريع وتلقي التنبيهات، قم بتثبيت التطبيق على جهازك.</p>
                     </div>
                     <div className="flex flex-col gap-2 w-full md:w-auto">
-                        {installable ? (
-                            <button
-                                onClick={showInstallPrompt}
-                                className="px-6 py-2 bg-brand-light text-white font-bold rounded-lg hover:bg-brand-dark transition-colors"
-                            >
-                                تثبيت الآن
-                            </button>
-                        ) : (
-                            <button
-                                onClick={onShowPWAInfo}
-                                className="px-6 py-2 border border-brand-light text-brand-light font-bold rounded-lg hover:bg-brand-light/10 transition-colors flex items-center justify-center gap-2"
-                            >
-                                <InformationCircleIcon className="w-5 h-5" />
-                                كيف أثبت التطبيق؟
-                            </button>
-                        )}
+                        <button
+                            onClick={installable ? showInstallPrompt : onShowPWAInfo}
+                            className="px-6 py-2 bg-brand-light text-white font-bold rounded-lg hover:bg-brand-dark transition-colors shadow-md flex items-center justify-center gap-2"
+                        >
+                            <ArrowDownTrayIcon className="w-5 h-5" />
+                            {installable ? 'تثبيت الآن' : 'كيفية التثبيت؟'}
+                        </button>
                     </div>
                 </div>
             )}
@@ -325,7 +316,7 @@ const WelcomeView: React.FC<{ user: User; onStart: () => void; onShowPWAInfo: ()
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
     const { reports, directTasks, deleteReport, isCloud } = useData();
-    const { installable, showInstallPrompt } = usePWA();
+    const { installable, showInstallPrompt, isStandalone } = usePWA();
     const [activeTab, setActiveTab] = useState('welcome');
     const [viewingReport, setViewingReport] = useState<Report | null>(null);
     const [notification, setNotification] = useState<string | null>(null);
@@ -530,10 +521,10 @@ const EmployeeDashboard: React.FC = () => {
                 <NavItem tabName='directTasks' label='المهام الواردة' icon={<ClipboardDocumentListIcon className="w-5 h-5"/>} count={unreadDirectTasksCount}/>
                 <NavItem tabName='profile' label='الملف الشخصي' icon={<UserCircleIcon className="w-5 h-5"/>} />
                 
-                {installable && (
+                {!isStandalone && (
                      <button
-                        onClick={showInstallPrompt}
-                        className="flex items-center w-full px-3 py-2 text-sm font-bold transition-all rounded-lg text-white bg-brand-light hover:bg-brand-dark mt-4 border border-brand-light shadow-md animate-pulse"
+                        onClick={installable ? showInstallPrompt : () => setShowPWAInfo(true)}
+                        className={`flex items-center w-full px-3 py-2 text-sm font-bold transition-all rounded-lg text-white bg-brand-light hover:bg-brand-dark mt-4 border border-brand-light shadow-md ${installable ? 'animate-pulse' : ''}`}
                     >
                         <ArrowDownTrayIcon className="w-5 h-5"/>
                         <span className="mr-3">تثبيت التطبيق</span>
@@ -662,7 +653,7 @@ const EmployeeDashboard: React.FC = () => {
                                     لأجهزة الأندرويد (Chrome):
                                 </h4>
                                 <p className="text-sm mt-2 text-gray-600 dark:text-gray-300">
-                                    افتح القائمة الجانبية في هذا التطبيق وستجد زر <span className="font-bold">"تثبيت التطبيق"</span> باللون الأزرق.
+                                    افتح القائمة الجانبية في هذا التطبيق واضغط على زر <span className="font-bold">"تثبيت التطبيق"</span> الظاهر باللون الأزرق.
                                 </p>
                             </div>
                             <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
@@ -670,11 +661,11 @@ const EmployeeDashboard: React.FC = () => {
                                     <span className="w-6 h-6 bg-brand-light text-white rounded-full flex items-center justify-center text-xs">2</span>
                                     لأجهزة الآيفون (iOS/Safari):
                                 </h4>
-                                <p className="text-sm mt-2 text-gray-600 dark:text-gray-300">
-                                    1. اضغط على زر <span className="font-bold">"مشاركة" (Share)</span> <img src="https://img.icons8.com/ios/50/000000/forward-arrow.png" className="w-4 h-4 inline" alt="share icon" /> في متصفح سفاري.
-                                    <br />
-                                    2. ابحث عن خيار <span className="font-bold">"إضافة إلى الصفحة الرئيسية" (Add to Home Screen)</span>.
-                                </p>
+                                <div className="text-sm mt-2 text-gray-600 dark:text-gray-300 space-y-1">
+                                    <p>1. اضغط على أيقونة <span className="font-bold">"المشاركة" (Share)</span> في أسفل المتصفح.</p>
+                                    <p>2. ابحث عن خيار <span className="font-bold">"إضافة إلى الصفحة الرئيسية"</span> (Add to Home Screen).</p>
+                                    <p>3. اضغط <span className="font-bold">"إضافة"</span> (Add) في الزاوية العلوية.</p>
+                                </div>
                             </div>
                         </div>
                         <button 
