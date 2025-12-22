@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import LogoutIcon from './icons/LogoutIcon';
 import UserManagement from './UserManagement'; 
 import UsersIcon from './icons/UsersIcon';
 import NewReportIcon from './icons/NewReportIcon';
+import Avatar from './Avatar';
 import ReportsView from './ReportsView';
 import ProfileManagement from './ProfileManagement';
 import UserCircleIcon from './icons/UserCircleIcon';
@@ -16,44 +17,14 @@ import AppLogoIcon from './icons/AppLogoIcon';
 import ConfirmModal from './ConfirmModal';
 import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import SentTasksView from './SentTasksView';
-import Toast from './Toast';
-import BellIcon from './icons/BellIcon';
-import InstallIcon from './icons/InstallIcon';
-// Fix: Import missing PlusIcon
-import PlusIcon from './icons/PlusIcon';
+
 
 const ManagerDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
-    const { reports, users } = useData();
+    const { reports, isCloud } = useData();
     const [activeTab, setActiveTab] = useState('reports');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
-    const [isStandalone, setIsStandalone] = useState(false);
-    const [isPwaReady, setIsPwaReady] = useState(!!window.deferredPrompt);
-
-    useEffect(() => {
-        const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-        setIsStandalone(!!checkStandalone);
-
-        const handlePromptReady = () => setIsPwaReady(true);
-        window.addEventListener('pwa-prompt-ready', handlePromptReady);
-        return () => window.removeEventListener('pwa-prompt-ready', handlePromptReady);
-    }, []);
-
-    const handleInstallClick = async () => {
-        if (window.deferredPrompt) {
-            window.deferredPrompt.prompt();
-            const { outcome } = await window.deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                window.deferredPrompt = null;
-                setIsPwaReady(false);
-                setIsStandalone(true);
-            }
-        } else {
-            window.dispatchEvent(new CustomEvent('open-install-instructions'));
-        }
-    };
 
     if (!currentUser) return null;
     
@@ -68,11 +39,12 @@ const ManagerDashboard: React.FC = () => {
 
     const renderContent = () => {
         switch(activeTab) {
-            case 'employees': return <div className="pb-20"><UserManagement /></div>;
-            case 'sentTasks': return <div className="pb-20"><SentTasksView /></div>;
-            case 'profile': return <div className="pb-20"><ProfileManagement user={currentUser} /></div>;
+            case 'employees': return <UserManagement />;
+            case 'sentTasks': return <SentTasksView />;
+            case 'profile': return <ProfileManagement user={currentUser} />;
             case 'reports':
-            default: return <div className="pb-20"><ReportsView /></div>;
+            default:
+                return <ReportsView />;
         }
     };
 
@@ -82,9 +54,11 @@ const ManagerDashboard: React.FC = () => {
              <button
                 onClick={() => {
                     setActiveTab(tabName);
-                    if (window.innerWidth < 768) setIsSidebarOpen(false);
+                    if (window.innerWidth < 768) {
+                        setIsSidebarOpen(false);
+                    }
                 }}
-                className={`flex items-center w-full px-4 py-3 text-sm font-medium transition-colors rounded-xl ${isActive ? 'bg-brand-light text-white shadow-lg shadow-brand-light/30' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}
+                className={`flex items-center w-full px-3 py-2 text-sm font-medium transition-colors rounded-lg ${isActive ? 'bg-brand-light/10 dark:bg-brand-light/20 text-brand-dark dark:text-gray-100 font-bold' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
             >
                 {icon}
                 <span className="mr-3">{label}</span>
@@ -93,78 +67,103 @@ const ManagerDashboard: React.FC = () => {
         )
     }
 
-    return (
-        <div className="h-[100dvh] w-full bg-[#f8f9fa] dark:bg-[#121212] flex overflow-hidden">
-             {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
+    const SidebarContent = () => (
+         <div className="flex flex-col h-full">
+            <div className="flex items-center justify-center py-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shrink-0">
+                <AppLogoIcon className="w-7 h-7 text-brand-dark dark:text-gray-100" />
+                <h1 className="mr-2 text-base font-bold text-brand-dark dark:text-gray-100">لوحة التحكم</h1>
+            </div>
             
-            <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-800 shadow-2xl transform transition-transform duration-300 ease-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-                <div className="flex flex-col h-full border-l dark:border-gray-700">
-                    <div className="flex items-center p-6 border-b dark:border-gray-700 gap-3">
-                        <div className="w-10 h-10">
-                            <AppLogoIcon />
-                        </div>
-                        <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">لوحة التحكم</h1>
-                    </div>
-                    <nav className="flex-grow px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
-                        <NavItem tabName="reports" label="التقارير" icon={<NewReportIcon className="w-6 h-6"/>} count={newReportsCount}/>
-                        <NavItem tabName="employees" label="إدارة المنتسبين" icon={<UsersIcon className="w-6 h-6"/>} />
-                        <NavItem tabName="sentTasks" label="المهام المرسلة" icon={<ClipboardDocumentListIcon className="w-6 h-6"/>} />
-                        <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />
-                    </nav>
-                    <div className="p-4 border-t dark:border-gray-700 space-y-2 mb-safe">
-                        {!isStandalone && (
-                            <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30 border border-white/10">
-                                <InstallIcon className="w-6 h-6"/>
-                                <span className="mr-3 text-xs">تثبيت التطبيق الآن</span>
-                            </button>
-                        )}
-                        <ThemeToggle />
-                        <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl active:scale-95 transition-transform">
-                            <LogoutIcon className="w-6 h-6"/>
-                            <span className="mr-3">خروج</span>
-                        </button>
-                    </div>
+            <div className="flex flex-col items-center p-3 border-b bg-gray-50/50 dark:bg-gray-700/20 dark:border-gray-700 shrink-0">
+                <Avatar src={currentUser.profilePictureUrl} name={currentUser.fullName} size={40} />
+                 <div className="mt-1 text-center">
+                    <span className="block font-bold text-sm text-gray-800 dark:text-gray-200">{currentUser.fullName.split(' ').slice(0, 2).join(' ')}</span>
+                     <span className={`inline-flex items-center text-[10px] font-medium ${isCloud ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ml-1 ${isCloud ? 'bg-green-500' : 'bg-orange-500'}`}></span>
+                        {isCloud ? 'متصل' : 'محلي'}
+                    </span>
                 </div>
+            </div>
+
+            <nav className="flex-grow px-2 py-2 space-y-1 overflow-y-auto custom-scrollbar">
+                <NavItem tabName="reports" label="التقارير" icon={<NewReportIcon className="w-5 h-5"/>} count={newReportsCount}/>
+                <NavItem tabName="employees" label="إدارة المنتسبين" icon={<UsersIcon className="w-5 h-5"/>} />
+                <NavItem tabName="sentTasks" label="المهام المرسلة" icon={<ClipboardDocumentListIcon className="w-5 h-5"/>} />
+                <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-5 h-5"/>} />
+            </nav>
+            
+            <div className="px-2 py-2 mt-auto border-t dark:border-gray-700 space-y-1 bg-gray-50 dark:bg-gray-800 shrink-0">
+                <ThemeToggle />
+                <button
+                    onClick={() => setShowLogoutConfirm(true)}
+                    className="flex items-center w-full px-3 py-2 text-sm font-medium transition-colors rounded-lg text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600"
+                >
+                    <LogoutIcon className="w-5 h-5"/>
+                    <span className="mr-3">تسجيل الخروج</span>
+                </button>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="h-[100dvh] w-full bg-gray-100 dark:bg-gray-900 flex overflow-hidden">
+             {isSidebarOpen && (
+                <div 
+                    className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                ></div>
+            )}
+            
+            <aside className={`
+                fixed inset-y-0 right-0 z-40 w-64 h-full
+                bg-white dark:bg-gray-800 shadow-xl border-l dark:border-gray-700 
+                transform transition-transform duration-300 ease-in-out 
+                ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} 
+                md:relative md:translate-x-0
+            `}>
+                <SidebarContent />
             </aside>
             
             <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-                <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b dark:border-gray-700 md:hidden z-20 sticky top-0 safe-area-top">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8">
-                            <AppLogoIcon />
-                        </div>
+                <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 md:hidden shrink-0 z-20">
+                    <div className="flex items-center">
+                        <AppLogoIcon className="w-8 h-8 ml-3 text-brand-dark dark:text-gray-100" />
                         <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
                     </div>
-                    <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg active:scale-90 transition-transform">
-                        {isSidebarOpen ? <XMarkIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
+                    <button onClick={() => setIsSidebarOpen(p => !p)}>
+                        {isSidebarOpen ? <XMarkIcon className="w-6 h-6 text-gray-800 dark:text-gray-200" /> : <MenuIcon className="w-6 h-6 text-gray-800 dark:text-gray-200" />}
                     </button>
                 </header>
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar bg-inherit">
-                    <div className="container mx-auto max-w-6xl">
-                        {/* بطاقة التثبيت السريعة للمدير أيضاً */}
-                        {activeTab === 'reports' && !isStandalone && (
-                             <button 
-                                onClick={handleInstallClick}
-                                className="w-full mb-6 p-4 bg-brand-light text-white rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all shadow-lg"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                                        <InstallIcon className="w-6 h-6" />
-                                    </div>
-                                    <div className="text-right">
-                                        <h4 className="font-bold text-sm">ثبت النظام على هاتفك</h4>
-                                        <p className="text-[10px] opacity-80">للوصول السريع وتلقي تنبيهات التقارير</p>
-                                    </div>
-                                </div>
-                                <PlusIcon className="w-5 h-5 opacity-50" />
-                            </button>
-                        )}
+
+                <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+                    <div className="container mx-auto max-w-6xl pb-10">
+                        <div className="hidden md:block mb-6">
+                             <div className="flex justify-between items-center border-b pb-4 dark:border-gray-700">
+                                <h1 className="text-2xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
+                                <span className={`md:hidden px-2 py-0.5 text-xs rounded-full flex items-center ${isCloud ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+                                    <span className={`w-2 h-2 rounded-full mr-1.5 ${isCloud ? 'bg-green-500' : 'bg-orange-500'}`}></span>
+                                    {isCloud ? 'متصل' : 'محلي'}
+                                </span>
+                            </div>
+                        </div>
                         {renderContent()}
                     </div>
                 </main>
+
+                <footer className="py-3 text-xs text-center text-gray-500 dark:text-gray-400 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900 shrink-0">
+                    <p>جميع الحقوق محفوظة 2025م</p>
+                    <p>حسين كاظم</p>
+                </footer>
             </div>
-             {showLogoutConfirm && <ConfirmModal title="تأكيد الخروج" message="هل تريد حقاً تسجيل الخروج؟" onConfirm={logout} onCancel={() => setShowLogoutConfirm(false)} confirmText="خروج" />}
-             {toast && <Toast message={toast.message} onClose={() => setToast(null)} onClick={() => setToast(null)} />}
+             {showLogoutConfirm && (
+                <ConfirmModal
+                    title="تأكيد تسجيل الخروج"
+                    message="هل أنت متأكد من رغبتك في تسجيل الخروج؟"
+                    onConfirm={logout}
+                    onCancel={() => setShowLogoutConfirm(false)}
+                    confirmText="خروج"
+                />
+            )}
         </div>
     );
 };

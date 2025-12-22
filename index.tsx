@@ -1,30 +1,7 @@
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-
-// تعريف متغير عالمي لتخزين طلب التثبيت
-declare global {
-  interface Window {
-    deferredPrompt: any;
-  }
-}
-
-// التقاط حدث التثبيت وتخزينه عالمياً فوراً
-window.addEventListener('beforeinstallprompt', (e) => {
-  // منع النافذة التلقائية للتحكم بها يدوياً عبر الأزرار
-  e.preventDefault();
-  window.deferredPrompt = e;
-  // إعلام التطبيق أن التثبيت المباشر متاح الآن لتحديث واجهة المستخدم
-  window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
-  console.log('PWA: Native install prompt is captured and ready');
-});
-
-// تنظيف الطلب بعد نجاح التثبيت
-window.addEventListener('appinstalled', () => {
-  window.deferredPrompt = null;
-  window.dispatchEvent(new CustomEvent('pwa-installed-success'));
-  console.log('PWA: App was installed successfully');
-});
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

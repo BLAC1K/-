@@ -3,49 +3,140 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="icon.png" />
-    <link rel="shortcut icon" href="icon.png" type="image/png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#085A8C" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <link rel="manifest" href="manifest.json" />
-    
-    <!-- iOS Specific -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="مهامي">
-    <link rel="apple-touch-icon" href="icon.png" />
+    <meta name="theme-color" content="#2B576E" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
 
     <title>المهام اليومية</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body {
         font-family: 'Cairo', sans-serif;
-        -webkit-tap-highlight-color: transparent;
-        user-select: none;
-        overscroll-behavior-y: contain;
       }
-      .animate-fade-in-up {
-        animation: fadeInUp 0.4s ease-out forwards;
+      .animate-blob {
+        animation: blob 7s infinite;
       }
-      @keyframes fadeInUp {
-        0% { opacity: 0; transform: translateY(20px); }
-        100% { opacity: 1; transform: translateY(0); }
+      @keyframes blob {
+        0% {
+          transform: translate(0px, 0px) scale(1);
+        }
+        33% {
+          transform: translate(30px, -50px) scale(1.1);
+        }
+        66% {
+          transform: translate(-20px, 20px) scale(0.9);
+        }
+        100% {
+          transform: translate(0px, 0px) scale(1);
+        }
       }
-      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .animation-delay-2000 {
+        animation-delay: 2s;
+      }
+      .animation-delay-4000 {
+        animation-delay: 4s;
+      }
+      .animate-fade-in-right {
+        animation: fade-in-right 0.5s ease-out forwards;
+      }
+      @keyframes fade-in-right {
+        0% {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      @media print {
+        html.dark {
+            --tw-bg-opacity: 1 !important;
+            background-color: #fff !important;
+        }
+        body * {
+          visibility: hidden;
+        }
+        #printable-report, #printable-report * {
+          visibility: visible;
+        }
+        #printable-report {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          margin: 0;
+          padding: 1.5cm;
+          box-shadow: none !important;
+          border: none !important;
+          font-size: 14px;
+          --tw-bg-opacity: 1 !important;
+          background-color: #fff !important;
+        }
+        #printable-report div, #printable-report p, #printable-report span, #printable-report dt, #printable-report dd, #printable-report h3, #printable-report ul, #printable-report li {
+            color: #000 !important;
+            background-color: transparent !important;
+        }
+        .no-print, .no-print * {
+          display: none !important;
+        }
+        @page {
+          size: A4;
+          margin: 0;
+        }
+        body {
+          background-color: #fff;
+        }
+        img {
+          max-width: 100% !important;
+        }
+        .print-page-break {
+            page-break-before: always !important;
+        }
+        #printable-report .report-detail-grid {
+            display: block !important;
+        }
+        #printable-report .report-detail-grid > div {
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        #printable-report .report-detail-grid > div:last-child {
+            border-bottom: none;
+        }
+        #printable-report .attachments-grid-print {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        #printable-report dt {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+        #printable-report dd {
+            color: #111827;
+        }
+      }
     </style>
     <script>
+      // Prevents "flash of incorrect theme"
       if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
       }
+
       tailwind.config = {
         darkMode: 'class',
         theme: {
           extend: {
             colors: {
-              'brand-dark': '#085A8C',
+              'brand-dark': '#2B576E',
               'brand-light': '#42A5B3',
               'brand-accent-red': '#E54B22',
               'brand-accent-yellow': '#FBC02D',
@@ -55,43 +146,40 @@
         },
       }
     </script>
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://aistudiocdn.com/react@^19.2.0",
-        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-        "react/": "https://aistudiocdn.com/react@^19.2.0/",
-        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
-        "react-signature-canvas": "https://aistudiocdn.com/react-signature-canvas@^1.1.0-alpha.2",
-        "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.45.4",
-        "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/"
-      }
-    }
-    </script>
-  </head>
-  <body class="bg-white dark:bg-gray-900 selection:bg-brand-light selection:text-white">
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
+    "react-signature-canvas": "https://aistudiocdn.com/react-signature-canvas@^1.1.0-alpha.2",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.45.4",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/"
+  }
+}
+</script>
+</head>
+  <body class="bg-white dark:bg-gray-900">
     <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
 
+    <!-- PWA Service Worker Registration -->
     <script>
-      // دالة تسجيل الـ Service Worker مع معالجة ذكية للأخطاء
-      async function registerServiceWorker() {
-        if ('serviceWorker' in navigator) {
-          try {
-            // استخدام مسار كامل النسبي لضمان التثبيت من نفس المصدر
-            const swPath = new URL('sw.js', window.location.href).pathname;
-            const registration = await navigator.serviceWorker.register(swPath, {
-              scope: './'
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            })
+            .catch(error => {
+              console.log('ServiceWorker registration failed: ', error);
             });
-            console.log('PWA: تم تسجيل المحرك بنجاح:', registration.scope);
-          } catch (error) {
-            console.warn('PWA: فشل التسجيل التلقائي (هذا متوقع في بيئة المعاينة فقط):', error.message);
-          }
-        }
+        });
       }
-
-      window.addEventListener('load', registerServiceWorker);
     </script>
   </body>
 </html>

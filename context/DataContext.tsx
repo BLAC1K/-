@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect } from 'react';
 import { User, Report, Announcement, DirectTask } from '../types';
 import * as api from '../services/apiService';
 
@@ -40,71 +40,30 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isDataLoading, setIsDataLoading] = useState(true);
     const [isCloud, setIsCloud] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    
-    const stateRef = useRef(appState);
-    useEffect(() => { stateRef.current = appState; }, [appState]);
 
+    // Modified loadData to accept a 'silent' argument.
+    // If silent is true, it won't trigger the global loading spinner.
     const loadData = useCallback(async (silent = false) => {
-        if (!silent) setIsDataLoading(true);
+        if (!silent) {
+            setIsDataLoading(true);
+        }
+        setError(null);
         try {
-            const data = await api.fetchInitialData();
-            setAppState({
-                users: data.users,
-                reports: data.reports,
-                announcements: data.announcements,
-                directTasks: data.directTasks
-            });
-            setIsCloud(data.isCloud);
+            const { isCloud: cloudStatus, ...initialState } = await api.fetchInitialData();
+            setAppState(initialState);
+            setIsCloud(cloudStatus);
         } catch (error: any) {
-            console.error("Failed to load data:", error);
-            setError(error.message || "فشل الاتصال بقاعدة البيانات.");
+            console.error("Failed to load initial data from API:", error);
+            setError(error.message || "حدث خطأ غير متوقع أثناء الاتصال بقاعدة البيانات.");
         } finally {
-            if (!silent) setIsDataLoading(false);
+            if (!silent) {
+                setIsDataLoading(false);
+            }
         }
     }, []);
 
-    // المزامنة اللحظية الذكية: تحديث الـ State مباشرة عند استلام حدث من Supabase
     useEffect(() => {
         loadData();
-
-        const unsubscribe = api.subscribeToAllChanges((payload) => {
-            console.log("Realtime event received:", payload);
-            
-            const { table, eventType, new: newRecord, old: oldRecord } = payload;
-
-            setAppState(prev => {
-                const newState = { ...prev };
-
-                if (table === 'reports') {
-                    const mapped = api.mapReport(newRecord);
-                    if (eventType === 'INSERT') newState.reports = [mapped, ...prev.reports];
-                    else if (eventType === 'UPDATE') newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
-                    else if (eventType === 'DELETE') newState.reports = prev.reports.filter(r => r.id !== oldRecord.id);
-                }
-                else if (table === 'direct_tasks') {
-                    const mapped = api.mapDirectTask(newRecord);
-                    if (eventType === 'INSERT') newState.directTasks = [mapped, ...prev.directTasks];
-                    else if (eventType === 'UPDATE') newState.directTasks = prev.directTasks.map(t => t.id === mapped.id ? mapped : t);
-                    else if (eventType === 'DELETE') newState.directTasks = prev.directTasks.filter(t => t.id !== oldRecord.id);
-                }
-                else if (table === 'announcements') {
-                    const mapped = api.mapAnnouncement(newRecord);
-                    if (eventType === 'INSERT') newState.announcements = [mapped, ...prev.announcements];
-                    else if (eventType === 'UPDATE') newState.announcements = prev.announcements.map(a => a.id === mapped.id ? mapped : a);
-                    else if (eventType === 'DELETE') newState.announcements = prev.announcements.filter(a => a.id !== oldRecord.id);
-                }
-                else if (table === 'users') {
-                    const mapped = api.mapUser(newRecord);
-                    if (eventType === 'INSERT') newState.users = [...prev.users, mapped];
-                    else if (eventType === 'UPDATE') newState.users = prev.users.map(u => u.id === mapped.id ? mapped : u);
-                    else if (eventType === 'DELETE') newState.users = prev.users.filter(u => u.id !== oldRecord.id);
-                }
-
-                return newState;
-            });
-        });
-
-        return () => { unsubscribe(); };
     }, [loadData]);
     
     const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);
@@ -112,12 +71,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const performApiAction = useCallback(async (action: Promise<any>) => {
         try {
             await action;
-            // لم نعد بحاجة لـ loadData هنا لأن الاشتراك اللحظي سيحدث الـ State تلقائياً
+            // Use silent reload so the UI doesn't flash or unmount components
+            await loadData(true); 
         } catch (error) {
-            console.error("Action failed:", error);
+            console.error("An API action failed:", error);
             throw error;
         }
-    }, []);
+    }, [loadData]);
 
     const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => performApiAction(api.createReport(report)), [performApiAction]);
     const updateReport = useCallback(async (updatedReport: Report) => performApiAction(api.updateReport(updatedReport)), [performApiAction]);
@@ -137,9 +97,27 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const markDirectTaskAsRead = useCallback(async (taskId: string) => performApiAction(api.markDirectTaskAsRead(taskId)), [performApiAction]);
 
     const value = useMemo(() => ({
-        ...appState, isDataLoading, isCloud, error, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
-        markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
-        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
+        ...appState,
+        isDataLoading,
+        isCloud,
+        error,
+        getUserById,
+        addReport,
+        updateReport,
+        saveOrUpdateDraft,
+        deleteReport,
+        markReportAsViewed,
+        markCommentAsRead,
+        addUser,
+        updateUser,
+        deleteUser,
+        addAnnouncement,
+        updateAnnouncement,
+        deleteAnnouncement,
+        markAnnouncementAsRead,
+        addDirectTask,
+        updateDirectTaskStatus,
+        markDirectTaskAsRead
     }), [
         appState, isDataLoading, isCloud, error, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
@@ -155,6 +133,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useData = (): DataContextType => {
     const context = useContext(DataContext);
-    if (!context) throw new Error('useData must be used within a DataProvider');
+    if (!context) {
+        throw new Error('useData must be used within a DataProvider');
+    }
     return context;
 };

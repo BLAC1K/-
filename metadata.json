@@ -1,7 +1,5 @@
 {
   "name": "Daily Tasks Reporter",
   "description": "An application for employees to submit daily task reports and for managers to review, comment on, and manage these reports.",
-  "requestFramePermissions": [
-    "camera"
-  ]
+  "requestFramePermissions": []
 }

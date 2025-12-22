@@ -1,8 +1,8 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { Role, Attachment, Report, Task, DirectTask } from '../types';
+import { Report, Task, Role, User, Attachment } from '../types';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import PaperclipIcon from './icons/PaperclipIcon';
@@ -10,156 +10,452 @@ import LogoutIcon from './icons/LogoutIcon';
 import ReportView from './ReportView';
 import NewReportIcon from './icons/NewReportIcon';
 import InboxIcon from './icons/InboxIcon';
+import OutboxIcon from './icons/OutboxIcon';
+import Avatar from './Avatar';
 import ProfileManagement from './ProfileManagement';
 import UserCircleIcon from './icons/UserCircleIcon';
 import ReportDetailModal from './ReportDetailModal';
 import Toast from './Toast';
 import MenuIcon from './icons/MenuIcon';
+import XMarkIcon from './icons/XMarkIcon';
+import JobTitleIcon from './icons/JobTitleIcon';
+import BadgeNumberIcon from './icons/BadgeNumberIcon';
+import HashtagIcon from './icons/HashtagIcon';
 import ThemeToggle from './ThemeToggle';
 import AppLogoIcon from './icons/AppLogoIcon';
 import HomeIcon from './icons/HomeIcon';
+import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import DirectTasksView from './DirectTasksView';
 import ArchiveBoxIcon from './icons/ArchiveBoxIcon';
 import ConfirmModal from './ConfirmModal';
-import CameraIcon from './icons/CameraIcon';
-import DocumentTextIcon from './icons/DocumentTextIcon';
-import InstallIcon from './icons/InstallIcon';
-import SparklesIcon from './icons/SparklesIcon';
-import PercentageCircle from './StarRating';
-import CheckCircleIcon from './icons/CheckCircleIcon';
-import XMarkIcon from './icons/XMarkIcon';
+import EditIcon from './icons/EditIcon';
+
+
+interface ReportFormProps {
+    user: User;
+    onFinish: () => void;
+    draftToEdit: Report | null;
+}
+
+const ReportForm: React.FC<ReportFormProps> = ({ user, onFinish, draftToEdit }) => {
+    const { addReport, saveOrUpdateDraft, updateReport } = useData();
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [tasks, setTasks] = useState<Task[]>([{ id: 'task-1', text: '' }]);
+    const [accomplished, setAccomplished] = useState('');
+    const [notAccomplished, setNotAccomplished] = useState('');
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSavingDraft, setIsSavingDraft] = useState(false);
+
+    useEffect(() => {
+        if (draftToEdit) {
+            setDate(draftToEdit.date);
+            setTasks(draftToEdit.tasks.length > 0 ? draftToEdit.tasks : [{ id: 'task-1', text: '' }]);
+            setAccomplished(draftToEdit.accomplished);
+            setNotAccomplished(draftToEdit.notAccomplished);
+            setAttachments(draftToEdit.attachments || []);
+        } else {
+            // Reset form when creating a new report
+            setDate(new Date().toISOString().split('T')[0]);
+            setTasks([{ id: 'task-1', text: '' }]);
+            setAccomplished('');
+            setNotAccomplished('');
+            setAttachments([]);
+        }
+    }, [draftToEdit]);
+
+
+    const handleAddTask = () => {
+        setTasks([...tasks, { id: `task-${Date.now()}`, text: '' }]);
+    };
+
+    const handleTaskChange = (index: number, value: string) => {
+        const newTasks = [...tasks];
+        newTasks[index].text = value;
+        setTasks(newTasks);
+    };
+
+    const handleRemoveTask = (index: number) => {
+        const newTasks = tasks.filter((_, i) => i !== index);
+        setTasks(newTasks);
+    };
+    
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const fileList = Array.from(e.target.files);
+            const newAttachments = await Promise.all(
+                // FIX: Explicitly type 'file' as 'File' to resolve type inference issues.
+                fileList.map(async (file: File) => ({
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    content: await fileToDataURL(file)
+                }))
+            );
+            setAttachments(prev => [...prev, ...newAttachments]);
+        }
+    };
+
+     const handleRemoveAttachment = (index: number) => {
+        setAttachments(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const fileToDataURL = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const collectReportData = (): Partial<Report> => {
+        return {
+            userId: user.id,
+            date,
+            day: new Date(date).toLocaleDateString('ar-EG', { weekday: 'long' }),
+            tasks: tasks.filter(t => t.text.trim() !== ''),
+            accomplished,
+            notAccomplished,
+            attachments,
+        };
+    };
+
+    const handleSaveDraft = async () => {
+        setIsSavingDraft(true);
+        const draftData = collectReportData();
+        const draftToSave = { ...draftData, id: draftToEdit?.id };
+        await saveOrUpdateDraft(draftToSave);
+        setIsSavingDraft(false);
+        onFinish();
+    };
+    
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        setIsSubmitting(true);
+        const reportData = collectReportData();
+
+        if (draftToEdit) { // Submitting an existing draft
+            const submittedDraft: Report = {
+                ...draftToEdit,
+                ...reportData,
+                status: 'submitted',
+            };
+            await updateReport(submittedDraft);
+        } else { // Submitting a new report
+             const newReport: Omit<Report, 'id' | 'sequenceNumber' | 'status'> = {
+                ...(reportData as any), // Type assertion as we know it's a new report
+            };
+            await addReport(newReport);
+        }
+        
+        setIsSubmitting(false);
+        onFinish();
+    };
+
+
+    return (
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+            <h3 className="text-2xl font-semibold text-brand-dark dark:text-gray-100 border-b dark:border-gray-700 pb-3">{draftToEdit ? 'تعديل المسودة' : 'تقرير المهام اليومي'}</h3>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                 <div className="md:col-span-2">
+                    <div className="flex items-center space-x-4 space-x-reverse">
+                        <Avatar src={user.profilePictureUrl} name={user.fullName} size={56} />
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">الاسم الثلاثي</label>
+                            <input type="text" readOnly value={user.fullName} className="block w-full mt-1 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm sm:text-sm dark:text-gray-200" />
+                        </div>
+                    </div>
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">الصفة الوظيفية</label>
+                    <div className="relative mt-1">
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <JobTitleIcon className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <input type="text" readOnly value={user.jobTitle} className="w-full pr-10 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm sm:text-sm dark:text-gray-200" />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">رقم الباج</label>
+                     <div className="relative mt-1">
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <BadgeNumberIcon className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <input type="text" readOnly value={user.badgeNumber} className="w-full pr-10 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm sm:text-sm dark:text-gray-200" />
+                    </div>
+                </div>
+                <div>
+                    <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">التاريخ</label>
+                    <input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} className="block w-full mt-1 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" />
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">رقم التقرير</label>
+                     <div className="relative mt-1">
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <HashtagIcon className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <input type="text" readOnly value={draftToEdit ? draftToEdit.sequenceNumber || '-' : 'سيتم تعيينه عند الإرسال'} className="w-full pr-10 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm sm:text-sm dark:text-gray-200" />
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">المهام</label>
+                {tasks.map((task, index) => (
+                    <div key={task.id} className="flex items-center mt-2 space-x-2 space-x-reverse">
+                        <input type="text" placeholder={`المهمة ${index + 1}`} value={task.text} onChange={(e) => handleTaskChange(index, e.target.value)} className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" />
+                        {tasks.length > 1 && <button type="button" onClick={() => handleRemoveTask(index)} className="p-2 text-red-600 rounded-md hover:bg-red-100 dark:hover:bg-red-900/20"><TrashIcon className="w-5 h-5" /></button>}
+                    </div>
+                ))}
+                 <button type="button" onClick={handleAddTask} className="flex items-center mt-2 text-sm font-medium text-brand-light hover:text-brand-dark dark:hover:text-cyan-300">
+                    <PlusIcon className="w-5 h-5 ml-1" />
+                    إضافة مهمة أخرى
+                </button>
+            </div>
+            
+            <div>
+                 <label htmlFor="accomplished" className="block text-sm font-medium text-gray-700 dark:text-gray-300">ما تم إنجازه</label>
+                 <textarea id="accomplished" value={accomplished} onChange={e => setAccomplished(e.target.value)} rows={3} className="block w-full mt-1 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200"></textarea>
+            </div>
+            
+            <div>
+                 <label htmlFor="notAccomplished" className="block text-sm font-medium text-gray-700 dark:text-gray-300">ما لم يتم إنجازه</label>
+                 <textarea id="notAccomplished" value={notAccomplished} onChange={e => setNotAccomplished(e.target.value)} rows={3} className="block w-full mt-1 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200"></textarea>
+            </div>
+
+            <div>
+                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">المرفقات</label>
+                 <div className="flex items-center justify-center w-full mt-1">
+                    <label className="flex flex-col w-full h-32 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500">
+                        <div className="flex flex-col items-center justify-center pt-7">
+                            <PaperclipIcon className="w-8 h-8 text-gray-400"/>
+                            <p className="pt-1 text-sm tracking-wider text-gray-400 group-hover:text-gray-600">اختر ملفات (صور, PDF, ...)</p>
+                        </div>
+                        <input type="file" multiple onChange={handleFileChange} className="opacity-0" />
+                    </label>
+                 </div>
+                 {attachments.length > 0 && (
+                    <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        <p>الملفات المختارة:</p>
+                        <ul className="list-disc pr-5">{attachments.map((file, i) => (
+                             <li key={i} className="flex items-center justify-between">
+                                <span>{file.name}</span>
+                                <button type="button" onClick={() => handleRemoveAttachment(i)} className="p-1 text-red-500 hover:text-red-700">
+                                    <XMarkIcon className="w-4 h-4" />
+                                </button>
+                            </li>
+                        ))}</ul>
+                    </div>
+                 )}
+            </div>
+
+            <div className="pt-4 border-t dark:border-gray-700 flex flex-col sm:flex-row gap-2">
+                 <button type="button" onClick={handleSaveDraft} className="w-full px-4 py-2 text-sm font-medium text-brand-dark dark:text-gray-100 bg-gray-200 dark:bg-gray-600 border border-transparent rounded-md shadow-sm hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 disabled:bg-opacity-70 transition-colors" disabled={isSavingDraft || isSubmitting}>
+                    {isSavingDraft ? 'جارِ الحفظ...' : 'حفظ كمسودة'}
+                 </button>
+                 <button type="submit" className="w-full px-4 py-2 text-sm font-medium text-white bg-brand-light border border-transparent rounded-md shadow-sm hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light disabled:bg-opacity-70 transition-colors" disabled={isSubmitting || isSavingDraft}>
+                    {isSubmitting ? 'جارِ الإرسال...' : 'إرسال التقرير'}
+                 </button>
+            </div>
+
+        </form>
+    );
+};
+
+const DraftView: React.FC<{
+    draft: Report;
+    onEdit: (draft: Report) => void;
+    onDelete: (draft: Report) => void;
+}> = ({ draft, onEdit, onDelete }) => {
+    return (
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div>
+                <p className="font-semibold text-brand-dark dark:text-gray-100">مسودة بتاريخ: {draft.date}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {draft.tasks.length > 0 ? `${draft.tasks.length} مهام` : 'لا توجد مهام'}
+                </p>
+            </div>
+            <div className="flex items-center space-x-2 space-x-reverse">
+                <button
+                    onClick={() => onEdit(draft)}
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-light rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    title="تعديل المسودة"
+                >
+                    <EditIcon className="w-5 h-5" />
+                </button>
+                <button
+                    onClick={() => onDelete(draft)}
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                    title="حذف المسودة"
+                >
+                    <TrashIcon className="w-5 h-5" />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+
+const WelcomeView: React.FC<{ user: User; onStart: () => void }> = ({ user, onStart }) => {
+    return (
+        <div className="flex items-center justify-center h-full">
+            <div className="text-center p-8 md:p-12 bg-gradient-to-br from-brand-dark to-[#3a7c93] rounded-2xl shadow-2xl border border-brand-light/50 max-w-2xl mx-auto animate-fade-in-right">
+                <AppLogoIcon className="w-24 h-24 mx-auto mb-4 text-white" />
+                <h2 className="text-3xl font-bold text-white">
+                    مرحباً, {user.fullName.split(' ')[0]}
+                </h2>
+                <h3 className="mt-2 text-xl font-semibold text-gray-200">
+                    لوحة مهامك…
+                </h3>
+                <p className="mt-4 text-md text-gray-300">
+                    مساحة تبرز فيها جهدك واحترافك
+                </p>
+                <button
+                    onClick={onStart}
+                    className="mt-8 px-8 py-3 text-lg font-bold text-brand-dark bg-brand-accent-yellow border border-transparent rounded-md group hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-dark focus:ring-brand-accent-yellow transition-transform transform hover:scale-105"
+                >
+                    إنشاء تقرير جديد
+                </button>
+            </div>
+        </div>
+    );
+};
 
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
-    const { reports, directTasks, addReport } = useData();
-    
-    const [activeTab, setActiveTab] = useState('home');
+    const { reports, directTasks, deleteReport, isCloud } = useData();
+    const [activeTab, setActiveTab] = useState('welcome');
+    const [viewingReport, setViewingReport] = useState<Report | null>(null);
+    const [notification, setNotification] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-    const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
-    const [isStandalone, setIsStandalone] = useState(false);
-    const [isPwaReady, setIsPwaReady] = useState(!!window.deferredPrompt);
-
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const cameraInputRef = useRef<HTMLInputElement>(null);
-
-    // Planner state
-    const [plannerTasks, setPlannerTasks] = useState<Task[]>(() => {
-        const saved = localStorage.getItem(`planner_${currentUser?.id}`);
-        return saved ? JSON.parse(saved) : [{ id: Date.now().toString(), text: '', isDone: false }];
-    });
-
-    useEffect(() => {
-        // التحقق مما إذا كان التطبيق مثبتاً بالفعل
-        const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-        setIsStandalone(!!checkStandalone);
-
-        const handlePromptReady = () => setIsPwaReady(true);
-        window.addEventListener('pwa-prompt-ready', handlePromptReady);
-        return () => window.removeEventListener('pwa-prompt-ready', handlePromptReady);
-    }, []);
-
-    const handleInstallClick = async () => {
-        if (window.deferredPrompt) {
-            window.deferredPrompt.prompt();
-            const { outcome } = await window.deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                window.deferredPrompt = null;
-                setIsPwaReady(false);
-                setIsStandalone(true);
-            }
-        } else {
-            // إذا لم يكن المتصفح جاهزاً، نظهر نافذة التعليمات
-            window.dispatchEvent(new CustomEvent('open-install-instructions'));
-        }
-    };
-
-    const [reportForm, setReportForm] = useState<{
-        tasks: { id: string, text: string }[],
-        accomplished: string,
-        notAccomplished: string,
-        attachments: Attachment[]
-    }>({
-        tasks: [{ id: Date.now().toString(), text: '' }],
-        accomplished: '',
-        notAccomplished: '',
-        attachments: []
-    });
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (files) {
-            Array.from(files).forEach((file: File) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setReportForm(prev => ({
-                        ...prev,
-                        attachments: [...prev.attachments, {
-                            name: file.name,
-                            type: file.type,
-                            size: file.size,
-                            content: reader.result as string
-                        }]
-                    }));
-                };
-                reader.readAsDataURL(file);
-            });
-            e.target.value = '';
-        }
-    };
-
-    const removeAttachment = (index: number) => {
-        setReportForm(prev => ({
-            ...prev,
-            attachments: prev.attachments.filter((_, i) => i !== index)
-        }));
-    };
-
-    const myReports = useMemo(() => 
-        reports.filter(r => r.userId === currentUser?.id)
-               .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    , [reports, currentUser]);
-
-    const unreadTasksCount = useMemo(() => 
-        directTasks.filter(t => t.employeeId === currentUser?.id && t.status === 'pending' && !t.isReadByEmployee).length
-    , [directTasks, currentUser]);
-
-    const plannerProgress = useMemo(() => {
-        const total = plannerTasks.filter(t => t.text.trim() !== '').length;
-        if (total === 0) return 0;
-        const done = plannerTasks.filter(t => t.text.trim() !== '' && t.isDone).length;
-        return (done / total) * 100;
-    }, [plannerTasks]);
+    const [editingDraft, setEditingDraft] = useState<Report | null>(null);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [draftToDelete, setDraftToDelete] = useState<Report | null>(null);
+    
+    const [reportViewContext, setReportViewContext] = useState<'outbox' | 'inbox'>('outbox');
 
     if (!currentUser) return null;
 
-    const handleSubmitReport = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const nonEmptyTasks = reportForm.tasks.filter(t => t.text.trim() !== '');
-        if (nonEmptyTasks.length === 0) return;
+    const myReports = useMemo(() => reports.filter(r => r.userId === currentUser.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [reports, currentUser.id]);
+    const submittedReports = useMemo(() => myReports.filter(r => r.status === 'submitted'), [myReports]);
+    const myDrafts = useMemo(() => myReports.filter(r => r.status === 'draft'), [myReports]);
+    const inboxReports = useMemo(() => submittedReports.filter(r => r.managerComment), [submittedReports]);
+    const unreadCommentsCount = useMemo(() => inboxReports.filter(r => !r.isCommentReadByEmployee).length, [inboxReports]);
+    const myDirectTasks = useMemo(() => directTasks.filter(t => t.employeeId === currentUser.id), [directTasks, currentUser.id]);
+    const unreadDirectTasksCount = useMemo(() => myDirectTasks.filter(t => t.status === 'pending').length, [myDirectTasks]);
 
-        const reportData = {
-            userId: currentUser.id,
-            date: new Date().toISOString().split('T')[0],
-            day: new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(new Date()),
-            tasks: nonEmptyTasks.map(t => ({ id: t.id, text: t.text })),
-            accomplished: reportForm.accomplished,
-            notAccomplished: reportForm.notAccomplished,
-            attachments: reportForm.attachments
+    useEffect(() => {
+        const handleStorageChange = (event: StorageEvent) => {
+            if (event.key === 'comment_notification' && event.newValue && currentUser) {
+                try {
+                    const payload = JSON.parse(event.newValue);
+                    if (payload.userId === currentUser.id) {
+                        setNotification(payload.message || 'لديك تعليق جديد من المسؤول على أحد تقاريرك.');
+                    }
+                } catch (e) {
+                    console.error("Failed to parse notification from storage", e);
+                }
+            }
+            if (event.key === 'task_notification' && event.newValue && currentUser) {
+                 try {
+                    const payload = JSON.parse(event.newValue);
+                    if (payload.userId === currentUser.id) {
+                        setNotification(payload.message || 'لديك مهمة جديدة من المسؤول.');
+                    }
+                } catch (e) {
+                    console.error("Failed to parse notification from storage", e);
+                }
+            }
         };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, [currentUser]);
+    
+    const pageTitles: { [key: string]: string } = {
+        welcome: 'الرئيسية',
+        new: editingDraft ? 'تعديل مسودة' : 'تقرير جديد',
+        submitted: 'التقارير الصادرة',
+        inbox: 'البريد الوارد',
+        drafts: 'المسودات',
+        directTasks: 'المهام الواردة',
+        profile: 'الملف الشخصي',
+    };
 
-        try {
-            await addReport(reportData);
-            setReportForm({
-                tasks: [{ id: Date.now().toString(), text: '' }],
-                accomplished: '',
-                notAccomplished: '',
-                attachments: []
-            });
-            setToast({ message: 'تم إرسال التقرير بنجاح!', type: 'success' });
-            setActiveTab('archive');
-        } catch (error) {
-            setToast({ message: 'فشل إرسال التقرير.', type: 'info' });
+     const handleReportFormFinish = useCallback(() => {
+        setEditingDraft(null);
+        setActiveTab('submitted');
+    }, []);
+
+    const handleEditDraft = useCallback((draft: Report) => {
+        setEditingDraft(draft);
+        setActiveTab('new');
+    }, []);
+    
+    const handleDeleteDraft = useCallback(async () => {
+        if (draftToDelete) {
+            await deleteReport(draftToDelete.id);
+            setDraftToDelete(null);
+        }
+    }, [draftToDelete, deleteReport]);
+
+    const handleViewSentReport = (report: Report) => {
+        setReportViewContext('outbox');
+        setViewingReport(report);
+    };
+
+    const handleViewReceivedReport = (report: Report) => {
+        setReportViewContext('inbox');
+        setViewingReport(report);
+    };
+
+    const renderContent = () => {
+        switch(activeTab) {
+            case 'welcome':
+                return <WelcomeView user={currentUser} onStart={() => { setEditingDraft(null); setActiveTab('new'); }} />;
+            case 'submitted':
+                return (
+                    <div className="space-y-4">
+                        {submittedReports.length > 0 ? submittedReports.map(report => (
+                            <ReportView 
+                                key={report.id} 
+                                report={report} 
+                                user={currentUser} 
+                                viewerRole={Role.EMPLOYEE} 
+                                onClick={() => handleViewSentReport(report)} 
+                            />
+                        )) : <p className="text-gray-500 dark:text-gray-400">لم تقم بإرسال أي تقارير بعد.</p>}
+                    </div>
+                );
+            case 'inbox':
+                 return (
+                    <div className="space-y-4">
+                        {inboxReports.length > 0 ? inboxReports.map(report => (
+                            <ReportView 
+                                key={report.id} 
+                                report={report} 
+                                user={currentUser} 
+                                viewerRole={Role.EMPLOYEE} 
+                                onClick={() => handleViewReceivedReport(report)} 
+                            />
+                        )) : <p className="text-gray-500 dark:text-gray-400">لا توجد لديك أي رسائل في البريد الوارد.</p>}
+                    </div>
+                );
+            case 'drafts':
+                return (
+                    <div className="space-y-4">
+                        {myDrafts.length > 0 ? myDrafts.map(draft => (
+                            <DraftView key={draft.id} draft={draft} onEdit={handleEditDraft} onDelete={setDraftToDelete} />
+                        )) : <p className="text-gray-500 dark:text-gray-400">لا توجد لديك أي مسودات محفوظة.</p>}
+                    </div>
+                );
+            case 'directTasks':
+                return <DirectTasksView />;
+            case 'profile':
+                return <ProfileManagement user={currentUser} />;
+            default: // 'new' tab
+                return <ReportForm user={currentUser} onFinish={handleReportFormFinish} draftToEdit={editingDraft} />;
         }
     };
 
@@ -168,237 +464,157 @@ const EmployeeDashboard: React.FC = () => {
         return (
              <button
                 onClick={() => {
+                    if (tabName === 'new') {
+                        setEditingDraft(null); // Always start fresh from sidebar
+                    }
                     setActiveTab(tabName);
-                    if (window.innerWidth < 768) setIsSidebarOpen(false);
+                    if (window.innerWidth < 768) {
+                        setIsSidebarOpen(false);
+                    }
                 }}
-                className={`flex items-center w-full px-4 py-3 text-sm font-medium transition-colors rounded-xl ${isActive ? 'bg-brand-light text-white shadow-lg shadow-brand-light/30' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}
+                className={`flex items-center w-full px-3 py-2 text-sm font-medium transition-colors rounded-lg ${isActive ? 'bg-brand-light/10 dark:bg-brand-light/20 text-brand-dark dark:text-gray-100 font-bold' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
             >
-                <div className="w-6 h-6">{icon}</div>
+                {icon}
                 <span className="mr-3">{label}</span>
-                {count && count > 0 ? <span className="flex items-center justify-center w-5 h-5 mr-auto text-xs font-bold text-white bg-brand-accent-red rounded-full">{count}</span> : null}
+                {count !== undefined && count > 0 ? <span className="flex items-center justify-center w-5 h-5 mr-auto text-xs font-bold text-white bg-brand-accent-red rounded-full">{count}</span> : null}
             </button>
-        );
-    };
+        )
+    }
 
-    const renderContent = () => {
-        switch(activeTab) {
-            case 'home':
-                return (
-                    <div className="space-y-6 animate-fade-in pb-20">
-                        <div className="bg-gradient-to-br from-brand-light to-brand-dark p-6 rounded-3xl shadow-xl flex flex-col items-center text-center text-white relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <AppLogoIcon className="w-24 h-24" />
-                            </div>
-                            <h3 className="text-2xl font-bold z-10">أهلاً بك، {currentUser.fullName.split(' ')[0]}</h3>
-                            <p className="text-white/80 text-sm mt-1 z-10">{new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                            <div className="mt-6 w-full max-w-xs bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
-                                <p className="text-xs font-bold mb-3">إنجازك اليوم</p>
-                                <div className="flex items-center gap-4">
-                                    <PercentageCircle percentage={plannerProgress} size={60} strokeWidth={6} className="text-white" />
-                                    <div className="text-right">
-                                        <p className="text-lg font-bold">{Math.round(plannerProgress)}%</p>
-                                        <p className="text-[10px] opacity-70">تم إنجاز {plannerTasks.filter(t => t.isDone && t.text).length} مهام</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* زر التثبيت الكبير في صدر الصفحة */}
-                        {!isStandalone && (
-                            <button 
-                                onClick={handleInstallClick}
-                                className="w-full p-6 bg-brand-light text-white rounded-[32px] flex items-center justify-between group active:scale-[0.98] transition-all shadow-xl shadow-brand-light/20 border-2 border-white/10 animate-fade-in"
-                            >
-                                <div className="flex items-center gap-4 text-right">
-                                    <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                                        <InstallIcon className="w-8 h-8" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-xl">تثبيت التطبيق الآن</h4>
-                                        <p className="text-xs opacity-80">حوّل النظام إلى تطبيق رسمي على هاتفك</p>
-                                    </div>
-                                </div>
-                                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                                    <PlusIcon className="w-6 h-6" />
-                                </div>
-                            </button>
-                        )}
-
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center">
-                                    <SparklesIcon className="w-5 h-5 ml-2 text-brand-accent-yellow" />
-                                    مخطط المهام اليومي
-                                </h3>
-                            </div>
-                            <div className="space-y-2">
-                                {plannerTasks.map((task, idx) => (
-                                    <div key={task.id} className="flex items-center gap-3">
-                                        <button 
-                                            onClick={() => setPlannerTasks(p => p.map(t => t.id === task.id ? {...t, isDone: !t.isDone} : t))}
-                                            className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.isDone ? 'bg-brand-accent-green border-brand-accent-green text-white' : 'border-gray-200 dark:border-gray-600'}`}
-                                        >
-                                            {task.isDone && <CheckCircleIcon className="w-4 h-4" />}
-                                        </button>
-                                        <input 
-                                            type="text"
-                                            value={task.text}
-                                            onChange={(e) => setPlannerTasks(p => p.map(t => t.id === task.id ? {...t, text: e.target.value} : t))}
-                                            placeholder={`مهمة اليوم ${idx + 1}...`}
-                                            className={`flex-1 bg-transparent border-none focus:ring-0 text-sm p-1 transition-all ${task.isDone ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'}`}
-                                        />
-                                    </div>
-                                ))}
-                                <button 
-                                    onClick={() => setPlannerTasks(p => [...p, {id: Date.now().toString(), text: '', isDone: false}])}
-                                    className="flex items-center text-xs font-bold text-brand-light mt-2 p-1"
-                                >
-                                    <PlusIcon className="w-4 h-4 ml-1" /> إضافة مهمة
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            case 'new-report':
-                return (
-                    <form onSubmit={handleSubmitReport} className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6 animate-fade-in pb-20">
-                        <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100">إرسال التقرير النهائي</h3>
-                        
-                        <div className="space-y-3">
-                            <label className="text-sm font-bold text-gray-600 dark:text-gray-400">المهام التي تم العمل عليها:</label>
-                            {reportForm.tasks.map((task, index) => (
-                                <div key={task.id} className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={task.text}
-                                        onChange={(e) => setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === task.id ? { ...t, text: e.target.value } : t) }))}
-                                        placeholder={`المهمة ${index + 1}...`}
-                                        className="flex-1 px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none"
-                                    />
-                                    {index > 0 && (
-                                        <button type="button" onClick={() => setReportForm(p => ({...p, tasks: p.tasks.filter(t => t.id !== task.id)}))} className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl">
-                                            <TrashIcon className="w-5 h-5" />
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-                            <button type="button" onClick={() => setReportForm(p => ({...p, tasks: [...p.tasks, {id: Date.now().toString(), text: ''}]}))} className="flex items-center text-xs font-bold text-brand-light">
-                                <PlusIcon className="w-4 h-4 ml-1" /> إضافة سطر مهمة
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-sm font-bold text-gray-600 dark:text-gray-400 block mb-2">ما تم إنجازه فعلياً:</label>
-                                <textarea placeholder="اكتب تفاصيل الإنجاز..." value={reportForm.accomplished} onChange={e => setReportForm(p => ({...p, accomplished: e.target.value}))} rows={3} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/50" />
-                            </div>
-                            
-                            <div>
-                                <label className="text-sm font-bold text-gray-600 dark:text-gray-400 block mb-2">ما لم يتم إنجازه / المعوقات:</label>
-                                <textarea placeholder="اكتب مالم يتم إنجازه أو أي معوقات واجهتك..." value={reportForm.notAccomplished} onChange={e => setReportForm(p => ({...p, notAccomplished: e.target.value}))} rows={3} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/50" />
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <label className="text-sm font-bold text-gray-600 dark:text-gray-400 block">المرفقات والوثائق:</label>
-                            <div className="flex gap-3">
-                                <button type="button" onClick={() => fileInputRef.current?.click()} className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-100 dark:bg-gray-700 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300">
-                                    <DocumentTextIcon className="w-6 h-6" />
-                                    <span>ملف / مستند</span>
-                                </button>
-                                <button type="button" onClick={() => cameraInputRef.current?.click()} className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-100 dark:bg-gray-700 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300">
-                                    <CameraIcon className="w-6 h-6" />
-                                    <span>صورة كاميرا</span>
-                                </button>
-                            </div>
-                            
-                            <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileChange} />
-                            <input type="file" ref={cameraInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
-
-                            {reportForm.attachments.length > 0 && (
-                                <div className="grid grid-cols-2 gap-3 mt-4">
-                                    {reportForm.attachments.map((file, idx) => (
-                                        <div key={idx} className="relative group p-2 bg-gray-50 dark:bg-gray-700 rounded-xl border dark:border-gray-600">
-                                            <button type="button" onClick={() => removeAttachment(idx)} className="absolute -top-2 -left-2 bg-red-500 text-white rounded-full p-1 shadow-lg z-10">
-                                                <XMarkIcon className="w-4 h-4" />
-                                            </button>
-                                            <div className="flex items-center gap-2">
-                                                {file.type.startsWith('image/') ? (
-                                                    <img src={file.content} className="w-10 h-10 rounded-lg object-cover" />
-                                                ) : (
-                                                    <div className="w-10 h-10 bg-brand-light/10 text-brand-light rounded-lg flex items-center justify-center">
-                                                        <PaperclipIcon className="w-5 h-5" />
-                                                    </div>
-                                                )}
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-[10px] font-bold truncate text-gray-700 dark:text-gray-200">{file.name}</p>
-                                                    <p className="text-[8px] text-gray-500">{(file.size / 1024).toFixed(0)} KB</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <button type="submit" className="w-full py-5 bg-brand-light text-white rounded-2xl font-bold text-lg shadow-xl shadow-brand-light/30 active:scale-[0.98] transition-all">إرسال التقرير للمسؤول</button>
-                    </form>
-                );
-            case 'tasks': return <div className="pb-20"><DirectTasksView /></div>;
-            case 'archive': return <div className="pb-20 space-y-4">{myReports.map(r => <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />)}</div>;
-            case 'profile': return <div className="pb-20"><ProfileManagement user={currentUser} /></div>;
-            default: return null;
-        }
-    };
-
-    return (
-        <div className="h-[100dvh] w-full bg-[#fcfdfe] dark:bg-[#0d1117] flex overflow-hidden">
-            {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
+    const SidebarContent = () => (
+        <div className="flex flex-col h-full">
+            <div className="flex items-center justify-center py-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shrink-0">
+                <AppLogoIcon className="w-7 h-7 text-brand-dark dark:text-gray-100" />
+                <h1 className="mr-2 text-base font-bold text-brand-dark dark:text-gray-100">المهام اليومية</h1>
+            </div>
             
-            <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-                <div className="flex flex-col h-full border-l dark:border-gray-800">
-                    <div className="flex flex-col items-center p-6 border-b dark:border-gray-800 gap-2">
-                        <div className="w-10 h-10"><AppLogoIcon /></div>
-                        <h1 className="text-lg font-bold dark:text-gray-100">مهامي اليومية</h1>
-                    </div>
-                    
-                    <nav className="flex-grow px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
-                        <NavItem tabName="home" label="الرئيسية" icon={<HomeIcon className="w-6 h-6"/>} />
-                        <NavItem tabName="new-report" label="إرسال تقرير" icon={<NewReportIcon className="w-6 h-6"/>} />
-                        <NavItem tabName="tasks" label="المهام الواردة" icon={<InboxIcon className="w-6 h-6"/>} count={unreadTasksCount}/>
-                        <NavItem tabName="archive" label="الأرشيف" icon={<ArchiveBoxIcon className="w-6 h-6"/>} />
-                        <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />
-                    </nav>
-                    
-                    <div className="p-4 border-t dark:border-gray-800 space-y-2 mb-safe">
-                        {!isStandalone && (
-                            <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 shadow-lg shadow-brand-light/20 transition-all border border-white/10">
-                                <InstallIcon className="w-6 h-6"/>
-                                <span className="mr-3 text-xs">تثبيت التطبيق الآن</span>
-                            </button>
-                        )}
-                        <ThemeToggle />
-                        <button onClick={logout} className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-500 rounded-xl active:scale-95">
-                            <LogoutIcon className="w-6 h-6"/>
-                            <span className="mr-3">خروج</span>
-                        </button>
-                    </div>
+            <div className="flex flex-col items-center p-3 border-b bg-gray-50/50 dark:bg-gray-700/20 dark:border-gray-700 shrink-0">
+                <Avatar src={currentUser.profilePictureUrl} name={currentUser.fullName} size={40} />
+                <div className="mt-1 text-center">
+                    <span className="block font-bold text-sm text-gray-800 dark:text-gray-200">{currentUser.fullName.split(' ').slice(0, 2).join(' ')}</span>
+                     <span className={`inline-flex items-center text-[10px] font-medium ${isCloud ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ml-1 ${isCloud ? 'bg-green-500' : 'bg-orange-500'}`}></span>
+                        {isCloud ? 'متصل' : 'محلي'}
+                    </span>
                 </div>
-            </aside>
-            
-            <div className="flex-1 flex flex-col h-full overflow-hidden">
-                <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b dark:border-gray-800 md:hidden z-20 sticky top-0 safe-area-top">
-                    <div className="flex items-center gap-2"><div className="w-8 h-8"><AppLogoIcon /></div><h2 className="text-lg font-bold dark:text-gray-100">مهامي</h2></div>
-                    <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-gray-50 dark:bg-gray-800 rounded-2xl"><MenuIcon className="w-6 h-6" /></button>
-                </header>
-
-                <main className="flex-1 overflow-y-auto p-4 md:p-10 no-scrollbar">
-                    <div className="container mx-auto max-w-4xl">{renderContent()}</div>
-                </main>
             </div>
 
-            {selectedReport && <ReportDetailModal report={selectedReport} user={currentUser} viewerRole={Role.EMPLOYEE} onClose={() => setSelectedReport(null)} />}
-            {toast && <Toast message={toast.message} onClose={() => setToast(null)} onClick={() => setToast(null)} />}
+            <nav className="flex-grow px-2 py-2 space-y-1 overflow-y-auto custom-scrollbar">
+                <NavItem tabName='welcome' label='الرئيسية' icon={<HomeIcon className="w-5 h-5"/>} />
+                <NavItem tabName='new' label='تقرير جديد' icon={<NewReportIcon className="w-5 h-5"/>} />
+                <NavItem tabName='drafts' label='المسودات' icon={<ArchiveBoxIcon className="w-5 h-5"/>} count={myDrafts.length}/>
+                <NavItem tabName='submitted' label='صادر' icon={<OutboxIcon className="w-5 h-5"/>} />
+                <NavItem tabName='inbox' label='الوارد' icon={<InboxIcon className="w-5 h-5"/>} count={unreadCommentsCount}/>
+                <NavItem tabName='directTasks' label='المهام الواردة' icon={<ClipboardDocumentListIcon className="w-5 h-5"/>} count={unreadDirectTasksCount}/>
+                <NavItem tabName='profile' label='الملف الشخصي' icon={<UserCircleIcon className="w-5 h-5"/>} />
+            </nav>
+            
+            <div className="px-2 py-2 mt-auto border-t dark:border-gray-700 space-y-1 bg-gray-50 dark:bg-gray-800 shrink-0">
+                 <ThemeToggle />
+                 <button
+                    onClick={() => setShowLogoutConfirm(true)}
+                    className="flex items-center w-full px-3 py-2 text-sm font-medium transition-colors rounded-lg text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600"
+                >
+                    <LogoutIcon className="w-5 h-5"/>
+                    <span className="mr-3">تسجيل الخروج</span>
+                </button>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="h-[100dvh] w-full bg-gray-50 dark:bg-gray-900 flex overflow-hidden">
+             {isSidebarOpen && (
+                <div 
+                    className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                ></div>
+            )}
+            
+            <aside className={`
+                fixed inset-y-0 right-0 z-40 w-64 h-full
+                bg-white dark:bg-gray-800 shadow-xl border-l dark:border-gray-700 
+                transform transition-transform duration-300 ease-in-out 
+                ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} 
+                md:relative md:translate-x-0
+            `}>
+                <SidebarContent />
+            </aside>
+
+            <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+                <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 md:hidden shrink-0 z-20">
+                    <div className="flex items-center">
+                        <AppLogoIcon className="w-8 h-8 ml-3 text-brand-dark dark:text-gray-100" />
+                        <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
+                    </div>
+                    <button onClick={() => setIsSidebarOpen(p => !p)}>
+                        {isSidebarOpen ? <XMarkIcon className="w-6 h-6 text-gray-800 dark:text-gray-200" /> : <MenuIcon className="w-6 h-6 text-gray-800 dark:text-gray-200" />}
+                    </button>
+                </header>
+
+                <main className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+                    <div className="container mx-auto max-w-5xl pb-10">
+                         <div className="hidden md:block mb-6">
+                            <div className="flex justify-between items-center border-b pb-4 dark:border-gray-700">
+                                <h1 className="text-2xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
+                                 <span className={`md:hidden px-2 py-0.5 text-xs rounded-full flex items-center ${isCloud ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+                                    <span className={`w-2 h-2 rounded-full mr-1.5 ${isCloud ? 'bg-green-500' : 'bg-orange-500'}`}></span>
+                                    {isCloud ? 'متصل' : 'محلي'}
+                                </span>
+                            </div>
+                        </div>
+                        {renderContent()}
+                    </div>
+                </main>
+                
+                <footer className="py-3 text-xs text-center text-gray-500 dark:text-gray-400 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900 shrink-0">
+                    <p>جميع الحقوق محفوظة 2025م</p>
+                    <p>حسين كاظم</p>
+                </footer>
+            </div>
+
+            {notification && (
+                <Toast
+                    message={notification}
+                    onClose={() => setNotification(null)}
+                    onClick={() => {
+                        if (notification.includes('مهمة')) {
+                             setActiveTab('directTasks');
+                        } else {
+                             setActiveTab('inbox');
+                        }
+                        setNotification(null);
+                    }}
+                />
+            )}
+            {viewingReport && (
+                <ReportDetailModal
+                    report={viewingReport}
+                    user={currentUser}
+                    viewerRole={Role.EMPLOYEE}
+                    onClose={() => setViewingReport(null)}
+                    hideMargin={reportViewContext === 'outbox'}
+                />
+            )}
+            {showLogoutConfirm && (
+                <ConfirmModal
+                    title="تأكيد تسجيل الخروج"
+                    message="هل أنت متأكد من رغبتك في تسجيل الخروج؟"
+                    onConfirm={logout}
+                    onCancel={() => setShowLogoutConfirm(false)}
+                    confirmText="خروج"
+                />
+            )}
+            {draftToDelete && (
+                 <ConfirmModal
+                    title="تأكيد الحذف"
+                    message={`هل أنت متأكد من حذف هذه المسودة بتاريخ ${draftToDelete.date}؟`}
+                    onConfirm={handleDeleteDraft}
+                    onCancel={() => setDraftToDelete(null)}
+                    confirmText="حذف"
+                    confirmButtonClass="bg-brand-accent-red hover:bg-red-700"
+                />
+            )}
         </div>
     );
 };

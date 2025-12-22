@@ -7,7 +7,6 @@ import EmployeeDashboard from './components/EmployeeDashboard';
 import ManagerDashboard from './components/ManagerDashboard';
 import { ThemeProvider } from './context/ThemeContext';
 import ExclamationCircleIcon from './components/icons/ExclamationCircleIcon';
-import InstallPWA from './components/InstallPWA';
 
 const AppContent: React.FC = () => {
     const { currentUser, loading: authLoading } = useAuth();
@@ -50,10 +49,13 @@ const AppContent: React.FC = () => {
         );
     }
     
+    if (!currentUser) {
+        return <Login />;
+    }
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            {!currentUser ? <Login /> : (currentUser.role === 'employee' ? <EmployeeDashboard /> : <ManagerDashboard />)}
-            <InstallPWA />
+            {currentUser.role === 'employee' ? <EmployeeDashboard /> : <ManagerDashboard />}
         </div>
     );
 };
