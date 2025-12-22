@@ -14,12 +14,12 @@ window.addEventListener('beforeinstallprompt', (e) => {
   // منع النافذة التلقائية للتحكم بها يدوياً عبر الأزرار
   e.preventDefault();
   window.deferredPrompt = e;
-  // إعلام التطبيق أن التثبيت المباشر متاح الآن لتحديث الأزرار
+  // إعلام التطبيق أن التثبيت المباشر متاح الآن لتحديث واجهة المستخدم
   window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
-  console.log('PWA: Native install prompt is ready to be triggered');
+  console.log('PWA: Native install prompt is captured and ready');
 });
 
-// تنظيف الطلب بعد نجاح التثبيت وإخفاء الأزرار
+// تنظيف الطلب بعد نجاح التثبيت
 window.addEventListener('appinstalled', () => {
   window.deferredPrompt = null;
   window.dispatchEvent(new CustomEvent('pwa-installed-success'));

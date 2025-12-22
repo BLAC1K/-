@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { Role, Attachment, Report, Task } from '../types';
+import { Role, Attachment, Report, Task, DirectTask } from '../types';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import PaperclipIcon from './icons/PaperclipIcon';
@@ -29,9 +29,11 @@ import PercentageCircle from './StarRating';
 import CheckCircleIcon from './icons/CheckCircleIcon';
 import XMarkIcon from './icons/XMarkIcon';
 
+const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
-    const { reports, directTasks, addReport } = useData();
+    const { reports, directTasks, addReport, users } = useData();
     
     const [activeTab, setActiveTab] = useState('home');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -42,12 +44,29 @@ const EmployeeDashboard: React.FC = () => {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
+    const lastNotifiedTaskId = useRef<string | null>(null);
 
     // Planner state
     const [plannerTasks, setPlannerTasks] = useState<Task[]>(() => {
         const saved = localStorage.getItem(`planner_${currentUser?.id}`);
         return saved ? JSON.parse(saved) : [{ id: Date.now().toString(), text: '', isDone: false }];
     });
+
+    // إشعارات المهام الجديدة
+    const triggerNotification = async (title: string, body: string) => {
+        const audio = new Audio(NOTIFICATION_SOUND_URL);
+        audio.play().catch(() => {});
+
+        if (Notification.permission === 'granted') {
+            new Notification(title, { 
+                body, 
+                icon: '/icon.png',
+                badge: '/icon.png',
+                dir: 'rtl'
+            });
+        }
+        setToast({ message: body, type: 'info' });
+    };
 
     useEffect(() => {
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
@@ -62,11 +81,32 @@ const EmployeeDashboard: React.FC = () => {
         window.addEventListener('pwa-prompt-ready', handlePromptReady);
         window.addEventListener('pwa-installed-success', handleInstalled);
 
+        // طلب إذن الإشعارات عند الدخول
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
         return () => {
             window.removeEventListener('pwa-prompt-ready', handlePromptReady);
             window.removeEventListener('pwa-installed-success', handleInstalled);
         };
     }, []);
+
+    // مراقبة المهام الجديدة الموجهة للموظف
+    useEffect(() => {
+        const myPendingTasks = directTasks.filter(t => t.employeeId === currentUser?.id && t.status === 'pending');
+        if (myPendingTasks.length > 0) {
+            const newestTask = myPendingTasks[0]; // المهام مرتبة تنازلياً في الـ Context
+            if (newestTask.id !== lastNotifiedTaskId.current) {
+                // إذا لم يكن هذا الإخطار قد تم من قبل
+                if (lastNotifiedTaskId.current !== null) { // لا تشعر عند التحميل الأول
+                    const manager = users.find(u => u.id === newestTask.managerId);
+                    triggerNotification("مهمة جديدة واردة", `أرسل لك المسؤول ${manager?.fullName || ''} مهمة جديدة.`);
+                }
+                lastNotifiedTaskId.current = newestTask.id;
+            }
+        }
+    }, [directTasks, currentUser, users]);
 
     const handleInstallClick = async () => {
         if (window.deferredPrompt) {
@@ -80,6 +120,8 @@ const EmployeeDashboard: React.FC = () => {
             const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
             if (isIos) {
                 window.dispatchEvent(new CustomEvent('open-install-instructions'));
+            } else {
+                setToast({ message: 'المتصفح يجهز ملفات التثبيت، حاول مرة أخرى.', type: 'info' });
             }
         }
     };

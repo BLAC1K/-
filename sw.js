@@ -1,4 +1,4 @@
-const CACHE_NAME = 'daily-tasks-v6';
+const CACHE_NAME = 'daily-tasks-v7'; // تحديث النسخة
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -22,26 +22,31 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// ضروري جداً لجعل التطبيق "قابل للتثبيت" في نظر المتصفح
+// التعامل مع الطلبات والاحتفاظ بنسخة احتياطية للعمل دون إنترنت
 self.addEventListener('fetch', event => {
-  // التجاوب مع الطلبات حتى لو كان غير متصل
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/'))
+    );
+    return;
+  }
+  
   event.respondWith(
     caches.match(event.request).then(response => {
-      return response || fetch(event.request).catch(() => {
-        // إذا فشل كل شيء (أوفلاين)، نرجع الصفحة الرئيسية من الكاش
-        if (event.request.mode === 'navigate') {
-          return caches.match('/');
-        }
-      });
+      return response || fetch(event.request);
     })
   );
 });
 
+// استقبال إشعارات الـ Push
 self.addEventListener('push', event => {
   const data = event.data ? event.data.json() : { title: 'تنبيه', body: 'تحديث جديد في مهامي.' };
-  event.waitUntil(self.registration.showNotification(data.title, {
+  const options = {
     body: data.body,
     icon: '/icon.png',
-    badge: '/icon.png'
-  }));
+    badge: '/icon.png',
+    vibrate: [200, 100, 200],
+    dir: 'rtl'
+  };
+  event.waitUntil(self.registration.showNotification(data.title, options));
 });

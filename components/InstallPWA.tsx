@@ -9,12 +9,14 @@ import InstallIcon from './icons/InstallIcon';
 const InstallPWA: React.FC = () => {
     const [isVisible, setIsVisible] = useState(false);
     const [platform, setPlatform] = useState<'ios' | 'android' | 'desktop'>('android');
+    const [isPwaReady, setIsPwaReady] = useState(!!window.deferredPrompt);
 
     useEffect(() => {
         const userAgent = window.navigator.userAgent.toLowerCase();
         const isIos = /iphone|ipad|ipod/.test(userAgent);
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
 
+        // إذا كان التطبيق مثبتاً بالفعل، لا تظهر شيئاً
         if (isStandalone) return;
 
         if (isIos) {
@@ -25,18 +27,30 @@ const InstallPWA: React.FC = () => {
             setPlatform('desktop');
         }
 
-        // الاستماع لحدث فتح التعليمات يدوياً فقط
+        const handlePromptReady = () => setIsPwaReady(true);
         const handleManualOpen = () => setIsVisible(true);
-        window.addEventListener('open-install-instructions', handleManualOpen);
+        const handleInstalled = () => setIsVisible(false);
 
-        // لمستخدمي آيفون فقط: إظهار تذكير خفيف بعد فترة
+        window.addEventListener('pwa-prompt-ready', handlePromptReady);
+        window.addEventListener('open-install-instructions', handleManualOpen);
+        window.addEventListener('pwa-installed-success', handleInstalled);
+
+        // لمستخدمي آيفون: إظهار التلميح بعد 8 ثوانٍ من التصفح لأول مرة
         if (isIos) {
-            const timer = setTimeout(() => setIsVisible(true), 10000);
+            const timer = setTimeout(() => {
+                const hasShown = localStorage.getItem('pwa_hint_shown');
+                if (!hasShown) {
+                    setIsVisible(true);
+                    localStorage.setItem('pwa_hint_shown', 'true');
+                }
+            }, 8000);
             return () => clearTimeout(timer);
         }
 
         return () => {
+            window.removeEventListener('pwa-prompt-ready', handlePromptReady);
             window.removeEventListener('open-install-instructions', handleManualOpen);
+            window.removeEventListener('pwa-installed-success', handleInstalled);
         };
     }, []);
 
@@ -48,13 +62,16 @@ const InstallPWA: React.FC = () => {
                 window.deferredPrompt = null;
                 setIsVisible(false);
             }
+        } else {
+            // في حال فقدان المتصفح للإشارة لسبب ما
+            alert('المتصفح يجهز ملفات التثبيت، يرجى المحاولة بعد قليل أو التثبيت يدوياً من قائمة المتصفح.');
         }
     };
 
     if (!isVisible) return null;
 
     return (
-        <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in no-print">
+        <div className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in no-print">
             <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-t-[32px] sm:rounded-[32px] shadow-2xl p-6 relative animate-fade-in-up border border-gray-100 dark:border-gray-800">
                 <button 
                     onClick={() => setIsVisible(false)}
@@ -67,54 +84,67 @@ const InstallPWA: React.FC = () => {
                     <div className="w-16 h-16 bg-brand-light/10 rounded-2xl flex items-center justify-center mb-4 ring-4 ring-brand-light/5">
                         <AppLogoIcon className="w-12 h-12 text-brand-light" />
                     </div>
-                    <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100">تثبيت التطبيق على هاتفك</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">احصل على تجربة أسرع وإشعارات فورية</p>
+                    <h3 className="text-xl font-bold text-brand-dark dark:text-gray-100">تثبيت تطبيق المهام</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">للحصول على وصول سريع وإشعارات المهام الفورية</p>
                 </div>
 
-                <div className="space-y-6">
-                    {window.deferredPrompt ? (
-                        <div className="space-y-4">
+                <div className="space-y-4">
+                    {isPwaReady && platform !== 'ios' ? (
+                        <div className="space-y-3">
                             <button 
                                 onClick={handleInstallDirectly}
                                 className="w-full py-4 bg-brand-light text-white rounded-2xl font-bold text-lg hover:bg-brand-dark transition-all shadow-xl shadow-brand-light/20 flex items-center justify-center gap-3 active:scale-95"
                             >
                                 <InstallIcon className="w-6 h-6" />
-                                تثبيت الآن بنقرة واحدة
+                                تثبيت الآن فوري
                             </button>
+                            <p className="text-[10px] text-center text-gray-400">يدعم أندرويد و ويندوز</p>
                         </div>
                     ) : (
-                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-5 space-y-4">
-                            <p className="text-sm font-bold text-brand-dark dark:text-brand-accent-yellow mb-2">اتبع الخطوات التالية:</p>
+                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-5 space-y-4 border border-gray-100 dark:border-gray-700">
+                            <p className="text-sm font-bold text-brand-dark dark:text-brand-accent-yellow text-center">خطوات التثبيت اليدوي:</p>
+                            
                             {platform === 'ios' ? (
                                 <div className="space-y-4 text-right">
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                                        <span className="w-6 h-6 rounded-full bg-brand-light text-white flex items-center justify-center text-xs shrink-0">1</span>
-                                        اضغط على أيقونة <ShareIcon className="w-5 h-5 text-blue-500 inline mx-1" /> "مشاركة"
-                                    </p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                                        <span className="w-6 h-6 rounded-full bg-brand-light text-white flex items-center justify-center text-xs shrink-0">2</span>
-                                        اختر "إضافة إلى الشاشة الرئيسية"
-                                    </p>
+                                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center shrink-0">
+                                            <ShareIcon className="w-5 h-5" />
+                                        </div>
+                                        <span>اضغط على زر <b>المشاركة</b> في متصفح سفاري بالأسفل</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+                                        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 flex items-center justify-center shrink-0">
+                                            <PlusIcon className="w-5 h-5" />
+                                        </div>
+                                        <span>اختر <b>"إضافة إلى الشاشة الرئيسية"</b></span>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="space-y-4 text-right">
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                                        <span className="w-6 h-6 rounded-full bg-brand-light text-white flex items-center justify-center text-xs shrink-0">1</span>
-                                        اضغط على نقاط القائمة <MenuIcon className="w-5 h-5 inline mx-1" />
-                                    </p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                                        <span className="w-6 h-6 rounded-full bg-brand-light text-white flex items-center justify-center text-xs shrink-0">2</span>
-                                        اختر "تثبيت التطبيق" أو "إضافة للشاشة"
-                                    </p>
+                                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+                                        <div className="w-8 h-8 rounded-full bg-brand-light/10 text-brand-light flex items-center justify-center shrink-0">
+                                            <MenuIcon className="w-5 h-5" />
+                                        </div>
+                                        <span>اضغط على <b>نقاط القائمة</b> في الزاوية</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+                                        <div className="w-8 h-8 rounded-full bg-brand-light/10 text-brand-light flex items-center justify-center shrink-0">
+                                            <InstallIcon className="w-5 h-5" />
+                                        </div>
+                                        <span>اختر <b>"تثبيت التطبيق"</b> أو <b>"Install"</b></span>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     )}
                 </div>
 
-                <div className="mt-6 pt-6 border-t dark:border-gray-800">
-                    <button onClick={() => setIsVisible(false)} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600">إغلاق</button>
-                </div>
+                <button 
+                    onClick={() => setIsVisible(false)} 
+                    className="mt-6 w-full py-2 text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                >
+                    تجاهل الآن
+                </button>
             </div>
         </div>
     );

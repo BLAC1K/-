@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -33,6 +34,23 @@ const ManagerDashboard: React.FC = () => {
 
     const lastNotifiedReportId = useRef<string | null>(null);
 
+    // دالة إطلاق الإشعار البرمجي
+    const triggerNotification = async (title: string, body: string) => {
+        const audio = new Audio(NOTIFICATION_SOUND_URL);
+        audio.play().catch(() => {});
+
+        // التحقق من إذن الإشعارات وإرسال إشعار المتصفح
+        if (Notification.permission === 'granted') {
+            new Notification(title, { 
+                body, 
+                icon: '/icon.png',
+                badge: '/icon.png',
+                dir: 'rtl'
+            });
+        }
+        setToast({ message: body, type: 'info' });
+    };
+
     useEffect(() => {
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
@@ -46,11 +64,32 @@ const ManagerDashboard: React.FC = () => {
         window.addEventListener('pwa-prompt-ready', handlePromptReady);
         window.addEventListener('pwa-installed-success', handleInstalled);
 
+        // طلب إذن الإشعارات عند الدخول
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
         return () => {
             window.removeEventListener('pwa-prompt-ready', handlePromptReady);
             window.removeEventListener('pwa-installed-success', handleInstalled);
         };
     }, []);
+
+    // مراقبة وصول تقارير جديدة
+    useEffect(() => {
+        const submittedReports = reports.filter(r => r.status === 'submitted');
+        if (submittedReports.length > 0) {
+            const newestReport = submittedReports[0]; // التقارير مرتبة تنازلياً في الـ Context
+            if (newestReport.id !== lastNotifiedReportId.current) {
+                // إذا لم يكن هذا التقرير قد تم إخطار المدير به من قبل
+                if (lastNotifiedReportId.current !== null) { // لا تشعر عند التحميل الأول للبيانات
+                    const sender = users.find(u => u.id === newestReport.userId);
+                    triggerNotification("وصول تقرير جديد", `أرسل المنتسب ${sender?.fullName || 'غير معروف'} تقريره اليومي.`);
+                }
+                lastNotifiedReportId.current = newestReport.id;
+            }
+        }
+    }, [reports, users]);
 
     const handleInstallClick = async () => {
         if (window.deferredPrompt) {
@@ -65,41 +104,10 @@ const ManagerDashboard: React.FC = () => {
             if (isIos) {
                 window.dispatchEvent(new CustomEvent('open-install-instructions'));
             } else if (!isStandalone) {
-                setToast({ message: 'المتصفح يجهز ملفات التثبيت، حاول مرة أخرى بعد قليل.', type: 'info' });
+                setToast({ message: 'المتصفح يجهز ملفات التثبيت، حاول مرة أخرى.', type: 'info' });
             }
         }
     };
-
-    const triggerNotification = async (title: string, body: string) => {
-        const audio = new Audio(NOTIFICATION_SOUND_URL);
-        audio.play().catch(() => {});
-
-        if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-            const registration = await navigator.serviceWorker.ready;
-            registration.showNotification(title, {
-                body,
-                icon: '/icon.png',
-                badge: '/icon.png',
-                vibrate: [300, 100, 300],
-                requireInteraction: true
-            } as any);
-        } else if (Notification.permission === 'granted') {
-            new Notification(title, { body, icon: '/icon.png' });
-        }
-        setToast({ message: body, type: 'info' });
-    };
-
-    useEffect(() => {
-        const submittedReports = reports.filter(r => r.status === 'submitted');
-        if (submittedReports.length > 0) {
-            const newestReport = submittedReports[submittedReports.length - 1];
-            if (newestReport.id !== lastNotifiedReportId.current) {
-                const sender = users.find(u => u.id === newestReport.userId);
-                triggerNotification("وصول تقرير جديد", `قام المنتسب ${sender?.fullName || 'غير معروف'} بإرسال تقريره اليومي.`);
-                lastNotifiedReportId.current = newestReport.id;
-            }
-        }
-    }, [reports, users]);
 
     if (!currentUser) return null;
     
