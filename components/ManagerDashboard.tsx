@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -39,9 +38,20 @@ const ManagerDashboard: React.FC = () => {
         setIsStandalone(!!checkStandalone);
 
         const handlePWAReady = () => setCanInstallDirectly(true);
+        const handleInstalled = () => {
+            setIsStandalone(true);
+            setCanInstallDirectly(false);
+        };
+
         window.addEventListener('pwa-install-ready', handlePWAReady);
+        window.addEventListener('pwa-installed-success', handleInstalled);
         
-        return () => window.removeEventListener('pwa-install-ready', handlePWAReady);
+        if (window.deferredPrompt) setCanInstallDirectly(true);
+
+        return () => {
+            window.removeEventListener('pwa-install-ready', handlePWAReady);
+            window.removeEventListener('pwa-installed-success', handleInstalled);
+        };
     }, []);
 
     const handleInstallClick = async () => {
@@ -56,8 +66,8 @@ const ManagerDashboard: React.FC = () => {
              const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
             if (isIos) {
                 window.dispatchEvent(new CustomEvent('open-install-instructions'));
-            } else {
-                setToast({ message: 'التطبيق مثبت بالفعل أو أن المتصفح لا يدعم التثبيت المباشر.', type: 'info' });
+            } else if (!isStandalone) {
+                setToast({ message: 'يرجى المحاولة بعد قليل، المتصفح يجهز ملفات التثبيت.', type: 'info' });
             }
         }
     };
@@ -70,13 +80,13 @@ const ManagerDashboard: React.FC = () => {
             const registration = await navigator.serviceWorker.ready;
             registration.showNotification(title, {
                 body,
-                icon: '/icon-192.png',
-                badge: '/icon-192.png',
+                icon: '/icon.png',
+                badge: '/icon.png',
                 vibrate: [300, 100, 300],
                 requireInteraction: true
             } as any);
         } else if (Notification.permission === 'granted') {
-            new Notification(title, { body, icon: '/icon-192.png' });
+            new Notification(title, { body, icon: '/icon.png' });
         }
         setToast({ message: body, type: 'info' });
     };

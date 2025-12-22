@@ -11,18 +11,19 @@ declare global {
 
 // التقاط حدث التثبيت وتخزينه عالمياً بمجرد توفره
 window.addEventListener('beforeinstallprompt', (e) => {
-  // منع المتصفح من إظهار النافذة التلقائية
+  // منع المتصفح من إظهار النافذة التلقائية المزعجة
   e.preventDefault();
   // تخزين الحدث ليتم استدعاؤه لاحقاً عند ضغط المستخدم على زر التثبيت
   window.deferredPrompt = e;
   // إرسال حدث مخصص لإبلاغ المكونات بأن التثبيت المباشر متاح الآن
   window.dispatchEvent(new CustomEvent('pwa-install-ready'));
-  console.log('PWA: Install prompt is ready');
+  console.log('PWA: Install prompt is captured and ready');
 });
 
 // تنظيف المتغير عند نجاح التثبيت
 window.addEventListener('appinstalled', () => {
   window.deferredPrompt = null;
+  window.dispatchEvent(new CustomEvent('pwa-installed-success'));
   console.log('PWA: App installed successfully');
 });
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -30,8 +29,6 @@ import SparklesIcon from './icons/SparklesIcon';
 import PercentageCircle from './StarRating';
 import CheckCircleIcon from './icons/CheckCircleIcon';
 
-const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
-
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
     const { reports, directTasks, announcements, addReport } = useData();
@@ -50,22 +47,31 @@ const EmployeeDashboard: React.FC = () => {
         return saved ? JSON.parse(saved) : [{ id: Date.now().toString(), text: '', isDone: false }];
     });
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const cameraInputRef = useRef<HTMLInputElement>(null);
-
     useEffect(() => {
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
 
         const handlePWAReady = () => setCanInstallDirectly(true);
+        const handleInstalled = () => {
+            setIsStandalone(true);
+            setCanInstallDirectly(false);
+        };
+
         window.addEventListener('pwa-install-ready', handlePWAReady);
+        window.addEventListener('pwa-installed-success', handleInstalled);
         
-        return () => window.removeEventListener('pwa-install-ready', handlePWAReady);
+        // التحقق الأولي
+        if (window.deferredPrompt) setCanInstallDirectly(true);
+
+        return () => {
+            window.removeEventListener('pwa-install-ready', handlePWAReady);
+            window.removeEventListener('pwa-installed-success', handleInstalled);
+        };
     }, []);
 
     const handleInstallClick = async () => {
         if (window.deferredPrompt) {
-            // تنفيذ التثبيت الفوري والمباشر
+            // تنفيذ التثبيت الفوري والمباشر (نافذة المتصفح الرسمية)
             window.deferredPrompt.prompt();
             const { outcome } = await window.deferredPrompt.userChoice;
             if (outcome === 'accepted') {
@@ -73,12 +79,12 @@ const EmployeeDashboard: React.FC = () => {
                 setCanInstallDirectly(false);
             }
         } else {
-            // في حال عدم توفر التثبيت المباشر (مثل هواتف آيفون)
+            // فقط في حال كان آيفون، نظهر التعليمات لأن آيفون لا يدعم الضغطة الواحدة برمجياً
             const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
             if (isIos) {
                 window.dispatchEvent(new CustomEvent('open-install-instructions'));
-            } else {
-                setToast({ message: 'التطبيق مثبت بالفعل أو أن المتصفح لا يدعم التثبيت المباشر.', type: 'info' });
+            } else if (!isStandalone) {
+                setToast({ message: 'المتصفح يجهز ملفات التثبيت، حاول مرة أخرى بعد قليل.', type: 'info' });
             }
         }
     };
@@ -100,35 +106,6 @@ const EmployeeDashboard: React.FC = () => {
     }, [plannerTasks]);
 
     if (!currentUser) return null;
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (files) {
-            Array.from(files).forEach((file: File) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setReportForm(prev => ({
-                        ...prev,
-                        attachments: [...prev.attachments, {
-                            name: file.name,
-                            type: file.type,
-                            size: file.size,
-                            content: reader.result as string
-                        }]
-                    }));
-                };
-                reader.readAsDataURL(file);
-            });
-            e.target.value = '';
-        }
-    };
-
-    const removeAttachment = (index: number) => {
-        setReportForm(prev => ({
-            ...prev,
-            attachments: prev.attachments.filter((_, i) => i !== index)
-        }));
-    };
 
     const [reportForm, setReportForm] = useState<{
         tasks: { id: string, text: string }[],
@@ -212,7 +189,6 @@ const EmployeeDashboard: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* زر التثبيت المباشر */}
                         {!isStandalone && (
                             <button 
                                 onClick={handleInstallClick}
@@ -224,7 +200,7 @@ const EmployeeDashboard: React.FC = () => {
                                     </div>
                                     <div className="text-right">
                                         <h4 className="font-bold text-xl">تثبيت التطبيق الآن</h4>
-                                        <p className="text-xs opacity-80">اضغط هنا للتثبيت الفوري والمباشر على هاتفك</p>
+                                        <p className="text-xs opacity-80">اضغط هنا للتثبيت الفوري والمباشر على جهازك</p>
                                     </div>
                                 </div>
                                 <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors">
