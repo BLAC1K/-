@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { usePWA } from '../context/PWAContext';
 import LogoutIcon from './icons/LogoutIcon';
 import UserManagement from './UserManagement'; 
 import UsersIcon from './icons/UsersIcon';
@@ -17,11 +18,13 @@ import AppLogoIcon from './icons/AppLogoIcon';
 import ConfirmModal from './ConfirmModal';
 import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import SentTasksView from './SentTasksView';
+import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
 
 
 const ManagerDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
     const { reports, isCloud } = useData();
+    const { installable, showInstallPrompt } = usePWA();
     const [activeTab, setActiveTab] = useState('reports');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -90,6 +93,16 @@ const ManagerDashboard: React.FC = () => {
                 <NavItem tabName="employees" label="إدارة المنتسبين" icon={<UsersIcon className="w-5 h-5"/>} />
                 <NavItem tabName="sentTasks" label="المهام المرسلة" icon={<ClipboardDocumentListIcon className="w-5 h-5"/>} />
                 <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-5 h-5"/>} />
+
+                {installable && (
+                     <button
+                        onClick={showInstallPrompt}
+                        className="flex items-center w-full px-3 py-2 text-sm font-bold transition-colors rounded-lg text-brand-light bg-brand-light/10 hover:bg-brand-light/20 mt-4 border border-brand-light/30"
+                    >
+                        <ArrowDownTrayIcon className="w-5 h-5"/>
+                        <span className="mr-3">تثبيت التطبيق</span>
+                    </button>
+                )}
             </nav>
             
             <div className="px-2 py-2 mt-auto border-t dark:border-gray-700 space-y-1 bg-gray-50 dark:bg-gray-800 shrink-0">

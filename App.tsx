@@ -2,6 +2,7 @@
 import React from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
+import { PWAProvider } from './context/PWAContext';
 import Login from './components/Login';
 import EmployeeDashboard from './components/EmployeeDashboard';
 import ManagerDashboard from './components/ManagerDashboard';
@@ -64,9 +65,11 @@ const App: React.FC = () => {
     return (
         <ThemeProvider>
             <DataProvider>
-                <AuthProvider>
-                    <AppContent />
-                </AuthProvider>
+                <PWAProvider>
+                    <AuthProvider>
+                        <AppContent />
+                    </AuthProvider>
+                </PWAProvider>
             </DataProvider>
         </ThemeProvider>
     );

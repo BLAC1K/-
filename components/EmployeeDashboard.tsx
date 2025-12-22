@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { usePWA } from '../context/PWAContext';
 import { Report, Task, Role, User, Attachment } from '../types';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
@@ -29,6 +30,8 @@ import DirectTasksView from './DirectTasksView';
 import ArchiveBoxIcon from './icons/ArchiveBoxIcon';
 import ConfirmModal from './ConfirmModal';
 import EditIcon from './icons/EditIcon';
+import ArrowDownTrayIcon from './icons/ArrowDownTrayIcon';
+import InformationCircleIcon from './icons/InfoCircleIcon';
 
 
 interface ReportFormProps {
@@ -55,7 +58,6 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onFinish, draftToEdit }) 
             setNotAccomplished(draftToEdit.notAccomplished);
             setAttachments(draftToEdit.attachments || []);
         } else {
-            // Reset form when creating a new report
             setDate(new Date().toISOString().split('T')[0]);
             setTasks([{ id: 'task-1', text: '' }]);
             setAccomplished('');
@@ -84,7 +86,6 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onFinish, draftToEdit }) 
         if (e.target.files) {
             const fileList = Array.from(e.target.files);
             const newAttachments = await Promise.all(
-                // FIX: Explicitly type 'file' as 'File' to resolve type inference issues.
                 fileList.map(async (file: File) => ({
                     name: file.name,
                     type: file.type,
@@ -136,16 +137,16 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onFinish, draftToEdit }) 
         setIsSubmitting(true);
         const reportData = collectReportData();
 
-        if (draftToEdit) { // Submitting an existing draft
+        if (draftToEdit) {
             const submittedDraft: Report = {
                 ...draftToEdit,
                 ...reportData,
                 status: 'submitted',
             };
             await updateReport(submittedDraft);
-        } else { // Submitting a new report
+        } else {
              const newReport: Omit<Report, 'id' | 'sequenceNumber' | 'status'> = {
-                ...(reportData as any), // Type assertion as we know it's a new report
+                ...(reportData as any),
             };
             await addReport(newReport);
         }
@@ -264,45 +265,13 @@ const ReportForm: React.FC<ReportFormProps> = ({ user, onFinish, draftToEdit }) 
     );
 };
 
-const DraftView: React.FC<{
-    draft: Report;
-    onEdit: (draft: Report) => void;
-    onDelete: (draft: Report) => void;
-}> = ({ draft, onEdit, onDelete }) => {
-    return (
-        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <div>
-                <p className="font-semibold text-brand-dark dark:text-gray-100">مسودة بتاريخ: {draft.date}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {draft.tasks.length > 0 ? `${draft.tasks.length} مهام` : 'لا توجد مهام'}
-                </p>
-            </div>
-            <div className="flex items-center space-x-2 space-x-reverse">
-                <button
-                    onClick={() => onEdit(draft)}
-                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-light rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    title="تعديل المسودة"
-                >
-                    <EditIcon className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={() => onDelete(draft)}
-                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                    title="حذف المسودة"
-                >
-                    <TrashIcon className="w-5 h-5" />
-                </button>
-            </div>
-        </div>
-    );
-};
+const WelcomeView: React.FC<{ user: User; onStart: () => void; onShowPWAInfo: () => void }> = ({ user, onStart, onShowPWAInfo }) => {
+    const { installable, isStandalone, showInstallPrompt } = usePWA();
 
-
-const WelcomeView: React.FC<{ user: User; onStart: () => void }> = ({ user, onStart }) => {
     return (
-        <div className="flex items-center justify-center h-full">
-            <div className="text-center p-8 md:p-12 bg-gradient-to-br from-brand-dark to-[#3a7c93] rounded-2xl shadow-2xl border border-brand-light/50 max-w-2xl mx-auto animate-fade-in-right">
-                <AppLogoIcon className="w-24 h-24 mx-auto mb-4 text-white" />
+        <div className="flex flex-col items-center justify-center space-y-6">
+            <div className="text-center p-8 md:p-12 bg-gradient-to-br from-brand-dark to-[#3a7c93] rounded-2xl shadow-2xl border border-brand-light/50 max-w-2xl w-full animate-fade-in-right">
+                <AppLogoIcon className="w-20 h-20 mx-auto mb-4 text-white" />
                 <h2 className="text-3xl font-bold text-white">
                     مرحباً, {user.fullName.split(' ')[0]}
                 </h2>
@@ -319,6 +288,36 @@ const WelcomeView: React.FC<{ user: User; onStart: () => void }> = ({ user, onSt
                     إنشاء تقرير جديد
                 </button>
             </div>
+
+            {!isStandalone && (
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 max-w-2xl w-full flex flex-col md:flex-row items-center gap-6 animate-fade-in-right animation-delay-500">
+                    <div className="bg-brand-light/10 p-4 rounded-full">
+                        <ArrowDownTrayIcon className="w-10 h-10 text-brand-light" />
+                    </div>
+                    <div className="flex-1 text-center md:text-right">
+                        <h4 className="text-lg font-bold text-gray-800 dark:text-gray-100">استخدم التطبيق على هاتفك</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">للوصول السريع وتلقي التنبيهات، قم بتثبيت التطبيق على جهازك.</p>
+                    </div>
+                    <div className="flex flex-col gap-2 w-full md:w-auto">
+                        {installable ? (
+                            <button
+                                onClick={showInstallPrompt}
+                                className="px-6 py-2 bg-brand-light text-white font-bold rounded-lg hover:bg-brand-dark transition-colors"
+                            >
+                                تثبيت الآن
+                            </button>
+                        ) : (
+                            <button
+                                onClick={onShowPWAInfo}
+                                className="px-6 py-2 border border-brand-light text-brand-light font-bold rounded-lg hover:bg-brand-light/10 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <InformationCircleIcon className="w-5 h-5" />
+                                كيف أثبت التطبيق؟
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -326,6 +325,7 @@ const WelcomeView: React.FC<{ user: User; onStart: () => void }> = ({ user, onSt
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
     const { reports, directTasks, deleteReport, isCloud } = useData();
+    const { installable, showInstallPrompt } = usePWA();
     const [activeTab, setActiveTab] = useState('welcome');
     const [viewingReport, setViewingReport] = useState<Report | null>(null);
     const [notification, setNotification] = useState<string | null>(null);
@@ -333,6 +333,7 @@ const EmployeeDashboard: React.FC = () => {
     const [editingDraft, setEditingDraft] = useState<Report | null>(null);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [draftToDelete, setDraftToDelete] = useState<Report | null>(null);
+    const [showPWAInfo, setShowPWAInfo] = useState(false);
     
     const [reportViewContext, setReportViewContext] = useState<'outbox' | 'inbox'>('outbox');
 
@@ -413,7 +414,7 @@ const EmployeeDashboard: React.FC = () => {
     const renderContent = () => {
         switch(activeTab) {
             case 'welcome':
-                return <WelcomeView user={currentUser} onStart={() => { setEditingDraft(null); setActiveTab('new'); }} />;
+                return <WelcomeView user={currentUser} onStart={() => { setEditingDraft(null); setActiveTab('new'); }} onShowPWAInfo={() => setShowPWAInfo(true)} />;
             case 'submitted':
                 return (
                     <div className="space-y-4">
@@ -425,7 +426,7 @@ const EmployeeDashboard: React.FC = () => {
                                 viewerRole={Role.EMPLOYEE} 
                                 onClick={() => handleViewSentReport(report)} 
                             />
-                        )) : <p className="text-gray-500 dark:text-gray-400">لم تقم بإرسال أي تقارير بعد.</p>}
+                        )) : <p className="text-gray-500 dark:text-gray-400 text-center py-10">لم تقم بإرسال أي تقارير بعد.</p>}
                     </div>
                 );
             case 'inbox':
@@ -439,22 +440,43 @@ const EmployeeDashboard: React.FC = () => {
                                 viewerRole={Role.EMPLOYEE} 
                                 onClick={() => handleViewReceivedReport(report)} 
                             />
-                        )) : <p className="text-gray-500 dark:text-gray-400">لا توجد لديك أي رسائل في البريد الوارد.</p>}
+                        )) : <p className="text-gray-500 dark:text-gray-400 text-center py-10">لا توجد لديك أي رسائل في البريد الوارد.</p>}
                     </div>
                 );
             case 'drafts':
                 return (
                     <div className="space-y-4">
                         {myDrafts.length > 0 ? myDrafts.map(draft => (
-                            <DraftView key={draft.id} draft={draft} onEdit={handleEditDraft} onDelete={setDraftToDelete} />
-                        )) : <p className="text-gray-500 dark:text-gray-400">لا توجد لديك أي مسودات محفوظة.</p>}
+                            <div key={draft.id} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                                <div>
+                                    <p className="font-semibold text-brand-dark dark:text-gray-100">مسودة بتاريخ: {draft.date}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {draft.tasks.length > 0 ? `${draft.tasks.length} مهام` : 'لا توجد مهام'}
+                                    </p>
+                                </div>
+                                <div className="flex items-center space-x-2 space-x-reverse">
+                                    <button
+                                        onClick={() => handleEditDraft(draft)}
+                                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-light rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    >
+                                        <EditIcon className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={() => setDraftToDelete(draft)}
+                                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                                    >
+                                        <TrashIcon className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        )) : <p className="text-gray-500 dark:text-gray-400 text-center py-10">لا توجد لديك أي مسودات محفوظة.</p>}
                     </div>
                 );
             case 'directTasks':
                 return <DirectTasksView />;
             case 'profile':
                 return <ProfileManagement user={currentUser} />;
-            default: // 'new' tab
+            default:
                 return <ReportForm user={currentUser} onFinish={handleReportFormFinish} draftToEdit={editingDraft} />;
         }
     };
@@ -465,7 +487,7 @@ const EmployeeDashboard: React.FC = () => {
              <button
                 onClick={() => {
                     if (tabName === 'new') {
-                        setEditingDraft(null); // Always start fresh from sidebar
+                        setEditingDraft(null);
                     }
                     setActiveTab(tabName);
                     if (window.innerWidth < 768) {
@@ -507,6 +529,16 @@ const EmployeeDashboard: React.FC = () => {
                 <NavItem tabName='inbox' label='الوارد' icon={<InboxIcon className="w-5 h-5"/>} count={unreadCommentsCount}/>
                 <NavItem tabName='directTasks' label='المهام الواردة' icon={<ClipboardDocumentListIcon className="w-5 h-5"/>} count={unreadDirectTasksCount}/>
                 <NavItem tabName='profile' label='الملف الشخصي' icon={<UserCircleIcon className="w-5 h-5"/>} />
+                
+                {installable && (
+                     <button
+                        onClick={showInstallPrompt}
+                        className="flex items-center w-full px-3 py-2 text-sm font-bold transition-all rounded-lg text-white bg-brand-light hover:bg-brand-dark mt-4 border border-brand-light shadow-md animate-pulse"
+                    >
+                        <ArrowDownTrayIcon className="w-5 h-5"/>
+                        <span className="mr-3">تثبيت التطبيق</span>
+                    </button>
+                )}
             </nav>
             
             <div className="px-2 py-2 mt-auto border-t dark:border-gray-700 space-y-1 bg-gray-50 dark:bg-gray-800 shrink-0">
@@ -614,6 +646,45 @@ const EmployeeDashboard: React.FC = () => {
                     confirmText="حذف"
                     confirmButtonClass="bg-brand-accent-red hover:bg-red-700"
                 />
+            )}
+            
+            {showPWAInfo && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowPWAInfo(false)}>
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">كيفية تثبيت التطبيق</h3>
+                            <button onClick={() => setShowPWAInfo(false)}><XMarkIcon className="w-6 h-6 text-gray-400" /></button>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <h4 className="font-bold text-brand-dark dark:text-brand-light flex items-center gap-2">
+                                    <span className="w-6 h-6 bg-brand-light text-white rounded-full flex items-center justify-center text-xs">1</span>
+                                    لأجهزة الأندرويد (Chrome):
+                                </h4>
+                                <p className="text-sm mt-2 text-gray-600 dark:text-gray-300">
+                                    افتح القائمة الجانبية في هذا التطبيق وستجد زر <span className="font-bold">"تثبيت التطبيق"</span> باللون الأزرق.
+                                </p>
+                            </div>
+                            <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <h4 className="font-bold text-brand-dark dark:text-brand-light flex items-center gap-2">
+                                    <span className="w-6 h-6 bg-brand-light text-white rounded-full flex items-center justify-center text-xs">2</span>
+                                    لأجهزة الآيفون (iOS/Safari):
+                                </h4>
+                                <p className="text-sm mt-2 text-gray-600 dark:text-gray-300">
+                                    1. اضغط على زر <span className="font-bold">"مشاركة" (Share)</span> <img src="https://img.icons8.com/ios/50/000000/forward-arrow.png" className="w-4 h-4 inline" alt="share icon" /> في متصفح سفاري.
+                                    <br />
+                                    2. ابحث عن خيار <span className="font-bold">"إضافة إلى الصفحة الرئيسية" (Add to Home Screen)</span>.
+                                </p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setShowPWAInfo(false)}
+                            className="w-full mt-6 py-2 bg-brand-light text-white font-bold rounded-lg hover:bg-brand-dark transition-colors"
+                        >
+                            حسناً، فهمت
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );
