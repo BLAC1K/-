@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'daily-tasks-v9'; // نسخة جديدة لإلغاء الكاش القديم المكسور
+const CACHE_NAME = 'daily-tasks-v12'; // نسخة جديدة لضمان التحديث
 const ASSETS_TO_CACHE = [
   './',
   'index.html',
@@ -10,7 +10,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('SW: Pre-caching assets with relative paths');
+      console.log('SW: Pre-caching assets');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -26,24 +26,28 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
+// التعامل الذكي مع الطلبات لدعم وضع الأوفلاين وتحفيز التثبيت
 self.addEventListener('fetch', event => {
-  // تجاوز طلبات الـ API الخارجية والـ Realtime
+  // تجاوز طلبات الـ API الخارجية
   if (event.request.url.includes('supabase') || event.request.url.includes('google')) {
     return;
   }
 
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then(networkResponse => {
-        return networkResponse;
-      }).catch(() => {
-        if (event.request.mode === 'navigate') {
-          return caches.match('./') || caches.match('index.html');
+      return cachedResponse || fetch(event.request).then(response => {
+        // تخزين الطلبات الجديدة في الكاش اختيارياً
+        if (event.request.method === 'GET' && response.status === 200) {
+           const responseClone = response.clone();
+           caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
         }
+        return response;
       });
+    }).catch(() => {
+      // عرض الصفحة الرئيسية عند انقطاع الإنترنت
+      if (event.request.mode === 'navigate') {
+        return caches.match('./') || caches.match('index.html');
+      }
     })
   );
 });

@@ -29,11 +29,9 @@ import PercentageCircle from './StarRating';
 import CheckCircleIcon from './icons/CheckCircleIcon';
 import XMarkIcon from './icons/XMarkIcon';
 
-const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
-
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
-    const { reports, directTasks, addReport, users } = useData();
+    const { reports, directTasks, addReport } = useData();
     
     const [activeTab, setActiveTab] = useState('home');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -44,7 +42,6 @@ const EmployeeDashboard: React.FC = () => {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
-    const lastNotifiedTaskId = useRef<string | null>(null);
 
     // Planner state
     const [plannerTasks, setPlannerTasks] = useState<Task[]>(() => {
@@ -53,22 +50,13 @@ const EmployeeDashboard: React.FC = () => {
     });
 
     useEffect(() => {
+        // التحقق مما إذا كان التطبيق مثبتاً بالفعل
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
 
         const handlePromptReady = () => setIsPwaReady(true);
-        const handleInstalled = () => {
-            setIsStandalone(true);
-            setIsPwaReady(false);
-        };
-
         window.addEventListener('pwa-prompt-ready', handlePromptReady);
-        window.addEventListener('pwa-installed-success', handleInstalled);
-
-        return () => {
-            window.removeEventListener('pwa-prompt-ready', handlePromptReady);
-            window.removeEventListener('pwa-installed-success', handleInstalled);
-        };
+        return () => window.removeEventListener('pwa-prompt-ready', handlePromptReady);
     }, []);
 
     const handleInstallClick = async () => {
@@ -78,8 +66,10 @@ const EmployeeDashboard: React.FC = () => {
             if (outcome === 'accepted') {
                 window.deferredPrompt = null;
                 setIsPwaReady(false);
+                setIsStandalone(true);
             }
         } else {
+            // إذا لم يكن المتصفح جاهزاً، نظهر نافذة التعليمات
             window.dispatchEvent(new CustomEvent('open-install-instructions'));
         }
     };
@@ -213,10 +203,11 @@ const EmployeeDashboard: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* زر التثبيت الكبير في صدر الصفحة */}
                         {!isStandalone && (
                             <button 
                                 onClick={handleInstallClick}
-                                className="w-full p-6 bg-brand-light text-white rounded-[32px] flex items-center justify-between group active:scale-[0.98] transition-all shadow-xl shadow-brand-light/20 border-2 border-white/10"
+                                className="w-full p-6 bg-brand-light text-white rounded-[32px] flex items-center justify-between group active:scale-[0.98] transition-all shadow-xl shadow-brand-light/20 border-2 border-white/10 animate-fade-in"
                             >
                                 <div className="flex items-center gap-4 text-right">
                                     <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
@@ -224,7 +215,7 @@ const EmployeeDashboard: React.FC = () => {
                                     </div>
                                     <div>
                                         <h4 className="font-bold text-xl">تثبيت التطبيق الآن</h4>
-                                        <p className="text-xs opacity-80">حوّل الموقع إلى تطبيق ويب مستقل بجانب تطبيقاتك</p>
+                                        <p className="text-xs opacity-80">حوّل النظام إلى تطبيق رسمي على هاتفك</p>
                                     </div>
                                 </div>
                                 <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors">
@@ -383,7 +374,7 @@ const EmployeeDashboard: React.FC = () => {
                         {!isStandalone && (
                             <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 shadow-lg shadow-brand-light/20 transition-all border border-white/10">
                                 <InstallIcon className="w-6 h-6"/>
-                                <span className="mr-3 text-xs">تثبيت كـ تطبيق ويب</span>
+                                <span className="mr-3 text-xs">تثبيت التطبيق الآن</span>
                             </button>
                         )}
                         <ThemeToggle />

@@ -19,8 +19,8 @@ import SentTasksView from './SentTasksView';
 import Toast from './Toast';
 import BellIcon from './icons/BellIcon';
 import InstallIcon from './icons/InstallIcon';
-
-const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+// Fix: Import missing PlusIcon
+import PlusIcon from './icons/PlusIcon';
 
 const ManagerDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
@@ -37,18 +37,8 @@ const ManagerDashboard: React.FC = () => {
         setIsStandalone(!!checkStandalone);
 
         const handlePromptReady = () => setIsPwaReady(true);
-        const handleInstalled = () => {
-            setIsStandalone(true);
-            setIsPwaReady(false);
-        };
-
         window.addEventListener('pwa-prompt-ready', handlePromptReady);
-        window.addEventListener('pwa-installed-success', handleInstalled);
-
-        return () => {
-            window.removeEventListener('pwa-prompt-ready', handlePromptReady);
-            window.removeEventListener('pwa-installed-success', handleInstalled);
-        };
+        return () => window.removeEventListener('pwa-prompt-ready', handlePromptReady);
     }, []);
 
     const handleInstallClick = async () => {
@@ -58,6 +48,7 @@ const ManagerDashboard: React.FC = () => {
             if (outcome === 'accepted') {
                 window.deferredPrompt = null;
                 setIsPwaReady(false);
+                setIsStandalone(true);
             }
         } else {
             window.dispatchEvent(new CustomEvent('open-install-instructions'));
@@ -124,7 +115,7 @@ const ManagerDashboard: React.FC = () => {
                         {!isStandalone && (
                             <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30 border border-white/10">
                                 <InstallIcon className="w-6 h-6"/>
-                                <span className="mr-3 text-xs">تثبيت كـ تطبيق ويب</span>
+                                <span className="mr-3 text-xs">تثبيت التطبيق الآن</span>
                             </button>
                         )}
                         <ThemeToggle />
@@ -150,6 +141,24 @@ const ManagerDashboard: React.FC = () => {
                 </header>
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar bg-inherit">
                     <div className="container mx-auto max-w-6xl">
+                        {/* بطاقة التثبيت السريعة للمدير أيضاً */}
+                        {activeTab === 'reports' && !isStandalone && (
+                             <button 
+                                onClick={handleInstallClick}
+                                className="w-full mb-6 p-4 bg-brand-light text-white rounded-2xl flex items-center justify-between group active:scale-[0.98] transition-all shadow-lg"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                                        <InstallIcon className="w-6 h-6" />
+                                    </div>
+                                    <div className="text-right">
+                                        <h4 className="font-bold text-sm">ثبت النظام على هاتفك</h4>
+                                        <p className="text-[10px] opacity-80">للوصول السريع وتلقي تنبيهات التقارير</p>
+                                    </div>
+                                </div>
+                                <PlusIcon className="w-5 h-5 opacity-50" />
+                            </button>
+                        )}
                         {renderContent()}
                     </div>
                 </main>
