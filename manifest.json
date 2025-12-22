@@ -3,11 +3,11 @@
   "name": "نظام المهام اليومية",
   "short_name": "مهامي",
   "description": "تطبيق متكامل لإدارة وتقييم المهام اليومية لشعبة الفنون.",
-  "id": "daily-tasks-pwa",
+  "id": "daily-tasks-v1",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "minimal-ui"],
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#085A8C",
   "theme_color": "#085A8C",
   "orientation": "portrait",
@@ -31,12 +31,5 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["productivity", "business"],
-  "shortcuts": [
-    {
-      "name": "تقرير جديد",
-      "url": "./?action=new-report",
-      "icons": [{ "src": "icon.png", "sizes": "96x96" }]
-    }
-  ]
+  "categories": ["productivity", "business"]
 }

@@ -32,25 +32,6 @@ const ManagerDashboard: React.FC = () => {
     const [isStandalone, setIsStandalone] = useState(false);
     const [isPwaReady, setIsPwaReady] = useState(!!window.deferredPrompt);
 
-    const lastNotifiedReportId = useRef<string | null>(null);
-
-    // دالة إطلاق الإشعار البرمجي
-    const triggerNotification = async (title: string, body: string) => {
-        const audio = new Audio(NOTIFICATION_SOUND_URL);
-        audio.play().catch(() => {});
-
-        // التحقق من إذن الإشعارات وإرسال إشعار المتصفح
-        if (Notification.permission === 'granted') {
-            new Notification(title, { 
-                body, 
-                icon: '/icon.png',
-                badge: '/icon.png',
-                dir: 'rtl'
-            });
-        }
-        setToast({ message: body, type: 'info' });
-    };
-
     useEffect(() => {
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
@@ -64,32 +45,11 @@ const ManagerDashboard: React.FC = () => {
         window.addEventListener('pwa-prompt-ready', handlePromptReady);
         window.addEventListener('pwa-installed-success', handleInstalled);
 
-        // طلب إذن الإشعارات عند الدخول
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
-
         return () => {
             window.removeEventListener('pwa-prompt-ready', handlePromptReady);
             window.removeEventListener('pwa-installed-success', handleInstalled);
         };
     }, []);
-
-    // مراقبة وصول تقارير جديدة
-    useEffect(() => {
-        const submittedReports = reports.filter(r => r.status === 'submitted');
-        if (submittedReports.length > 0) {
-            const newestReport = submittedReports[0]; // التقارير مرتبة تنازلياً في الـ Context
-            if (newestReport.id !== lastNotifiedReportId.current) {
-                // إذا لم يكن هذا التقرير قد تم إخطار المدير به من قبل
-                if (lastNotifiedReportId.current !== null) { // لا تشعر عند التحميل الأول للبيانات
-                    const sender = users.find(u => u.id === newestReport.userId);
-                    triggerNotification("وصول تقرير جديد", `أرسل المنتسب ${sender?.fullName || 'غير معروف'} تقريره اليومي.`);
-                }
-                lastNotifiedReportId.current = newestReport.id;
-            }
-        }
-    }, [reports, users]);
 
     const handleInstallClick = async () => {
         if (window.deferredPrompt) {
@@ -100,12 +60,7 @@ const ManagerDashboard: React.FC = () => {
                 setIsPwaReady(false);
             }
         } else {
-             const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-            if (isIos) {
-                window.dispatchEvent(new CustomEvent('open-install-instructions'));
-            } else if (!isStandalone) {
-                setToast({ message: 'المتصفح يجهز ملفات التثبيت، حاول مرة أخرى.', type: 'info' });
-            }
+            window.dispatchEvent(new CustomEvent('open-install-instructions'));
         }
     };
 
@@ -169,13 +124,13 @@ const ManagerDashboard: React.FC = () => {
                         {!isStandalone && (
                             <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 transition-transform shadow-lg shadow-brand-light/30 border border-white/10">
                                 <InstallIcon className="w-6 h-6"/>
-                                <span className="mr-3 text-xs">تثبيت التطبيق الآن</span>
+                                <span className="mr-3 text-xs">تثبيت كـ تطبيق ويب</span>
                             </button>
                         )}
                         <ThemeToggle />
                         <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl active:scale-95 transition-transform">
                             <LogoutIcon className="w-6 h-6"/>
-                            <span className="mr-3">خروج من الحساب</span>
+                            <span className="mr-3">خروج</span>
                         </button>
                     </div>
                 </div>

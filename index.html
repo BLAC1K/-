@@ -17,9 +17,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="مهامي">
     <link rel="apple-touch-icon" href="icon.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="icon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="icon.png" />
-    <link rel="apple-touch-icon" sizes="167x167" href="icon.png" />
 
     <title>المهام اليومية</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -30,22 +27,6 @@
         user-select: none;
         overscroll-behavior-y: contain;
       }
-      .safe-area-bottom {
-        padding-bottom: env(safe-area-inset-bottom);
-      }
-      .safe-area-top {
-        padding-top: env(safe-area-inset-top);
-      }
-      
-      .animate-blob {
-        animation: blob 7s infinite;
-      }
-      @keyframes blob {
-        0% { transform: translate(0px, 0px) scale(1); }
-        33% { transform: translate(30px, -50px) scale(1.1); }
-        66% { transform: translate(-20px, 20px) scale(0.9); }
-        100% { transform: translate(0px, 0px) scale(1); }
-      }
       .animate-fade-in-up {
         animation: fadeInUp 0.4s ease-out forwards;
       }
@@ -53,30 +34,12 @@
         0% { opacity: 0; transform: translateY(20px); }
         100% { opacity: 1; transform: translateY(0); }
       }
-      
       .no-scrollbar::-webkit-scrollbar { display: none; }
-      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-      @media print {
-        html.dark { background-color: #fff !important; }
-        body * { visibility: hidden; }
-        #printable-report, #printable-report * { visibility: visible; }
-        #printable-report {
-          position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 1.5cm;
-          box-shadow: none !important; border: none !important; font-size: 14px;
-          background-color: #fff !important;
-        }
-        .no-print { display: none !important; }
-        @page { size: A4; margin: 0; }
-      }
     </style>
     <script>
       if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
       }
-
       tailwind.config = {
         darkMode: 'class',
         theme: {
@@ -92,63 +55,43 @@
         },
       }
     </script>
-     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
-    "react-signature-canvas": "https://aistudiocdn.com/react-signature-canvas@^1.1.0-alpha.2",
-    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.45.4",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/"
-  }
-}
-</script>
-</head>
-  <body class="bg-white dark:bg-gray-900 selection:bg-brand-light selection:text-white safe-area-top safe-area-bottom">
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
+        "react-signature-canvas": "https://aistudiocdn.com/react-signature-canvas@^1.1.0-alpha.2",
+        "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.45.4",
+        "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/"
+      }
+    }
+    </script>
+  </head>
+  <body class="bg-white dark:bg-gray-900 selection:bg-brand-light selection:text-white">
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
 
     <script>
-      /**
-       * تسجيل الـ Service Worker بطريقة آمنة وذكية.
-       * يتم تخطي التسجيل في بيئات المعاينة (Sandbox) لتفادي أخطاء Origin Mismatch.
-       */
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          // 1. التحقق مما إذا كان التطبيق يعمل داخل IFrame (بيئة المعاينة تكون عادة في iframe)
-          const isInsideIframe = window.self !== window.top;
-          
-          // 2. التحقق من النطاق (Hostname)
-          const host = window.location.hostname;
-          const isPreviewHost = host.includes('usercontent.goog') || 
-                               host.includes('ai.studio') || 
-                               host.includes('stackblitz') || 
-                               host.includes('webcontainer');
-
-          // إذا كنا في بيئة معاينة أو داخل إطار، نمنع التسجيل لتجنب أخطاء المتصفح
-          if (isInsideIframe || isPreviewHost) {
-            console.log('PWA: تم إيقاف تسجيل Service Worker لأننا في بيئة معاينة أو إطار عمل معزول.');
-            return;
-          }
-
-          // تسجيل الـ Service Worker فقط في البيئة الحقيقية (مثل mham.vercel.app)
-          navigator.serviceWorker.register('sw.js')
-            .then(reg => {
-              console.log('PWA: تم تسجيل Service Worker بنجاح. النطاق:', reg.scope);
-            })
-            .catch(err => {
-              // لا تظهر خطأ إذا كان السبب هو تعارض النطاقات في المتصفح
-              if (!err.message.includes('Origin')) {
-                console.error('PWA: فشل تسجيل Service Worker:', err);
-              }
+      // دالة تسجيل الـ Service Worker مع معالجة ذكية للأخطاء
+      async function registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+          try {
+            // استخدام مسار كامل النسبي لضمان التثبيت من نفس المصدر
+            const swPath = new URL('sw.js', window.location.href).pathname;
+            const registration = await navigator.serviceWorker.register(swPath, {
+              scope: './'
             });
-        });
+            console.log('PWA: تم تسجيل المحرك بنجاح:', registration.scope);
+          } catch (error) {
+            console.warn('PWA: فشل التسجيل التلقائي (هذا متوقع في بيئة المعاينة فقط):', error.message);
+          }
+        }
       }
+
+      window.addEventListener('load', registerServiceWorker);
     </script>
   </body>
 </html>

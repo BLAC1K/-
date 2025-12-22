@@ -52,22 +52,6 @@ const EmployeeDashboard: React.FC = () => {
         return saved ? JSON.parse(saved) : [{ id: Date.now().toString(), text: '', isDone: false }];
     });
 
-    // إشعارات المهام الجديدة
-    const triggerNotification = async (title: string, body: string) => {
-        const audio = new Audio(NOTIFICATION_SOUND_URL);
-        audio.play().catch(() => {});
-
-        if (Notification.permission === 'granted') {
-            new Notification(title, { 
-                body, 
-                icon: '/icon.png',
-                badge: '/icon.png',
-                dir: 'rtl'
-            });
-        }
-        setToast({ message: body, type: 'info' });
-    };
-
     useEffect(() => {
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
@@ -81,32 +65,11 @@ const EmployeeDashboard: React.FC = () => {
         window.addEventListener('pwa-prompt-ready', handlePromptReady);
         window.addEventListener('pwa-installed-success', handleInstalled);
 
-        // طلب إذن الإشعارات عند الدخول
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
-
         return () => {
             window.removeEventListener('pwa-prompt-ready', handlePromptReady);
             window.removeEventListener('pwa-installed-success', handleInstalled);
         };
     }, []);
-
-    // مراقبة المهام الجديدة الموجهة للموظف
-    useEffect(() => {
-        const myPendingTasks = directTasks.filter(t => t.employeeId === currentUser?.id && t.status === 'pending');
-        if (myPendingTasks.length > 0) {
-            const newestTask = myPendingTasks[0]; // المهام مرتبة تنازلياً في الـ Context
-            if (newestTask.id !== lastNotifiedTaskId.current) {
-                // إذا لم يكن هذا الإخطار قد تم من قبل
-                if (lastNotifiedTaskId.current !== null) { // لا تشعر عند التحميل الأول
-                    const manager = users.find(u => u.id === newestTask.managerId);
-                    triggerNotification("مهمة جديدة واردة", `أرسل لك المسؤول ${manager?.fullName || ''} مهمة جديدة.`);
-                }
-                lastNotifiedTaskId.current = newestTask.id;
-            }
-        }
-    }, [directTasks, currentUser, users]);
 
     const handleInstallClick = async () => {
         if (window.deferredPrompt) {
@@ -117,12 +80,7 @@ const EmployeeDashboard: React.FC = () => {
                 setIsPwaReady(false);
             }
         } else {
-            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-            if (isIos) {
-                window.dispatchEvent(new CustomEvent('open-install-instructions'));
-            } else {
-                setToast({ message: 'المتصفح يجهز ملفات التثبيت، حاول مرة أخرى.', type: 'info' });
-            }
+            window.dispatchEvent(new CustomEvent('open-install-instructions'));
         }
     };
 
@@ -258,7 +216,7 @@ const EmployeeDashboard: React.FC = () => {
                         {!isStandalone && (
                             <button 
                                 onClick={handleInstallClick}
-                                className="w-full p-6 bg-brand-light text-white rounded-[32px] flex items-center justify-between group active:scale-[0.98] transition-all shadow-xl shadow-brand-light/20 border-2 border-white/10 animate-fade-in"
+                                className="w-full p-6 bg-brand-light text-white rounded-[32px] flex items-center justify-between group active:scale-[0.98] transition-all shadow-xl shadow-brand-light/20 border-2 border-white/10"
                             >
                                 <div className="flex items-center gap-4 text-right">
                                     <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
@@ -266,7 +224,7 @@ const EmployeeDashboard: React.FC = () => {
                                     </div>
                                     <div>
                                         <h4 className="font-bold text-xl">تثبيت التطبيق الآن</h4>
-                                        <p className="text-xs opacity-80">حوّل الموقع إلى تطبيق فوري على هاتفك</p>
+                                        <p className="text-xs opacity-80">حوّل الموقع إلى تطبيق ويب مستقل بجانب تطبيقاتك</p>
                                     </div>
                                 </div>
                                 <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors">
@@ -425,7 +383,7 @@ const EmployeeDashboard: React.FC = () => {
                         {!isStandalone && (
                             <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl active:scale-95 shadow-lg shadow-brand-light/20 transition-all border border-white/10">
                                 <InstallIcon className="w-6 h-6"/>
-                                <span className="mr-3 text-xs">تثبيت التطبيق الآن</span>
+                                <span className="mr-3 text-xs">تثبيت كـ تطبيق ويب</span>
                             </button>
                         )}
                         <ThemeToggle />
