@@ -116,33 +116,26 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          // دالة لبناء رابط الـ Service Worker بشكل مطلق ومضمون ضمن نفس الـ Origin
-          const registerSW = () => {
-            const origin = window.location.origin;
-            const path = window.location.pathname;
-            // استخراج المجلد الحالي (مثلاً /abc/def/ بدلاً من /abc/def/index.html)
-            const directory = path.substring(0, path.lastIndexOf('/') + 1);
-            const swUrl = origin + directory + 'sw.js';
+          // بناء رابط الـ Service Worker برمجياً نسبةً لموقع الصفحة الحالي لضمان نفس الـ Origin
+          // استخدام كائن URL يضمن معالجة المسارات بشكل صحيح وتجنب أخطاء الدمج اليدوي للسلاسل النصية
+          const swUrl = new URL('sw.js', window.location.href).href;
+          
+          console.log('PWA: Registering Service Worker at dynamic URL:', swUrl);
 
-            console.log('PWA: Registering Service Worker at:', swUrl);
-
-            navigator.serviceWorker.register(swUrl)
-              .then(reg => {
-                console.log('PWA: SW Registered successfully with scope:', reg.scope);
-              })
-              .catch(err => {
-                console.error('PWA: SW Registration failed:', err);
-                // محاولة أخيرة باستخدام المسار النسبي البسيط جداً في حال فشل الرابط المطلق
-                if (err.message.includes('Origin') || err.message.includes('scriptURL')) {
-                  console.log('PWA: Attempting final fallback registration...');
-                  navigator.serviceWorker.register('./sw.js').catch(e => {
-                    console.error('PWA: All registration attempts failed:', e);
-                  });
-                }
-              });
-          };
-
-          registerSW();
+          navigator.serviceWorker.register(swUrl)
+            .then(reg => {
+              console.log('PWA: Service Worker Registered. Scope:', reg.scope);
+            })
+            .catch(err => {
+              console.error('PWA: Service Worker Registration failed:', err);
+              // محاولة أخيرة باستخدام مسار نسبي صريح إذا فشل الرابط المطلق المبني
+              if (err.message.includes('Origin')) {
+                console.log('PWA: Attempting fallback to plain relative registration...');
+                navigator.serviceWorker.register('sw.js').catch(e => {
+                  console.error('PWA: Final registration attempt failed:', e);
+                });
+              }
+            });
         });
       }
     </script>
