@@ -50,21 +50,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const clearNotification = useCallback(() => setNotification(null), []);
 
-    // دالة لإرسال إشعار للمتصفح
     const sendBrowserNotification = (title: string, body: string) => {
         if ("Notification" in window && Notification.permission === "granted") {
-            new Notification(title, {
-                body: body,
-                icon: '/icon.png',
-                badge: '/icon.png'
-            });
+            try {
+                new Notification(title, { body, icon: '/icon.png' });
+            } catch (e) {
+                console.warn("Browser Notification failed", e);
+            }
         }
     };
 
     const loadData = useCallback(async (silent = false) => {
         if (!silent) setIsDataLoading(true);
         else setIsSyncing(true);
-        
         try {
             const data = await api.fetchInitialData();
             setAppState({
@@ -83,7 +81,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
-    // المزامنة عند عودة المستخدم للتطبيق (Tab Focus)
+    // المزامنة عند عودة المستخدم للتطبيق لضمان التحديث
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
@@ -92,10 +90,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         window.addEventListener('visibilitychange', handleVisibilityChange);
         window.addEventListener('focus', () => loadData(true));
-        
         return () => {
             window.removeEventListener('visibilitychange', handleVisibilityChange);
-            window.removeEventListener('focus', () => loadData(true));
         };
     }, [loadData]);
 
@@ -105,32 +101,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         const unsubscribe = api.subscribeToAllChanges((payload) => {
             const { table, eventType, new: newRecord, old: oldRecord } = payload;
-
             setAppState(prev => {
                 const newState = { ...prev };
-
                 if (table === 'reports') {
                     const mapped = api.mapReport(newRecord);
                     if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                        const existsIndex = prev.reports.findIndex(r => r.id === mapped.id);
-                        if (existsIndex > -1) {
-                            newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
-                        } else {
+                        const exists = prev.reports.findIndex(r => r.id === mapped.id);
+                        if (exists > -1) newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
+                        else {
                             newState.reports = [mapped, ...prev.reports];
-                            // إشعار للمدير بوصول تقرير جديد
-                            const currentUser = prev.users.find(u => u.id === currentUserIdRef.current);
-                            if (currentUser?.role === 'manager' && eventType === 'INSERT') {
+                            if (eventType === 'INSERT' && mapped.userId !== currentUserIdRef.current) {
+                                // تنبيه للمدير عند وصول تقرير جديد
                                 const sender = prev.users.find(u => u.id === mapped.userId);
                                 sendBrowserNotification('تقرير جديد', `أرسل ${sender?.fullName || 'منتسب'} تقريراً جديداً.`);
-                                setNotification({ message: `تقرير جديد من ${sender?.fullName}`, type: 'info', id: Date.now() });
                             }
                         }
-                    }
-                    else if (eventType === 'DELETE') {
+                    } else if (eventType === 'DELETE') {
                         newState.reports = prev.reports.filter(r => r.id !== oldRecord.id);
                     }
-                }
-                else if (table === 'direct_tasks') {
+                } else if (table === 'direct_tasks') {
                     const mapped = api.mapDirectTask(newRecord);
                     if (eventType === 'INSERT') {
                         newState.directTasks = [mapped, ...prev.directTasks];
@@ -138,24 +127,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                             sendBrowserNotification('مهمة جديدة', 'لقد وجه إليك المسؤول مهمة عمل جديدة.');
                             setNotification({ message: 'وصلتك مهمة عمل جديدة!', type: 'info', id: Date.now() });
                         }
-                    }
-                    else if (eventType === 'UPDATE') newState.directTasks = prev.directTasks.map(t => t.id === mapped.id ? mapped : t);
-                    else if (eventType === 'DELETE') newState.directTasks = prev.directTasks.filter(t => t.id !== oldRecord.id);
-                }
-                else if (table === 'announcements') {
+                    } else if (eventType === 'UPDATE') newState.directTasks = prev.directTasks.map(t => t.id === mapped.id ? mapped : t);
+                } else if (table === 'announcements') {
                     const mapped = api.mapAnnouncement(newRecord);
                     if (eventType === 'INSERT') {
                         newState.announcements = [mapped, ...prev.announcements];
-                        sendBrowserNotification('تعميم إداري', 'يوجد توجيه إداري جديد من المسؤول.');
+                        sendBrowserNotification('تعميم إداري', 'يوجد توجيه إداري جديد للجميع.');
                         setNotification({ message: 'توجيه إداري جديد للجميع.', type: 'info', id: Date.now() });
                     }
-                }
-                else if (table === 'users') {
+                } else if (table === 'users') {
                     const mapped = api.mapUser(newRecord);
-                    if (eventType === 'INSERT') newState.users = [...prev.users, mapped];
-                    else if (eventType === 'UPDATE') newState.users = prev.users.map(u => u.id === mapped.id ? mapped : u);
+                    if (eventType === 'UPDATE') newState.users = prev.users.map(u => u.id === mapped.id ? mapped : u);
                 }
-
                 return newState;
             });
         });
@@ -167,26 +150,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const saveOrUpdateDraft = useCallback(async (draft: Partial<Report>) => {
         const tempId = draft.id || `temp-${Date.now()}`;
-        const tempDraft = {
-            id: tempId,
-            status: 'draft',
-            ...draft
-        } as Report;
-
+        const tempDraft = { id: tempId, status: 'draft', ...draft } as Report;
         setAppState(prev => {
             const exists = prev.reports.find(r => r.id === draft.id);
-            if (exists) {
-                return { ...prev, reports: prev.reports.map(r => r.id === draft.id ? { ...r, ...tempDraft } : r) };
-            }
+            if (exists) return { ...prev, reports: prev.reports.map(r => r.id === draft.id ? { ...r, ...tempDraft } : r) };
             return { ...prev, reports: [tempDraft, ...prev.reports] };
         });
-
-        try {
-            await api.saveOrUpdateDraft(draft);
-        } catch (error) {
-            loadData(true);
-            throw error;
-        }
+        try { await api.saveOrUpdateDraft(draft); } catch (error) { loadData(true); throw error; }
     }, [loadData]);
 
     const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => {
