@@ -35,6 +35,50 @@
         100% { opacity: 1; transform: translateY(0); }
       }
       .no-scrollbar::-webkit-scrollbar { display: none; }
+
+      /* أنماط الطباعة المتقدمة */
+      @media print {
+        /* إخفاء كل شيء في الصفحة افتراضياً */
+        body * {
+          visibility: hidden;
+        }
+        /* إظهار منطقة الطباعة فقط ومحتوياتها */
+        #printable-area, #printable-area * {
+          visibility: visible;
+        }
+        /* تحديد منطقة الطباعة لتأخذ كامل الصفحة */
+        #printable-area {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          background: white !important;
+          color: black !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+        /* إخفاء العناصر التي تحمل كلاس no-print */
+        .no-print {
+          display: none !important;
+        }
+        /* إزالة الظلال والحواف الملونة للوضع الليلي عند الطباعة */
+        .dark {
+          background-color: white !important;
+          color: black !important;
+        }
+        /* تحسين مظهر الجداول والقوائم عند الطباعة */
+        ul {
+          list-style: none !important;
+          padding: 0 !important;
+        }
+        .print-border {
+          border: 1px solid #000 !important;
+        }
+        /* منع تقسيم المرفقات بين الصفحات إذا أمكن */
+        .print-page-break {
+          page-break-inside: avoid;
+        }
+      }
     </style>
     <script>
       if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -75,22 +119,19 @@
     <script type="module" src="index.tsx"></script>
 
     <script>
-      // دالة تسجيل الـ Service Worker مع معالجة ذكية للأخطاء
       async function registerServiceWorker() {
         if ('serviceWorker' in navigator) {
           try {
-            // استخدام مسار كامل النسبي لضمان التثبيت من نفس المصدر
             const swPath = new URL('sw.js', window.location.href).pathname;
             const registration = await navigator.serviceWorker.register(swPath, {
               scope: './'
             });
             console.log('PWA: تم تسجيل المحرك بنجاح:', registration.scope);
           } catch (error) {
-            console.warn('PWA: فشل التسجيل التلقائي (هذا متوقع في بيئة المعاينة فقط):', error.message);
+            console.warn('PWA: فشل التسجيل التلقائي:', error.message);
           }
         }
       }
-
       window.addEventListener('load', registerServiceWorker);
     </script>
   </body>

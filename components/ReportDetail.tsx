@@ -8,221 +8,179 @@ import CommentIcon from './icons/CommentIcon';
 import DownloadIcon from './icons/DownloadIcon';
 import AIReportAnalysis from './AIReportAnalysis';
 
-// This component will render the detailed content of a report.
-// It contains the logic previously in the expanded state of ReportView.
-
 interface ReportDetailProps {
     report: Report;
     user: User;
     viewerRole: Role;
-    hideMargin?: boolean; // New prop to hide margin
+    hideMargin?: boolean;
 }
 
 const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user, viewerRole, hideMargin = false }) => {
     const { updateReport, users } = useData();
-    const [report, setReport] = useState<Report>(initialReport); // Local copy for immediate UI feedback
+    const [report, setReport] = useState<Report>(initialReport);
     const [localRating, setLocalRating] = useState<string>((initialReport.rating ?? '').toString());
     const [isEditingComment, setIsEditingComment] = useState(false);
     const [comment, setComment] = useState(report.managerComment || '');
     
     const isManager = viewerRole === Role.MANAGER;
 
-    // Fetch the manager (Division Official) for the signature
     const manager = useMemo(() => {
         return users.find(u => u.role === Role.MANAGER) || { fullName: 'مسؤول الشعبة' };
     }, [users]);
 
     const handleTaskDelete = async (taskId: string) => {
-        const taskComment = prompt("الرجاء إضافة هامش على سبب الحذف:");
+        const taskComment = prompt("سبب الحذف:");
         if (taskComment !== null) {
             const updatedTasks = report.tasks.map(task => 
                 task.id === taskId ? { ...task, isDeleted: true, managerComment: taskComment } : task
             );
             const updatedReport = { ...report, tasks: updatedTasks };
-            setReport(updatedReport); // Optimistic UI update
+            setReport(updatedReport);
             await updateReport(updatedReport);
         }
     };
     
     const handleSaveManagerComment = async () => {
         const updatedReport = { ...report, managerComment: comment };
-        setReport(updatedReport); // Optimistic UI update
+        setReport(updatedReport);
         setIsEditingComment(false);
         await updateReport(updatedReport);
-        
-        // Notify employee about the new comment
-        localStorage.setItem('comment_notification', JSON.stringify({
-            userId: report.userId,
-            message: `لديك تعليق جديد من المسؤول على تقريرك بتاريخ ${report.date}.`
-        }));
     };
 
     const handleRatingBlur = async () => {
         let newRating = parseInt(localRating, 10);
-        if (isNaN(newRating)) {
-             const updatedReport = { ...report, rating: undefined };
-             if (report.rating !== undefined) {
-                setReport(updatedReport);
-                await updateReport(updatedReport);
-             }
-             return;
-        }
-        
+        if (isNaN(newRating)) return;
         if (newRating < 0) newRating = 0;
         if (newRating > 100) newRating = 100;
-        
         const updatedReport = { ...report, rating: newRating };
-        if (report.rating !== newRating) {
-           setReport(updatedReport);
-           await updateReport(updatedReport);
-        }
+        setReport(updatedReport);
+        await updateReport(updatedReport);
     };
 
     return (
-        <div className="px-4 py-5 sm:px-6">
-            <dl className="report-detail-grid grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                    <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">المهام</dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                       <ul className="border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 rounded-md">
-                            {report.tasks.map(task => (
-                                <li key={task.id} className={`flex items-center justify-between p-3 ${task.isDeleted ? 'bg-red-50 dark:bg-red-900/20' : ''}`}>
-                                    <div>
-                                        <p className={`${task.isDeleted ? 'line-through text-gray-500 dark:text-gray-400' : ''}`}>{task.text}</p>
-                                        {task.isDeleted && task.managerComment && (
-                                            <p className="mt-1 text-xs text-red-700 dark:text-red-400">
-                                                <span className="font-semibold">تهميش:</span> {task.managerComment}
-                                            </p>
-                                        )}
-                                    </div>
-                                    {isManager && !task.isDeleted && (
-                                        <button onClick={() => handleTaskDelete(task.id)} className="p-1 text-gray-400 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 no-print">
-                                            <TrashIcon className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    </dd>
-                </div>
-                <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">ما تم إنجازه</dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{report.accomplished || 'لا يوجد'}</dd>
-                </div>
-                <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">ما لم يتم إنجازه</dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{report.notAccomplished || 'لا يوجد'}</dd>
-                </div>
-                {isManager && (
-                    <div className="sm:col-span-1 no-print">
-                        <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">التقييم (سري)</dt>
-                        <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                            <div className="flex items-center max-w-min space-x-2 space-x-reverse">
-                                <input
-                                    type="number"
-                                    value={localRating}
-                                    onChange={(e) => setLocalRating(e.target.value)}
-                                    onBlur={handleRatingBlur}
-                                    min="0"
-                                    max="100"
-                                    className="w-20 px-2 py-1 text-center bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm"
-                                    aria-label="Report rating"
-                                />
-                                <span className="font-semibold text-gray-500 dark:text-gray-400">%</span>
-                            </div>
-                        </dd>
-                    </div>
-                )}
+        <div className="p-6 sm:p-8 space-y-8 bg-inherit">
+            <div className="grid grid-cols-1 gap-8">
                 
-                {/* Conditionally render Manager Margin based on hideMargin prop */}
+                {/* قسم المهام */}
+                <section>
+                    <h4 className="text-sm font-bold text-brand-dark dark:text-brand-light mb-3 flex items-center border-r-4 border-brand-light pr-2">
+                        المهام المنجزة خلال اليوم
+                    </h4>
+                    <div className="bg-gray-50 dark:bg-gray-700/30 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <table className="w-full text-sm text-right">
+                            <thead className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 uppercase font-bold">
+                                <tr>
+                                    <th className="px-4 py-3 border-l dark:border-gray-600 w-12 text-center">#</th>
+                                    <th className="px-4 py-3">تفاصيل المهمة</th>
+                                    {isManager && <th className="px-4 py-3 no-print w-20">إجراء</th>}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y dark:divide-gray-700">
+                                {report.tasks.map((task, idx) => (
+                                    <tr key={task.id} className={task.isDeleted ? 'bg-red-50/50 dark:bg-red-900/10' : ''}>
+                                        <td className="px-4 py-3 border-l dark:border-gray-600 text-center font-bold text-gray-400">{idx + 1}</td>
+                                        <td className="px-4 py-3">
+                                            <p className={task.isDeleted ? 'line-through text-gray-400' : 'text-gray-900 dark:text-white'}>{task.text}</p>
+                                            {task.isDeleted && task.managerComment && (
+                                                <p className="mt-1 text-[10px] text-red-500 font-bold italic">ملاحظة الحذف: {task.managerComment}</p>
+                                            )}
+                                        </td>
+                                        {isManager && (
+                                            <td className="px-4 py-3 no-print text-center">
+                                                {!task.isDeleted && (
+                                                    <button onClick={() => handleTaskDelete(task.id)} className="text-red-400 hover:text-red-600 p-1">
+                                                        <TrashIcon className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </td>
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                {/* التفاصيل الإضافية */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <section className="bg-white dark:bg-gray-800 p-5 rounded-2xl border dark:border-gray-700 shadow-sm">
+                        <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase">خلاصة الإنجاز الفعلي</h4>
+                        <p className="text-sm text-gray-900 dark:text-white leading-relaxed whitespace-pre-wrap">{report.accomplished || 'لا يوجد'}</p>
+                    </section>
+                    <section className="bg-white dark:bg-gray-800 p-5 rounded-2xl border dark:border-gray-700 shadow-sm">
+                        <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase">المعوقات والملاحظات</h4>
+                        <p className="text-sm text-gray-900 dark:text-white leading-relaxed whitespace-pre-wrap">{report.notAccomplished || 'لا توجد'}</p>
+                    </section>
+                </div>
+
+                {/* هامش المسؤول والتقييم */}
                 {!hideMargin && (
-                    <div className="sm:col-span-2">
-                        <dt className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-400">
-                           <CommentIcon className="w-4 h-4 ml-1 text-gray-500"/>
-                           هامش مسؤول الشعبة
-                        </dt>
-                        <dd className="mt-1 text-sm">
+                    <section className="print-page-break">
+                        <h4 className="text-sm font-bold text-brand-dark dark:text-brand-light mb-3 flex items-center border-r-4 border-brand-light pr-2">
+                           هامش مسؤول الشعبة والتوقيع الرسمي
+                        </h4>
+                        <div className={`p-6 rounded-2xl border-2 ${report.managerComment ? 'bg-green-50/50 border-green-200 dark:border-green-800/30' : 'bg-gray-50 border-dashed border-gray-300 dark:border-gray-700'}`}>
                             {isManager && isEditingComment ? (
                                 <div className="no-print">
                                     <textarea
                                         value={comment}
                                         onChange={(e) => setComment(e.target.value)}
                                         rows={3}
-                                        className="block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200"
+                                        className="w-full p-4 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-2xl outline-none focus:ring-2 focus:ring-brand-light"
+                                        placeholder="اكتب الهامش هنا..."
                                     />
-                                    <div className="flex justify-end mt-2 space-x-2 space-x-reverse">
-                                        <button onClick={() => setIsEditingComment(false)} className="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 dark:border-gray-500">إلغاء</button>
-                                        <button onClick={handleSaveManagerComment} className="px-3 py-1 text-sm text-white bg-brand-light border border-transparent rounded-md hover:bg-brand-dark">حفظ</button>
+                                    <div className="flex justify-end mt-4 gap-2">
+                                        <button onClick={() => setIsEditingComment(false)} className="px-4 py-2 text-sm text-gray-600">إلغاء</button>
+                                        <button onClick={handleSaveManagerComment} className="px-6 py-2 bg-brand-light text-white rounded-xl font-bold">حفظ الهامش</button>
                                     </div>
                                 </div>
                             ) : (
-                                <div onClick={() => isManager && setIsEditingComment(true)} 
-                                    className={`p-3 rounded-md border min-h-[60px] ${
-                                        isManager 
-                                        ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 border-transparent hover:border-gray-200 dark:hover:border-gray-600' 
-                                        : report.managerComment 
-                                            ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-800' 
-                                            : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700'
-                                    }`}
-                                >
-                                    <p className={`whitespace-pre-wrap ${!report.managerComment ? 'text-gray-500 dark:text-gray-400 italic' : 'text-gray-900 dark:text-gray-100'}`}>
-                                        {report.managerComment || (isManager ? 'لا يوجد هامش. انقر للإضافة.' : 'لا يوجد هامش.')}
+                                <div onClick={() => isManager && setIsEditingComment(true)} className={isManager ? 'cursor-pointer' : ''}>
+                                    <p className={`text-sm leading-relaxed whitespace-pre-wrap italic ${!report.managerComment ? 'text-gray-400' : 'text-gray-800 dark:text-gray-100'}`}>
+                                        {report.managerComment || 'لم يتم إضافة هامش بعد.'}
                                     </p>
                                     
-                                    {/* Signature Block - Visible only when there is a comment and in print or view */}
                                     {report.managerComment && (
-                                        <div className="mt-4 pt-2 border-t border-gray-300 dark:border-gray-600 text-left">
-                                            <p className="font-bold text-gray-800 dark:text-gray-200">مسؤول الشعبة</p>
-                                            <p className="text-gray-600 dark:text-gray-400">{manager.fullName}</p>
+                                        <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-end">
+                                            <div className="text-right">
+                                                <p className="font-bold text-gray-900 dark:text-white">مسؤول الشعبة</p>
+                                                <p className="text-xs text-gray-500">{manager.fullName}</p>
+                                            </div>
+                                            <div className="w-32 h-16 border-b border-gray-300 flex items-end justify-center text-[10px] text-gray-300 uppercase tracking-widest">
+                                                توقيع وختم الشعبة
+                                            </div>
                                         </div>
                                     )}
                                 </div>
                             )}
-                        </dd>
-                    </div>
+                        </div>
+                    </section>
                 )}
-                
-                <div className="sm:col-span-2 print-page-break">
-                    <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">المرفقات</dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                        {report.attachments?.length > 0 ? (
-                            <div className="attachments-grid-print grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pt-2">
-                                {report.attachments.map((file, idx) => file.content && (
-                                    <div key={idx} className="border dark:border-gray-700 rounded-lg overflow-hidden group relative shadow-sm">
-                                        <a href={file.content} target="_blank" rel="noopener noreferrer" className="block h-32 w-full">
-                                            {file.type.startsWith('image/') ? (
-                                                <img src={file.content} alt={file.name} className="h-full w-full object-cover" />
-                                            ) : (
-                                                <div className="h-full w-full bg-gray-50 dark:bg-gray-700 flex flex-col items-center justify-center p-2 text-center">
-                                                    <DocumentTextIcon className="w-12 h-12 text-gray-400" />
-                                                </div>
-                                            )}
-                                        </a>
-                                        <div className="p-2 text-xs bg-gray-100 dark:bg-gray-700 border-t dark:border-gray-600">
-                                            <p className="truncate text-gray-700 dark:text-gray-200 font-medium" title={file.name}>{file.name}</p>
-                                            <p className="text-gray-500 dark:text-gray-400">{`${(file.size / 1024).toFixed(1)} KB`}</p>
-                                        </div>
-                                        <div className="absolute top-2 right-2 no-print">
-                                            <a 
-                                                href={file.content} 
-                                                download={file.name}
-                                                className="opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-white/80 dark:bg-gray-800/80 text-brand-dark dark:text-gray-200 rounded-full shadow-md"
-                                                title="تحميل"
-                                            >
-                                                <DownloadIcon className="w-5 h-5" />
-                                            </a>
-                                        </div>
+
+                {/* المرفقات */}
+                <section className="print-page-break">
+                    <h4 className="text-sm font-bold text-gray-500 mb-4 no-print">المرفقات والوثائق</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {report.attachments?.map((file, idx) => (
+                            <div key={idx} className="bg-white border rounded-2xl overflow-hidden shadow-sm print-border">
+                                {file.type.startsWith('image/') ? (
+                                    <img src={file.content} alt={file.name} className="h-32 w-full object-cover" />
+                                ) : (
+                                    <div className="h-32 w-full bg-gray-50 flex items-center justify-center">
+                                        <DocumentTextIcon className="w-10 h-10 text-gray-300" />
                                     </div>
-                                ))}
+                                )}
+                                <div className="p-2 text-[10px] bg-gray-50 border-t">
+                                    <p className="truncate font-bold">{file.name}</p>
+                                    <p className="text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
+                                </div>
                             </div>
-                        ) : <p>لا توجد مرفقات.</p>}
-                    </dd>
-                </div>
-                
-                {isManager && (
-                    <AIReportAnalysis report={report} />
-                )}
-            </dl>
+                        ))}
+                    </div>
+                </section>
+
+                {isManager && <AIReportAnalysis report={report} />}
+            </div>
         </div>
     );
 };
