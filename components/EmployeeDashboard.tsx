@@ -34,7 +34,7 @@ import ArrowPathIcon from './icons/ArrowPathIcon';
 
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
-    const { reports, directTasks, addReport, saveOrUpdateDraft, deleteReport, notification, clearNotification, isSyncing } = useData();
+    const { reports, directTasks, addReport, saveOrUpdateDraft, deleteReport, notification, clearNotification, isSyncing, refreshData } = useData();
     
     const [activeTab, setActiveTab] = useState('home');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -57,7 +57,6 @@ const EmployeeDashboard: React.FC = () => {
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
 
-        // طلب إذن الإشعارات تلقائياً
         if ("Notification" in window && Notification.permission === "default") {
             Notification.requestPermission();
         }
@@ -245,7 +244,14 @@ const EmployeeDashboard: React.FC = () => {
             <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="flex flex-col h-full border-l dark:border-gray-800">
                     <div className="flex flex-col items-center p-6 border-b dark:border-gray-800 gap-2 relative">
-                        {isSyncing && <div className="absolute top-2 left-2"><ArrowPathIcon className="w-4 h-4 text-brand-light animate-spin" /></div>}
+                        <button 
+                            onClick={() => refreshData()}
+                            className={`absolute top-4 left-4 p-2 rounded-full bg-brand-light/10 text-brand-light hover:bg-brand-light/20 transition-all active:scale-90 ${isSyncing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                            title="تحديث البيانات"
+                            disabled={isSyncing}
+                        >
+                            <ArrowPathIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+                        </button>
                         <div className="w-10 h-10"><AppLogoIcon /></div>
                         <h1 className="text-lg font-bold dark:text-gray-100">مهامي اليومية</h1>
                         <div className="flex items-center gap-1 mt-1">
@@ -284,7 +290,13 @@ const EmployeeDashboard: React.FC = () => {
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8"><AppLogoIcon /></div>
                         <h2 className="text-lg font-bold dark:text-gray-100">مهامي</h2>
-                        {isSyncing && <ArrowPathIcon className="w-3 h-3 text-brand-light animate-spin" />}
+                        <button 
+                            onClick={() => refreshData()}
+                            className="p-1.5 text-brand-light"
+                            disabled={isSyncing}
+                        >
+                            <ArrowPathIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+                        </button>
                     </div>
                     <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-gray-50 dark:bg-gray-800 rounded-2xl"><MenuIcon className="w-6 h-6" /></button>
                 </header>
@@ -314,7 +326,6 @@ const EmployeeDashboard: React.FC = () => {
                                     <textarea placeholder="المعوقات..." value={reportForm.notAccomplished} onChange={e => setReportForm(p => ({...p, notAccomplished: e.target.value}))} rows={2} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none" />
                                 </div>
 
-                                {/* حقل المرفقات */}
                                 <div className="space-y-3">
                                     <label className="text-sm font-bold text-gray-600 dark:text-gray-400 block">المرفقات والوثائق:</label>
                                     <div className="flex gap-3">
@@ -351,7 +362,6 @@ const EmployeeDashboard: React.FC = () => {
                                 </div>
                             </form>
                         )}
-                        {/* بقية التبويبات (home, archive, etc.) تظل كما هي مع التأكد من استخدام التقارير المحدثة لحظياً */}
                         {activeTab === 'home' && (
                             <div className="space-y-6 animate-fade-in pb-20">
                                 <div className="bg-gradient-to-br from-brand-light to-brand-dark p-6 rounded-3xl shadow-xl flex flex-col items-center text-center text-white relative overflow-hidden">

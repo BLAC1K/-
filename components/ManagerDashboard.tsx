@@ -19,12 +19,12 @@ import SentTasksView from './SentTasksView';
 import Toast from './Toast';
 import BellIcon from './icons/BellIcon';
 import InstallIcon from './icons/InstallIcon';
-// Fix: Import missing PlusIcon
 import PlusIcon from './icons/PlusIcon';
+import ArrowPathIcon from './icons/ArrowPathIcon';
 
 const ManagerDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
-    const { reports, users } = useData();
+    const { reports, users, isSyncing, refreshData } = useData();
     const [activeTab, setActiveTab] = useState('reports');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -99,7 +99,15 @@ const ManagerDashboard: React.FC = () => {
             
             <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-800 shadow-2xl transform transition-transform duration-300 ease-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="flex flex-col h-full border-l dark:border-gray-700">
-                    <div className="flex items-center p-6 border-b dark:border-gray-700 gap-3">
+                    <div className="flex items-center p-6 border-b dark:border-gray-700 gap-3 relative">
+                        <button 
+                            onClick={() => refreshData()}
+                            className={`absolute top-4 left-4 p-2 rounded-full bg-brand-light/10 text-brand-light hover:bg-brand-light/20 transition-all active:scale-90 ${isSyncing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                            title="تحديث البيانات"
+                            disabled={isSyncing}
+                        >
+                            <ArrowPathIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+                        </button>
                         <div className="w-10 h-10">
                             <AppLogoIcon />
                         </div>
@@ -134,6 +142,13 @@ const ManagerDashboard: React.FC = () => {
                             <AppLogoIcon />
                         </div>
                         <h1 className="text-xl font-bold text-brand-dark dark:text-gray-100">{pageTitles[activeTab]}</h1>
+                        <button 
+                            onClick={() => refreshData()}
+                            className="p-1 text-brand-light"
+                            disabled={isSyncing}
+                        >
+                            <ArrowPathIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+                        </button>
                     </div>
                     <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg active:scale-90 transition-transform">
                         {isSidebarOpen ? <XMarkIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
@@ -141,7 +156,6 @@ const ManagerDashboard: React.FC = () => {
                 </header>
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar bg-inherit">
                     <div className="container mx-auto max-w-6xl">
-                        {/* بطاقة التثبيت السريعة للمدير أيضاً */}
                         {activeTab === 'reports' && !isStandalone && (
                              <button 
                                 onClick={handleInstallClick}

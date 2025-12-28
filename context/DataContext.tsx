@@ -15,6 +15,7 @@ interface DataContextType extends AppState {
     isCloud: boolean;
     error: string | null;
     isSyncing: boolean;
+    refreshData: () => Promise<void>;
     notification: { message: string, type: 'info' | 'success', id: number } | null;
     clearNotification: () => void;
     getUserById: (id: string) => User | undefined;
@@ -81,7 +82,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
-    // المزامنة عند عودة المستخدم للتطبيق لضمان التحديث
+    const refreshData = useCallback(async () => {
+        await loadData(true);
+    }, [loadData]);
+
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
@@ -111,7 +115,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         else {
                             newState.reports = [mapped, ...prev.reports];
                             if (eventType === 'INSERT' && mapped.userId !== currentUserIdRef.current) {
-                                // تنبيه للمدير عند وصول تقرير جديد
                                 const sender = prev.users.find(u => u.id === mapped.userId);
                                 sendBrowserNotification('تقرير جديد', `أرسل ${sender?.fullName || 'منتسب'} تقريراً جديداً.`);
                             }
@@ -187,11 +190,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const markDirectTaskAsRead = useCallback(async (taskId: string) => api.markDirectTaskAsRead(taskId), []);
 
     const value = useMemo(() => ({
-        ...appState, isDataLoading, isCloud, error, isSyncing, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
+        ...appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
     }), [
-        appState, isDataLoading, isCloud, error, isSyncing, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
+        appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
     ]);
