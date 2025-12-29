@@ -25,38 +25,29 @@ const ReportsView: React.FC = () => {
     const employees = useMemo(() => users.filter(u => u.role === Role.EMPLOYEE), [users]);
     
     const getUnreadCount = (employeeId: string): number => {
-        return reports.filter(r => r.userId === employeeId && !r.isViewedByManager).length;
+        return reports.filter(r => r.userId === employeeId && !r.isViewedByManager && r.status === 'submitted').length;
     };
 
     const filteredEmployees = useMemo(() => {
         let employeesToShow = employees;
-
-        // 1. Search term filter
         if (searchTerm) {
             employeesToShow = employeesToShow.filter(employee =>
                 employee.fullName.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
-
-        // 2. Unread filter
         if (showOnlyUnread) {
             employeesToShow = employeesToShow.filter(employee => getUnreadCount(employee.id) > 0);
         }
-
-        // 3. Date range filter
         if (dateFrom || dateTo) {
-            const from = dateFrom || '0000-01-01'; // earliest possible date
-            const to = dateTo || '9999-12-31';   // latest possible date
-
+            const from = dateFrom || '0000-01-01';
+            const to = dateTo || '9999-12-31';
             const employeesWithReportsInRange = new Set(
                 reports
                     .filter(report => report.date >= from && report.date <= to)
                     .map(report => report.userId)
             );
-            
             employeesToShow = employeesToShow.filter(employee => employeesWithReportsInRange.has(employee.id));
         }
-
         return employeesToShow;
     }, [employees, reports, searchTerm, showOnlyUnread, dateFrom, dateTo]);
     
@@ -67,13 +58,11 @@ const ReportsView: React.FC = () => {
             'وحدة التمكين الفني': [],
             'وحدة التنسيق الفني': [],
         };
-
         filteredEmployees.forEach(employee => {
             if (employee.unit && (employee.unit === 'وحدة التمكين الفني' || employee.unit === 'وحدة التنسيق الفني')) {
                 groups[employee.unit].push(employee);
             }
         });
-
         return groups;
     }, [filteredEmployees]);
 
@@ -100,165 +89,135 @@ const ReportsView: React.FC = () => {
         }
     };
 
+    // 1. حالة عرض تفاصيل تقرير معين
     if (viewingReport && selectedEmployee) {
         return (
-            <div id="printable-report" className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md animate-fade-in relative">
-                <div className="flex items-center justify-between pb-4 mb-4 border-b dark:border-gray-700">
-                     <div className="flex items-center space-x-3 space-x-reverse">
-                         <Avatar src={selectedEmployee.profilePictureUrl} name={selectedEmployee.fullName} size={40} />
+            <div id="printable-area" className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden animate-fade-in border dark:border-gray-700">
+                <div className="flex flex-col md:flex-row items-center justify-between p-5 bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-700 gap-4 no-print">
+                     <div className="flex items-center gap-4">
+                         <Avatar src={selectedEmployee.profilePictureUrl} name={selectedEmployee.fullName} size={44} />
                          <div>
-                            <h3 className="text-lg font-bold text-brand-dark dark:text-gray-100">التقرير رقم {viewingReport.sequenceNumber}: {selectedEmployee.fullName}</h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">بتاريخ {viewingReport.date}</p>
+                            <h3 className="text-sm md:text-base font-bold text-brand-dark dark:text-gray-100 leading-tight">التقرير #{viewingReport.sequenceNumber}: {selectedEmployee.fullName}</h3>
+                            <p className="text-[10px] text-gray-500">{viewingReport.date} - {viewingReport.day}</p>
                          </div>
                     </div>
-                    <div className="flex items-center gap-4 no-print">
-                         <button
-                            onClick={() => setShowDeleteConfirm(true)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white transition-colors rounded-md bg-red-600 hover:bg-red-700"
-                            title="حذف التقرير"
-                        >
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setShowDeleteConfirm(true)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
                             <TrashIcon className="w-5 h-5" />
-                            <span className="hidden sm:inline">حذف</span>
                         </button>
-                        <button
-                            onClick={() => window.print()}
-                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white transition-colors rounded-md bg-brand-light hover:bg-brand-dark"
-                        >
-                            <DownloadIcon className="w-5 h-5" />
-                            <span className="hidden sm:inline">حفظ كـ PDF</span>
+                        <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-1.5 bg-brand-light text-white rounded-lg font-bold shadow-md text-xs">
+                            <DownloadIcon className="w-4 h-4" />
+                            <span>حفظ كـ PDF</span>
                         </button>
-                        <button
-                            onClick={() => setViewingReport(null)}
-                            className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-brand-dark dark:hover:text-cyan-300 transition-colors"
-                        >
-                            <ArrowRightIcon className="w-5 h-5 ml-2" />
-                            العودة إلى تقارير {selectedEmployee.fullName.split(' ')[0]}
+                        <button onClick={() => setViewingReport(null)} className="p-2 text-gray-400 hover:text-gray-700">
+                            <ArrowRightIcon className="w-7 h-7" />
                         </button>
                     </div>
                 </div>
-                <ReportDetail report={viewingReport} user={selectedEmployee} viewerRole={Role.MANAGER} />
+
+                {/* ترويسة الطباعة الرسمية */}
+                <div className="hidden print:block p-8 border-b-2 border-black">
+                    <div className="flex justify-between items-start">
+                        <div className="text-right">
+                            <h1 className="text-sm font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
+                            <h2 className="text-xs font-bold text-gray-700">شعبة الفنون والمسرح</h2>
+                            <p className="text-[10px] mt-2 font-bold">المنتسب: {selectedEmployee.fullName}</p>
+                        </div>
+                        <div className="text-left text-[10px]">
+                             <p className="font-bold">التاريخ: {viewingReport.date}</p>
+                             <p>التسلسل: {viewingReport.sequenceNumber}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-900">
+                    <ReportDetail report={viewingReport} user={selectedEmployee} viewerRole={Role.MANAGER} />
+                </div>
                 
                 {showDeleteConfirm && (
                     <ConfirmModal
                         title="حذف التقرير"
-                        message="هل أنت متأكد من رغبتك في حذف هذا التقرير نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
+                        message="سيتم حذف التقرير نهائياً من سجلات المنتسب."
                         onConfirm={handleDeleteReport}
                         onCancel={() => setShowDeleteConfirm(false)}
-                        confirmText="حذف"
-                        confirmButtonClass="bg-red-600 hover:bg-red-700"
+                        confirmText="تأكيد الحذف"
+                        confirmButtonClass="bg-red-600"
                     />
                 )}
             </div>
         );
     }
 
+    // 2. حالة عرض قائمة تقارير منتسب معين (الملف الشخصي للمنتسب)
     if (selectedEmployee) {
         return (
             <EmployeeReportsView 
-                employee={selectedEmployee}
-                onViewReport={handleViewReport}
-                onBack={() => setSelectedEmployee(null)}
+                employee={selectedEmployee} 
+                onViewReport={handleViewReport} 
+                onBack={() => setSelectedEmployee(null)} 
             />
         );
     }
 
+    // 3. الحالة الافتراضية: عرض مجلدات الوحدات والبحث
     const hasFilteredResults = Object.keys(groupedEmployees).some(key => groupedEmployees[key].length > 0);
 
     return (
-        <div className="space-y-6">
-            <div className="p-4 mb-6 bg-white dark:bg-gray-800 rounded-lg shadow space-y-4">
-                <div>
-                    <label htmlFor="search-employee" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        البحث باسم المنتسب
-                    </label>
-                    <div className="mt-1 flex gap-2">
+        <div className="space-y-6 animate-fade-in">
+            <div className="p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 space-y-4">
+                <div className="flex flex-col md:flex-row gap-4 items-end">
+                    <div className="flex-1 w-full">
+                        <label className="block text-xs font-bold text-gray-500 mb-1">البحث عن منتسب</label>
                         <input
-                            id="search-employee"
                             type="text"
-                            placeholder="اكتب اسمًا..."
+                            placeholder="اكتب اسم المنتسب هنا..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-brand-light focus:border-brand-light bg-white dark:bg-gray-700 dark:text-gray-200"
-                            aria-label="البحث باسم المنتسب"
+                            className="w-full px-4 py-2 text-sm border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-brand-light outline-none"
                         />
-                         <button
-                            onClick={() => setSearchTerm('')}
-                            className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors shrink-0"
-                            aria-label="مسح حقل البحث"
-                        >
-                            مسح
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center h-10 px-4 bg-gray-100 dark:bg-gray-700 rounded-xl">
+                            <input id="unread-only" type="checkbox" checked={showOnlyUnread} onChange={e => setShowOnlyUnread(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-brand-light" />
+                            <label htmlFor="unread-only" className="mr-2 text-xs font-bold text-gray-600 dark:text-gray-300 cursor-pointer">غير مقروءة</label>
+                        </div>
+                        <button onClick={handleResetFilters} className="h-10 px-4 bg-gray-100 dark:bg-gray-600 rounded-xl text-xs font-bold text-gray-500 flex items-center gap-2 hover:bg-gray-200">
+                            <ArrowPathIcon className="w-4 h-4" /> إعادة تعيين
                         </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end pt-4 border-t dark:border-gray-700">
+                <div className="grid grid-cols-2 md:grid-cols-2 gap-4 pt-4 border-t dark:border-gray-700">
                     <div>
-                        <label htmlFor="date-from" className="block text-sm font-medium text-gray-700 dark:text-gray-300">من تاريخ</label>
-                        <input
-                            id="date-from"
-                            type="date"
-                            value={dateFrom}
-                            onChange={e => setDateFrom(e.target.value)}
-                            className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-brand-light focus:border-brand-light bg-white dark:bg-gray-700 dark:text-gray-200"
-                        />
+                        <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase">من تاريخ</label>
+                        <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-full px-3 py-2 text-xs border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white" />
                     </div>
                     <div>
-                        <label htmlFor="date-to" className="block text-sm font-medium text-gray-700 dark:text-gray-300">إلى تاريخ</label>
-                        <input
-                            id="date-to"
-                            type="date"
-                            value={dateTo}
-                            onChange={e => setDateTo(e.target.value)}
-                            min={dateFrom}
-                            className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-brand-light focus:border-brand-light bg-white dark:bg-gray-700 dark:text-gray-200"
-                        />
-                    </div>
-                    <div className="flex items-center pt-6">
-                        <input
-                            id="unread-only"
-                            type="checkbox"
-                            checked={showOnlyUnread}
-                            onChange={e => setShowOnlyUnread(e.target.checked)}
-                            className="h-4 w-4 rounded border-gray-300 text-brand-light focus:ring-brand-light"
-                        />
-                        <label htmlFor="unread-only" className="mr-2 text-sm text-gray-700 dark:text-gray-300">
-                            تقارير غير مقروءة فقط
-                        </label>
-                    </div>
-                     <div>
-                        <button
-                            onClick={handleResetFilters}
-                            className="w-full flex items-center justify-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
-                        >
-                            <ArrowPathIcon className="w-5 h-5 ml-2" />
-                            إعادة تعيين
-                        </button>
+                        <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase">إلى تاريخ</label>
+                        <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} min={dateFrom} className="w-full px-3 py-2 text-xs border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white" />
                     </div>
                 </div>
             </div>
 
             {hasFilteredResults ? (
-                <div className="space-y-8">
+                <div className="space-y-6">
                     {unitOrder.map(unitName => {
                         const employeesInUnit = groupedEmployees[unitName];
                         if (!employeesInUnit || employeesInUnit.length === 0) return null;
-
                         return (
-                            <UnitFolder
-                                key={unitName}
-                                unitName={unitName}
-                                employees={employeesInUnit}
-                                getUnreadCount={getUnreadCount}
-                                onEmployeeClick={setSelectedEmployee}
+                            <UnitFolder 
+                                key={unitName} 
+                                unitName={unitName} 
+                                employees={employeesInUnit} 
+                                getUnreadCount={getUnreadCount} 
+                                onEmployeeClick={(emp) => setSelectedEmployee(emp)} 
                             />
                         );
                     })}
                 </div>
             ) : (
-                <div className="text-center py-10 px-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-                    <p className="text-gray-500 dark:text-gray-400">
-                         لا توجد نتائج تطابق معايير البحث أو الفلترة المحددة.
-                    </p>
+                <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+                    <p className="text-gray-400 text-sm">لا توجد نتائج مطابقة للبحث حالياً.</p>
                 </div>
             )}
         </div>
