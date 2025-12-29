@@ -91,13 +91,30 @@ export const subscribeToAllChanges = (onUpdate: (payload: any) => void) => {
 };
 
 export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>): Promise<Report> => {
-    const { data: maxSeqData } = await supabase.from('reports').select('sequence_number').eq('status', 'submitted').order('sequence_number', { ascending: false }).limit(1);
+    // التعديل هنا: جلب أعلى تسلسل للمنتسب المحدد فقط
+    const { data: maxSeqData } = await supabase
+        .from('reports')
+        .select('sequence_number')
+        .eq('user_id', report.userId)
+        .eq('status', 'submitted')
+        .order('sequence_number', { ascending: false })
+        .limit(1);
+
     const maxSeq = maxSeqData && maxSeqData.length > 0 ? maxSeqData[0].sequence_number : 0;
     const newId = generateId();
     const dbReport = {
-        id: newId, user_id: report.userId, sequence_number: maxSeq + 1, date: report.date, day: report.day,
-        tasks: report.tasks, accomplished: report.accomplished, not_accomplished: report.notAccomplished,
-        attachments: report.attachments, status: 'submitted', is_viewed_by_manager: false, is_comment_read_by_employee: false
+        id: newId, 
+        user_id: report.userId, 
+        sequence_number: maxSeq + 1, // التسلسل الجديد الخاص بالمنتسب
+        date: report.date, 
+        day: report.day,
+        tasks: report.tasks, 
+        accomplished: report.accomplished, 
+        not_accomplished: report.notAccomplished,
+        attachments: report.attachments, 
+        status: 'submitted', 
+        is_viewed_by_manager: false, 
+        is_comment_read_by_employee: false
     };
     const { error } = await supabase.from('reports').insert(dbReport);
     if (error) throw error;
