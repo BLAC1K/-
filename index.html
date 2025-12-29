@@ -27,26 +27,30 @@
         user-select: none;
         overscroll-behavior-y: contain;
       }
-      .animate-fade-in-up {
-        animation: fadeInUp 0.4s ease-out forwards;
+      .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
       }
-      @keyframes fadeInUp {
-        0% { opacity: 0; transform: translateY(20px); }
-        100% { opacity: 1; transform: translateY(0); }
+      .animate-scale-in {
+        animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes scaleIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
       }
       .no-scrollbar::-webkit-scrollbar { display: none; }
 
       /* أنماط الطباعة المتقدمة */
       @media print {
-        /* إخفاء كل شيء في الصفحة افتراضياً */
         body * {
           visibility: hidden;
         }
-        /* إظهار منطقة الطباعة فقط ومحتوياتها */
         #printable-area, #printable-area * {
           visibility: visible;
         }
-        /* تحديد منطقة الطباعة لتأخذ كامل الصفحة */
         #printable-area {
           position: absolute;
           left: 0;
@@ -57,24 +61,16 @@
           padding: 0 !important;
           margin: 0 !important;
         }
-        /* إخفاء العناصر التي تحمل كلاس no-print */
         .no-print {
           display: none !important;
         }
-        /* إزالة الظلال والحواف الملونة للوضع الليلي عند الطباعة */
         .dark {
           background-color: white !important;
           color: black !important;
         }
-        /* تحسين مظهر الجداول والقوائم عند الطباعة */
-        ul {
-          list-style: none !important;
-          padding: 0 !important;
-        }
         .print-border {
-          border: 1px solid #000 !important;
+          border: 1px solid #ddd !important;
         }
-        /* منع تقسيم المرفقات بين الصفحات إذا أمكن */
         .print-page-break {
           page-break-inside: avoid;
         }
@@ -114,7 +110,7 @@
     }
     </script>
   </head>
-  <body class="bg-white dark:bg-gray-900 selection:bg-brand-light selection:text-white">
+  <body class="bg-[#f8f9fc] dark:bg-gray-900 selection:bg-brand-light selection:text-white">
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
 
