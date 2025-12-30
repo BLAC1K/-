@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'daily-tasks-cache-v6';
+const CACHE_NAME = 'daily-tasks-cache-v7';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -19,39 +19,72 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// معالجة إشعارات Push في الخلفية
+// معالجة إشعارات Push وتنبيهات الخلفية
 self.addEventListener('push', (event) => {
   let data = { title: 'تنبيه جديد', body: 'يوجد تحديث في نظام المهام.' };
   if (event.data) {
-    try { data = event.data.json(); } catch (e) { data.body = event.data.text(); }
+    try { 
+      data = event.data.json(); 
+    } catch (e) { 
+      data.body = event.data.text(); 
+    }
   }
+  
   const options = {
     body: data.body,
     icon: '/icon.png',
-    badge: '/icon.png',
-    vibrate: [100, 50, 100],
-    data: { url: '/' }
+    badge: 'https://img.icons8.com/fluency/48/task.png',
+    vibrate: [200, 100, 200],
+    data: { 
+      url: '/',
+      timestamp: Date.now()
+    },
+    actions: [
+      { action: 'open', title: 'فتح التطبيق' },
+      { action: 'close', title: 'تجاهل' }
+    ]
   };
+  
   event.waitUntil(self.registration.showNotification(data.title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(clients.matchAll({ type: 'window' }).then((clientList) => {
-    for (const client of clientList) { if (client.url === '/' && 'focus' in client) return client.focus(); }
-    if (clients.openWindow) return clients.openWindow('/');
-  }));
+  
+  if (event.action === 'close') return;
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === '/' && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('/');
+      }
+    })
+  );
 });
 
+// استراتيجية Network-First للطلبات الديناميكية
 self.addEventListener('fetch', (event) => {
-  if (event.request.url.includes('supabase') || event.request.url.includes('google')) return;
-  event.respondWith(caches.match(event.request).then((cachedResponse) => {
-    return cachedResponse || fetch(event.request).then((response) => {
-      if (event.request.method === 'GET' && response.status === 200) {
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-      }
-      return response;
-    });
-  }));
+  const url = event.request.url;
+  
+  // تجاهل طلبات API من التخزين المؤقت
+  if (url.includes('supabase') || url.includes('google') || url.includes('mixkit')) {
+    return;
+  }
+  
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        if (event.request.method === 'GET' && response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
+  );
 });

@@ -9,11 +9,11 @@ import EyeSlashIcon from './icons/EyeSlashIcon';
 import BellIcon from './icons/BellIcon';
 import CheckCircleIcon from './icons/CheckCircleIcon';
 import ExclamationCircleIcon from './icons/ExclamationCircleIcon';
-// Fix: Import missing UserCircleIcon
 import UserCircleIcon from './icons/UserCircleIcon';
+import SparklesIcon from './icons/SparklesIcon';
 
 const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
-    const { updateUser } = useData();
+    const { updateUser, testNotification } = useData();
     const isEmployee = user.role === Role.EMPLOYEE;
 
     const [formData, setFormData] = useState({
@@ -186,26 +186,36 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
 
             {/* Notification Settings Section */}
             <div className="pt-8 border-t dark:border-gray-700">
-                <h4 className="text-xl font-bold text-brand-dark dark:text-gray-100 mb-4 flex items-center">
-                    <BellIcon className="w-6 h-6 ml-2 text-brand-light" />
-                    إعدادات التنبيهات
-                </h4>
+                <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-xl font-bold text-brand-dark dark:text-gray-100 flex items-center">
+                        <BellIcon className="w-6 h-6 ml-2 text-brand-light" />
+                        إعدادات التنبيهات
+                    </h4>
+                    <button 
+                        onClick={testNotification}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-brand-light bg-brand-light/10 rounded-lg hover:bg-brand-light/20 transition-all active:scale-95"
+                    >
+                        <SparklesIcon className="w-4 h-4" />
+                        اختبار التنبيه
+                    </button>
+                </div>
+                
                 <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-2xl border border-gray-100 dark:border-gray-700">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="text-center sm:text-right">
-                            <p className="font-bold text-gray-800 dark:text-gray-200">إشعارات المتصفح</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">تلقي تنبيهات فورية عند وصول مهام أو تقارير جديدة حتى أثناء إغلاق التطبيق</p>
+                            <p className="font-bold text-gray-800 dark:text-gray-200">إشعارات المتصفح والصوت</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">تلقي تنبيهات فورية مع صوت اهتزاز عند وصول مهام أو تعليقات جديدة.</p>
                         </div>
                         
                         {notificationPermission === 'granted' ? (
                             <div className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-xl font-bold text-sm">
                                 <CheckCircleIcon className="w-5 h-5" />
-                                مفعلة
+                                مفعلة بالكامل
                             </div>
                         ) : notificationPermission === 'denied' ? (
                             <div className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-xl font-bold text-sm">
                                 <ExclamationCircleIcon className="w-5 h-5" />
-                                محظورة من المتصفح
+                                محظورة حالياً
                             </div>
                         ) : (
                             <button 
@@ -216,6 +226,14 @@ const ProfileManagement: React.FC<{ user: User }> = ({ user }) => {
                             </button>
                         )}
                     </div>
+                    
+                    {/* تحذير خاص بمستخدمي iOS */}
+                    <div className="mt-4 p-3 bg-brand-accent-yellow/10 border border-brand-accent-yellow/20 rounded-xl">
+                        <p className="text-[10px] text-brand-dark dark:text-brand-accent-yellow font-bold leading-relaxed">
+                            💡 ملاحظة لمستخدمي آيفون (iOS): التنبيهات لا تعمل إلا في حال "إضافة التطبيق للشاشة الرئيسية" (PWA). يرجى التأكد من تثبيت التطبيق وتفعيله من إعدادات النظام.
+                        </p>
+                    </div>
+
                     {notificationPermission === 'denied' && (
                         <p className="mt-3 text-[10px] text-center text-red-500 dark:text-red-400 font-medium">
                             لقد قمت بحظر الإشعارات مسبقاً. يرجى تفعيلها من إعدادات المتصفح (أيقونة القفل بجانب الرابط) لتلقي التنبيهات.
