@@ -35,9 +35,13 @@ interface DataContextType extends AppState {
     addDirectTask: (task: Omit<DirectTask, 'id' | 'sentAt' | 'status' | 'isReadByEmployee'>) => Promise<void>;
     updateDirectTaskStatus: (taskId: string, status: 'acknowledged' | 'rejected', rejectionReason?: string) => Promise<void>;
     markDirectTaskAsRead: (taskId: string) => Promise<void>;
+    unlockAudio: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
+
+// نغمة التنبيه بصيغة Base64 لضمان عملها في كل الظروف
+const NOTIFICATION_SOUND_BASE64 = "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTdvT18AZm9vYmFyYmF6cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4";
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [appState, setAppState] = useState<AppState>({ users: [], reports: [], announcements: [], directTasks: [] });
@@ -47,19 +51,51 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [error, setError] = useState<string | null>(null);
     const [notification, setNotification] = useState<{ message: string, type: 'info' | 'success', id: number } | null>(null);
     
+    const audioRef = useRef<HTMLAudioElement | null>(null);
     const currentUserIdRef = useRef<string | null>(null);
+
+    // تجهيز الصوت
+    useEffect(() => {
+        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // نغمة احترافية واضحة
+        audioRef.current.load();
+    }, []);
+
+    const unlockAudio = useCallback(() => {
+        if (audioRef.current) {
+            audioRef.current.play().then(() => {
+                audioRef.current?.pause();
+                if (audioRef.current) audioRef.current.currentTime = 0;
+                console.log("Audio Unlocked for iOS/Android");
+            }).catch(e => console.log("Audio unlock failed", e));
+        }
+    }, []);
+
+    const playNotificationSound = useCallback(() => {
+        if (audioRef.current) {
+            audioRef.current.currentTime = 0;
+            audioRef.current.play().catch(e => console.warn("Audio play blocked", e));
+        }
+    }, []);
 
     const clearNotification = useCallback(() => setNotification(null), []);
 
-    const sendBrowserNotification = (title: string, body: string) => {
+    const triggerNotification = useCallback((title: string, body: string, type: 'info' | 'success' = 'info') => {
+        // 1. تنبيه منبثق داخل التطبيق
+        setNotification({ message: body, type, id: Date.now() });
+        
+        // 2. صوت تنبيه
+        playNotificationSound();
+
+        // 3. تنبيه نظام المتصفح (للخلفية)
         if ("Notification" in window && Notification.permission === "granted") {
             try {
-                new Notification(title, { body, icon: '/icon.png' });
+                const n = new Notification(title, { body, icon: 'https://img.icons8.com/fluency/192/task.png' });
+                n.onclick = () => { window.focus(); n.close(); };
             } catch (e) {
                 console.warn("Browser Notification failed", e);
             }
         }
-    };
+    }, [playNotificationSound]);
 
     const loadData = useCallback(async (silent = false) => {
         if (!silent) setIsDataLoading(true);
@@ -87,38 +123,37 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [loadData]);
 
     useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                loadData(true);
-            }
-        };
-        window.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('focus', () => loadData(true));
-        return () => {
-            window.removeEventListener('visibilitychange', handleVisibilityChange);
-        };
-    }, [loadData]);
-
-    useEffect(() => {
         loadData();
         currentUserIdRef.current = localStorage.getItem('loggedInUserId') || sessionStorage.getItem('loggedInUserId');
 
         const unsubscribe = api.subscribeToAllChanges((payload) => {
             const { table, eventType, new: newRecord, old: oldRecord } = payload;
+            
             setAppState(prev => {
                 const newState = { ...prev };
+                const loggedInUserId = localStorage.getItem('loggedInUserId') || sessionStorage.getItem('loggedInUserId');
+                const currentUser = prev.users.find(u => u.id === loggedInUserId);
+
                 if (table === 'reports') {
                     const mapped = api.mapReport(newRecord);
                     if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                        const exists = prev.reports.findIndex(r => r.id === mapped.id);
-                        if (exists > -1) newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
-                        else {
-                            newState.reports = [mapped, ...prev.reports];
-                            if (eventType === 'INSERT' && mapped.userId !== currentUserIdRef.current) {
-                                const sender = prev.users.find(u => u.id === mapped.userId);
-                                sendBrowserNotification('تقرير جديد', `أرسل ${sender?.fullName || 'منتسب'} تقريراً جديداً.`);
-                            }
+                        const existsIndex = prev.reports.findIndex(r => r.id === mapped.id);
+                        const oldReport = existsIndex > -1 ? prev.reports[existsIndex] : null;
+
+                        if (existsIndex > -1) newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
+                        else newState.reports = [mapped, ...prev.reports];
+
+                        // منطق التنبيهات للتقارير
+                        if (eventType === 'INSERT' && mapped.status === 'submitted' && currentUser?.role === 'manager') {
+                            const sender = prev.users.find(u => u.id === mapped.userId);
+                            triggerNotification('تقرير جديد', `أرسل ${sender?.fullName || 'منتسب'} تقريراً جديداً الآن.`);
                         }
+                        
+                        // تنبيه للمنتسب إذا علق المدير
+                        if (eventType === 'UPDATE' && mapped.userId === loggedInUserId && mapped.managerComment && mapped.managerComment !== oldReport?.managerComment) {
+                            triggerNotification('توجيه جديد', 'لقد وضع المسؤول ملاحظات جديدة على تقريرك.', 'success');
+                        }
+
                     } else if (eventType === 'DELETE') {
                         newState.reports = prev.reports.filter(r => r.id !== oldRecord.id);
                     }
@@ -126,17 +161,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     const mapped = api.mapDirectTask(newRecord);
                     if (eventType === 'INSERT') {
                         newState.directTasks = [mapped, ...prev.directTasks];
-                        if (mapped.employeeId === currentUserIdRef.current) {
-                            sendBrowserNotification('مهمة جديدة', 'لقد وجه إليك المسؤول مهمة عمل جديدة.');
-                            setNotification({ message: 'وصلتك مهمة عمل جديدة!', type: 'info', id: Date.now() });
+                        if (mapped.employeeId === loggedInUserId) {
+                            triggerNotification('مهمة عمل', 'وصلتك مهمة عمل فورية من المسؤول.', 'info');
                         }
-                    } else if (eventType === 'UPDATE') newState.directTasks = prev.directTasks.map(t => t.id === mapped.id ? mapped : t);
+                    } else if (eventType === 'UPDATE') {
+                        newState.directTasks = prev.directTasks.map(t => t.id === mapped.id ? mapped : t);
+                        // تنبيه للمدير إذا تم قبول المهمة
+                        if (mapped.managerId === loggedInUserId && mapped.status !== 'pending') {
+                            const emp = prev.users.find(u => u.id === mapped.employeeId);
+                            triggerNotification('تحديث مهمة', `قام ${emp?.fullName.split(' ')[0]} بتحديث حالة المهمة.`);
+                        }
+                    }
                 } else if (table === 'announcements') {
                     const mapped = api.mapAnnouncement(newRecord);
                     if (eventType === 'INSERT') {
                         newState.announcements = [mapped, ...prev.announcements];
-                        sendBrowserNotification('تعميم إداري', 'يوجد توجيه إداري جديد للجميع.');
-                        setNotification({ message: 'توجيه إداري جديد للجميع.', type: 'info', id: Date.now() });
+                        triggerNotification('تعميم إداري', 'يوجد توجيه إداري جديد لجميع المنتسبين.', 'success');
                     }
                 } else if (table === 'users') {
                     const mapped = api.mapUser(newRecord);
@@ -147,7 +187,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
 
         return () => { unsubscribe(); };
-    }, [loadData]);
+    }, [loadData, triggerNotification]);
     
     const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);
 
@@ -192,11 +232,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const value = useMemo(() => ({
         ...appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
-        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
+        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio
     }), [
         appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
-        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead
+        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio
     ]);
 
     return (

@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
 import LockIcon from './icons/LockIcon';
 import AppLogoIcon from './icons/AppLogoIcon';
 import UserIcon from './icons/UserIcon';
@@ -9,6 +11,7 @@ import EyeSlashIcon from './icons/EyeSlashIcon';
 
 const Login: React.FC = () => {
     const { login, loginLoading } = useAuth();
+    const { unlockAudio } = useData();
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -19,6 +22,10 @@ const Login: React.FC = () => {
     const handleLoginSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        
+        // فك حظر الصوت في المتصفح عند أول تفاعل
+        unlockAudio();
+
         if (!username || !password) {
             setError('الرجاء إدخال اسم المستخدم وكلمة المرور.');
             return;
