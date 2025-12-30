@@ -44,9 +44,22 @@ const EmployeeDashboard: React.FC = () => {
     const [isPwaReady, setIsPwaReady] = useState(!!window.deferredPrompt);
     const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [randomGreeting, setRandomGreeting] = useState('');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
+
+    // قائمة الرسائل الترحيبية المتنوعة
+    const greetings = useMemo(() => [
+        "طاب يومك، نتمنى لك يوماً مليئاً بالإنجاز.",
+        "أهلاً بعودتك، لنواصل رحلة الإبداع معاً.",
+        "يسعدنا تواجدك اليوم، أنت ركن أساسي في فريقنا.",
+        "بداية يوم موفقة، همتكم العالية سر نجاحنا.",
+        "مرحباً بك، شعبة الفنون تشرق بحضورك وعطائك.",
+        "يوم جديد، فرص جديدة للإبداع.. أهلاً بك.",
+        "أهلاً بك مجدداً، عملك المتميز يترك أثراً دائماً.",
+        "سعداء برؤيتك، لنجعل اليوم يوماً استثنائياً بالإنجازات."
+    ], []);
 
     const [plannerTasks, setPlannerTasks] = useState<Task[]>(() => {
         const saved = localStorage.getItem(`planner_${currentUser?.id}`);
@@ -63,8 +76,13 @@ const EmployeeDashboard: React.FC = () => {
 
         const handlePromptReady = () => setIsPwaReady(true);
         window.addEventListener('pwa-prompt-ready', handlePromptReady);
+        
+        // اختيار رسالة ترحيب عشوائية عند التحميل
+        const randomIdx = Math.floor(Math.random() * greetings.length);
+        setRandomGreeting(greetings[randomIdx]);
+
         return () => window.removeEventListener('pwa-prompt-ready', handlePromptReady);
-    }, []);
+    }, [greetings]);
 
     useEffect(() => {
         if (notification) {
@@ -277,7 +295,7 @@ const EmployeeDashboard: React.FC = () => {
                             </button>
                         )}
                         <ThemeToggle />
-                        <button onClick={logout} className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-500 rounded-xl">
+                        <button logout={logout} className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-500 rounded-xl">
                             <LogoutIcon className="w-6 h-6"/>
                             <span className="mr-3">خروج</span>
                         </button>
@@ -289,7 +307,7 @@ const EmployeeDashboard: React.FC = () => {
                 <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b dark:border-gray-800 md:hidden z-20 sticky top-0 safe-area-top">
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8"><AppLogoIcon /></div>
-                        <h2 className="text-lg font-bold dark:text-gray-100">مهامي</h2>
+                        <h2 className="text-lg font-bold dark:text-gray-100">المهام اليومية</h2>
                         <button 
                             onClick={() => refreshData()}
                             className="p-1.5 text-brand-light"
@@ -364,10 +382,19 @@ const EmployeeDashboard: React.FC = () => {
                         )}
                         {activeTab === 'home' && (
                             <div className="space-y-6 animate-fade-in pb-20">
-                                <div className="bg-gradient-to-br from-brand-light to-brand-dark p-6 rounded-3xl shadow-xl flex flex-col items-center text-center text-white relative overflow-hidden">
+                                <div className="bg-gradient-to-br from-brand-light to-brand-dark p-6 rounded-3xl shadow-xl flex flex-col items-center text-center text-white relative overflow-hidden transition-all duration-500">
                                     <div className="absolute top-0 right-0 p-4 opacity-10"><AppLogoIcon className="w-24 h-24" /></div>
                                     <h3 className="text-2xl font-bold z-10">أهلاً بك، {currentUser.fullName.split(' ')[0]}</h3>
-                                    <p className="text-white/80 text-sm mt-1 z-10">{new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                                    <p className="text-white/90 text-sm mt-2 z-10 font-medium bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-sm animate-fade-in">
+                                        {randomGreeting}
+                                    </p>
+                                    
+                                    <div className="mt-4 flex flex-col items-center gap-1 z-10">
+                                        <p className="text-white text-sm font-bold shadow-sm">
+                                            {new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                        </p>
+                                    </div>
+                                    
                                     <div className="mt-6 w-full max-w-xs bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
                                         <p className="text-xs font-bold mb-3">إنجازك اليوم</p>
                                         <div className="flex items-center gap-4">
