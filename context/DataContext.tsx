@@ -40,9 +40,6 @@ interface DataContextType extends AppState {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// نغمة التنبيه بصيغة Base64 لضمان عملها في كل الظروف
-const NOTIFICATION_SOUND_BASE64 = "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTdvT18AZm9vYmFyYmF6cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4cXV4";
-
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [appState, setAppState] = useState<AppState>({ users: [], reports: [], announcements: [], directTasks: [] });
     const [isDataLoading, setIsDataLoading] = useState(true);
@@ -54,9 +51,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const currentUserIdRef = useRef<string | null>(null);
 
-    // تجهيز الصوت
     useEffect(() => {
-        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // نغمة احترافية واضحة
+        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         audioRef.current.load();
     }, []);
 
@@ -65,7 +61,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             audioRef.current.play().then(() => {
                 audioRef.current?.pause();
                 if (audioRef.current) audioRef.current.currentTime = 0;
-                console.log("Audio Unlocked for iOS/Android");
             }).catch(e => console.log("Audio unlock failed", e));
         }
     }, []);
@@ -80,13 +75,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const clearNotification = useCallback(() => setNotification(null), []);
 
     const triggerNotification = useCallback((title: string, body: string, type: 'info' | 'success' = 'info') => {
-        // 1. تنبيه منبثق داخل التطبيق
         setNotification({ message: body, type, id: Date.now() });
-        
-        // 2. صوت تنبيه
         playNotificationSound();
-
-        // 3. تنبيه نظام المتصفح (للخلفية)
         if ("Notification" in window && Notification.permission === "granted") {
             try {
                 const n = new Notification(title, { body, icon: 'https://img.icons8.com/fluency/192/task.png' });
@@ -124,8 +114,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     useEffect(() => {
         loadData();
-        currentUserIdRef.current = localStorage.getItem('loggedInUserId') || sessionStorage.getItem('loggedInUserId');
-
+        
         const unsubscribe = api.subscribeToAllChanges((payload) => {
             const { table, eventType, new: newRecord, old: oldRecord } = payload;
             
@@ -134,54 +123,85 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 const loggedInUserId = localStorage.getItem('loggedInUserId') || sessionStorage.getItem('loggedInUserId');
                 const currentUser = prev.users.find(u => u.id === loggedInUserId);
 
+                // --- 1. مزامنة التقارير ---
                 if (table === 'reports') {
-                    const mapped = api.mapReport(newRecord);
                     if (eventType === 'INSERT' || eventType === 'UPDATE') {
+                        const mapped = api.mapReport(newRecord);
+                        const oldReport = prev.reports.find(r => r.id === mapped.id);
+                        
                         const existsIndex = prev.reports.findIndex(r => r.id === mapped.id);
-                        const oldReport = existsIndex > -1 ? prev.reports[existsIndex] : null;
-
                         if (existsIndex > -1) newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
                         else newState.reports = [mapped, ...prev.reports];
 
-                        // منطق التنبيهات للتقارير
+                        // إشعار للمدير بتقرير جديد
                         if (eventType === 'INSERT' && mapped.status === 'submitted' && currentUser?.role === 'manager') {
                             const sender = prev.users.find(u => u.id === mapped.userId);
                             triggerNotification('تقرير جديد', `أرسل ${sender?.fullName || 'منتسب'} تقريراً جديداً الآن.`);
                         }
                         
-                        // تنبيه للمنتسب إذا علق المدير
+                        // إشعار للمنتسب بتعليق المدير
                         if (eventType === 'UPDATE' && mapped.userId === loggedInUserId && mapped.managerComment && mapped.managerComment !== oldReport?.managerComment) {
                             triggerNotification('توجيه جديد', 'لقد وضع المسؤول ملاحظات جديدة على تقريرك.', 'success');
                         }
-
                     } else if (eventType === 'DELETE') {
                         newState.reports = prev.reports.filter(r => r.id !== oldRecord.id);
                     }
-                } else if (table === 'direct_tasks') {
-                    const mapped = api.mapDirectTask(newRecord);
-                    if (eventType === 'INSERT') {
-                        newState.directTasks = [mapped, ...prev.directTasks];
-                        if (mapped.employeeId === loggedInUserId) {
+                } 
+
+                // --- 2. مزامنة المهام المباشرة ---
+                else if (table === 'direct_tasks') {
+                    if (eventType === 'INSERT' || eventType === 'UPDATE') {
+                        const mapped = api.mapDirectTask(newRecord);
+                        const existsIndex = prev.directTasks.findIndex(t => t.id === mapped.id);
+                        
+                        if (existsIndex > -1) newState.directTasks = prev.directTasks.map(t => t.id === mapped.id ? mapped : t);
+                        else newState.directTasks = [mapped, ...prev.directTasks];
+
+                        // إشعار للمنتسب بمهمة جديدة
+                        if (eventType === 'INSERT' && mapped.employeeId === loggedInUserId) {
                             triggerNotification('مهمة عمل', 'وصلتك مهمة عمل فورية من المسؤول.', 'info');
                         }
-                    } else if (eventType === 'UPDATE') {
-                        newState.directTasks = prev.directTasks.map(t => t.id === mapped.id ? mapped : t);
-                        // تنبيه للمدير إذا تم قبول المهمة
-                        if (mapped.managerId === loggedInUserId && mapped.status !== 'pending') {
+
+                        // إشعار للمدير بتحديث حالة المهمة (قبول/رفض)
+                        if (eventType === 'UPDATE' && mapped.managerId === loggedInUserId && mapped.status !== 'pending') {
                             const emp = prev.users.find(u => u.id === mapped.employeeId);
                             triggerNotification('تحديث مهمة', `قام ${emp?.fullName.split(' ')[0]} بتحديث حالة المهمة.`);
                         }
+                    } else if (eventType === 'DELETE') {
+                        newState.directTasks = prev.directTasks.filter(t => t.id !== oldRecord.id);
                     }
-                } else if (table === 'announcements') {
-                    const mapped = api.mapAnnouncement(newRecord);
-                    if (eventType === 'INSERT') {
-                        newState.announcements = [mapped, ...prev.announcements];
-                        triggerNotification('تعميم إداري', 'يوجد توجيه إداري جديد لجميع المنتسبين.', 'success');
+                } 
+
+                // --- 3. مزامنة التعميمات ---
+                else if (table === 'announcements') {
+                    if (eventType === 'INSERT' || eventType === 'UPDATE') {
+                        const mapped = api.mapAnnouncement(newRecord);
+                        const existsIndex = prev.announcements.findIndex(a => a.id === mapped.id);
+                        
+                        if (existsIndex > -1) newState.announcements = prev.announcements.map(a => a.id === mapped.id ? mapped : a);
+                        else newState.announcements = [mapped, ...prev.announcements];
+
+                        if (eventType === 'INSERT') {
+                            triggerNotification('تعميم إداري', 'يوجد توجيه إداري جديد لجميع المنتسبين.', 'success');
+                        }
+                    } else if (eventType === 'DELETE') {
+                        newState.announcements = prev.announcements.filter(a => a.id !== oldRecord.id);
                     }
-                } else if (table === 'users') {
-                    const mapped = api.mapUser(newRecord);
-                    if (eventType === 'UPDATE') newState.users = prev.users.map(u => u.id === mapped.id ? mapped : u);
+                } 
+
+                // --- 4. مزامنة بيانات المستخدمين ---
+                else if (table === 'users') {
+                    if (eventType === 'INSERT' || eventType === 'UPDATE') {
+                        const mapped = api.mapUser(newRecord);
+                        const existsIndex = prev.users.findIndex(u => u.id === mapped.id);
+                        
+                        if (existsIndex > -1) newState.users = prev.users.map(u => u.id === mapped.id ? mapped : u);
+                        else newState.users = [...prev.users, mapped];
+                    } else if (eventType === 'DELETE') {
+                        newState.users = prev.users.filter(u => u.id !== oldRecord.id);
+                    }
                 }
+
                 return newState;
             });
         });
@@ -192,29 +212,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);
 
     const saveOrUpdateDraft = useCallback(async (draft: Partial<Report>) => {
-        const tempId = draft.id || `temp-${Date.now()}`;
-        const tempDraft = { id: tempId, status: 'draft', ...draft } as Report;
-        setAppState(prev => {
-            const exists = prev.reports.find(r => r.id === draft.id);
-            if (exists) return { ...prev, reports: prev.reports.map(r => r.id === draft.id ? { ...r, ...tempDraft } : r) };
-            return { ...prev, reports: [tempDraft, ...prev.reports] };
-        });
-        try { await api.saveOrUpdateDraft(draft); } catch (error) { loadData(true); throw error; }
-    }, [loadData]);
+        try { await api.saveOrUpdateDraft(draft); } catch (error) { throw error; }
+    }, []);
 
     const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => {
         try { await api.createReport(report); } catch (error) { throw error; }
     }, []);
 
     const updateReport = useCallback(async (updatedReport: Report) => {
-        setAppState(prev => ({ ...prev, reports: prev.reports.map(r => r.id === updatedReport.id ? updatedReport : r) }));
-        try { await api.updateReport(updatedReport); } catch (error) { loadData(true); throw error; }
-    }, [loadData]);
+        try { await api.updateReport(updatedReport); } catch (error) { throw error; }
+    }, []);
 
     const deleteReport = useCallback(async (reportId: string) => {
-        setAppState(prev => ({ ...prev, reports: prev.reports.filter(r => r.id !== reportId) }));
-        try { await api.deleteReport(reportId); } catch (error) { loadData(true); throw error; }
-    }, [loadData]);
+        try { await api.deleteReport(reportId); } catch (error) { throw error; }
+    }, []);
 
     const markReportAsViewed = useCallback(async (reportId: string) => api.markReportAsViewed(reportId), []);
     const markCommentAsRead = useCallback(async (reportId: string) => api.markCommentAsRead(reportId), []);
