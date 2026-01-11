@@ -44,12 +44,12 @@ const EmployeeDashboard: React.FC = () => {
     const [isPwaReady, setIsPwaReady] = useState(!!window.deferredPrompt);
     const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     const [randomGreeting, setRandomGreeting] = useState('');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
-    // قائمة الرسائل الترحيبية المتنوعة
     const greetings = useMemo(() => [
         "طاب يومك، نتمنى لك يوماً مليئاً بالإنجاز.",
         "أهلاً بعودتك، لنواصل رحلة الإبداع معاً.",
@@ -70,14 +70,9 @@ const EmployeeDashboard: React.FC = () => {
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(!!checkStandalone);
 
-        if ("Notification" in window && Notification.permission === "default") {
-            Notification.requestPermission();
-        }
-
         const handlePromptReady = () => setIsPwaReady(true);
         window.addEventListener('pwa-prompt-ready', handlePromptReady);
         
-        // اختيار رسالة ترحيب عشوائية عند التحميل
         const randomIdx = Math.floor(Math.random() * greetings.length);
         setRandomGreeting(greetings[randomIdx]);
 
@@ -200,15 +195,20 @@ const EmployeeDashboard: React.FC = () => {
         }
     };
 
-    const handleSubmitReport = async (e: React.FormEvent) => {
+    const handleSubmitReportClick = (e: React.FormEvent) => {
         e.preventDefault();
-        if (isSubmitting) return;
         const nonEmptyTasks = reportForm.tasks.filter(t => t.text.trim() !== '');
         if (nonEmptyTasks.length === 0) {
             setToast({ message: 'أضف مهمة واحدة على الأقل.', type: 'info' });
             return;
         }
+        setShowSubmitConfirm(true);
+    };
+
+    const handleFinalSubmit = async () => {
         setIsSubmitting(true);
+        setShowSubmitConfirm(false);
+        const nonEmptyTasks = reportForm.tasks.filter(t => t.text.trim() !== '');
         try {
             if (editingDraftId) await deleteReport(editingDraftId);
             await addReport({
@@ -322,26 +322,36 @@ const EmployeeDashboard: React.FC = () => {
                 <main className="flex-1 overflow-y-auto p-4 md:p-10 no-scrollbar bg-inherit">
                     <div className="container mx-auto max-w-4xl">
                         {activeTab === 'new-report' && (
-                            <form onSubmit={handleSubmitReport} className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6 animate-fade-in pb-20">
+                            <form onSubmit={handleSubmitReportClick} className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6 animate-fade-in pb-20">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-xl font-bold dark:text-white">{editingDraftId ? 'تعديل المسودة' : 'تقرير عمل جديد'}</h3>
                                     {isSyncing && <span className="text-[10px] text-brand-light animate-pulse">جاري الحفظ التلقائي...</span>}
                                 </div>
                                 
                                 <div className="space-y-3">
-                                    <label className="text-sm font-bold text-gray-600 dark:text-gray-400">قائمة المهام:</label>
+                                    <label className="text-sm font-bold text-gray-600 dark:text-gray-400">قائمة المهام المنجزة:</label>
                                     {reportForm.tasks.map((task, index) => (
                                         <div key={task.id} className="flex gap-2">
-                                            <input type="text" value={task.text} onChange={(e) => setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === task.id ? { ...t, text: e.target.value } : t) }))} placeholder={`المهمة ${index + 1}...`} className="flex-1 px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/50" />
-                                            {index > 0 && <button type="button" onClick={() => setReportForm(p => ({...p, tasks: p.tasks.filter(t => t.id !== task.id)}))} className="p-3 text-red-500 hover:bg-red-50 rounded-xl"><TrashIcon className="w-5 h-5" /></button>}
+                                            <textarea 
+                                                value={task.text} 
+                                                onChange={(e) => setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === task.id ? { ...t, text: e.target.value } : t) }))} 
+                                                placeholder={`صف المهمة ${index + 1} هنا بالتفصيل...`} 
+                                                rows={2}
+                                                className="flex-1 px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/50 transition-all resize-none" 
+                                            />
+                                            {index > 0 && (
+                                                <button type="button" onClick={() => setReportForm(p => ({...p, tasks: p.tasks.filter(t => t.id !== task.id)}))} className="p-3 text-red-500 hover:bg-red-50 h-fit rounded-xl">
+                                                    <TrashIcon className="w-5 h-5" />
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
-                                    <button type="button" onClick={() => setReportForm(p => ({...p, tasks: [...p.tasks, {id: Date.now().toString(), text: ''}]}))} className="flex items-center text-xs font-bold text-brand-light"><PlusIcon className="w-4 h-4 ml-1" /> إضافة سطر مهمة</button>
+                                    <button type="button" onClick={() => setReportForm(p => ({...p, tasks: [...p.tasks, {id: Date.now().toString(), text: ''}]}))} className="flex items-center text-xs font-bold text-brand-light"><PlusIcon className="w-4 h-4 ml-1" /> إضافة مهمة أخرى</button>
                                 </div>
 
                                 <div className="space-y-4">
-                                    <textarea placeholder="ما تم إنجازه..." value={reportForm.accomplished} onChange={e => setReportForm(p => ({...p, accomplished: e.target.value}))} rows={3} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none" />
-                                    <textarea placeholder="المعوقات..." value={reportForm.notAccomplished} onChange={e => setReportForm(p => ({...p, notAccomplished: e.target.value}))} rows={2} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none" />
+                                    <textarea placeholder="ملخص ما تم إنجازه بشكل عام..." value={reportForm.accomplished} onChange={e => setReportForm(p => ({...p, accomplished: e.target.value}))} rows={3} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none" />
+                                    <textarea placeholder="المعوقات والمقترحات (إن وجدت)..." value={reportForm.notAccomplished} onChange={e => setReportForm(p => ({...p, notAccomplished: e.target.value}))} rows={2} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none" />
                                 </div>
 
                                 <div className="space-y-3">
@@ -449,6 +459,17 @@ const EmployeeDashboard: React.FC = () => {
 
             {selectedReport && <ReportDetailModal report={selectedReport} user={currentUser} viewerRole={Role.EMPLOYEE} onClose={() => setSelectedReport(null)} />}
             {toast && <Toast message={toast.message} onClose={() => { setToast(null); clearNotification(); }} onClick={() => setToast(null)} type={toast.type} />}
+            
+            {showSubmitConfirm && (
+                <ConfirmModal 
+                    title="تأكيد إرسال التقرير" 
+                    message="هل أنت متأكد من صحة جميع البيانات الواردة في التقرير؟ سيتم إرساله مباشرة للمسؤول للمراجعة." 
+                    onConfirm={handleFinalSubmit} 
+                    onCancel={() => setShowSubmitConfirm(false)} 
+                    confirmText="تأكيد الإرسال النهائي"
+                    cancelText="مراجعة التقرير"
+                />
+            )}
         </div>
     );
 };
