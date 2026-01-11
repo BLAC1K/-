@@ -37,34 +37,34 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
     };
 
     return (
-        /* في الطباعة: يتم تحويل هذا العنصر لـ display: block بواسطة index.html */
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 md:p-8 no-print" aria-modal="true" role="dialog" onClick={onClose}>
+        /* طبقة الخلفية المعتمة - يتم إخفاؤها تماماً في الطباعة لضمان عدم وجود صفحة بيضاء */
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 md:p-8 no-print-bg print:bg-transparent print:static print:block" aria-modal="true" role="dialog" onClick={onClose}>
             
-            {/* id="printable-area" هو المرجع الوحيد للطباعة، تم إلغاء قيود الشفافية والأنيميشن له في CSS */}
-            <div id="printable-area" className="relative w-full h-full max-w-5xl sm:h-[95vh] sm:rounded-[2.5rem] bg-white dark:bg-gray-800 shadow-2xl flex flex-col overflow-hidden print:!block print:!static print:!h-auto print:!overflow-visible print:!bg-white" onClick={e => e.stopPropagation()}>
+            {/* منطقة الطباعة - تتحول إلى تموضع ثابت (Static) عند الطباعة لتظهر في الـ PDF */}
+            <div id="printable-area" className="relative w-full h-full max-w-5xl sm:h-[95vh] sm:rounded-[2.5rem] bg-white dark:bg-gray-800 shadow-2xl flex flex-col overflow-hidden print:!block print:!static print:!h-auto print:!overflow-visible print:!bg-white print:!shadow-none" onClick={e => e.stopPropagation()}>
                 
                 {/* ترويسة الطباعة الرسمية - تظهر في الورق فقط */}
-                <div className="hidden print:block p-10 border-b-2 border-black mb-6">
+                <div className="hidden print:block p-10 border-b-4 border-double border-black mb-8">
                     <div className="flex justify-between items-start">
                         <div className="text-right space-y-1">
-                            <h1 className="text-base font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
-                            <h2 className="text-sm font-bold text-gray-700">شعبة الفنون والمسرح</h2>
-                            <div className="pt-4 mt-4 border-r-4 border-gray-300 pr-4">
-                                <p className="text-sm font-bold">الاسم: <span className="font-medium">{user.fullName}</span></p>
-                                <p className="text-xs">العنوان الوظيفي: {user.jobTitle}</p>
-                                <p className="text-xs">الرقم الوظيفي: {user.badgeNumber}</p>
-                                <p className="text-xs">الوحدة: {user.unit || '---'}</p>
+                            <h1 className="text-lg font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
+                            <h2 className="text-base font-bold text-gray-700">شعبة الفنون والمسرح</h2>
+                            <div className="pt-4 mt-4 border-r-4 border-gray-400 pr-4">
+                                <p className="text-base font-bold">الاسم: <span className="font-medium">{user.fullName}</span></p>
+                                <p className="text-sm">العنوان الوظيفي: {user.jobTitle}</p>
+                                <p className="text-sm">الرقم الوظيفي: {user.badgeNumber}</p>
+                                <p className="text-sm">الوحدة: {user.unit || '---'}</p>
                             </div>
                         </div>
                         <div className="text-left space-y-1">
-                             <p className="font-bold text-sm text-brand-dark">تقرير تسلسلي: {report.sequenceNumber}</p>
-                             <p className="text-xs">التاريخ: {report.date}</p>
-                             <p className="text-xs">اليوم: {report.day}</p>
+                             <p className="font-bold text-base text-brand-dark">تقرير تسلسلي: {report.sequenceNumber}</p>
+                             <p className="text-sm">التاريخ: {report.date}</p>
+                             <p className="text-sm">اليوم: {report.day}</p>
                         </div>
                     </div>
                 </div>
 
-                {/* رأس الشاشة الرقمي - يتم إخفاؤه في الطباعة */}
+                {/* رأس الشاشة الرقمي - يختفي تماماً عند الطباعة */}
                 <div className="p-4 sm:p-6 border-b dark:border-gray-700 no-print flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
                     <div className="flex items-center space-x-3 space-x-reverse">
                          <Avatar src={user.profilePictureUrl} name={user.fullName} size={48} />
@@ -87,7 +87,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                             className="flex items-center gap-2 px-4 py-2 bg-brand-light text-white rounded-xl font-bold shadow-md hover:scale-105 transition-all text-xs md:text-sm"
                         >
                             <DownloadIcon className="w-4 h-4" />
-                            <span>طباعة / حفظ PDF</span>
+                            <span>طباعة / حفظ كـ PDF</span>
                         </button>
                         <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                             <XCircleIcon className="w-8 h-8"/>
@@ -95,7 +95,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                     </div>
                 </div>
 
-                {/* منطقة محتوى التقرير - تتدفق بحرية في الطباعة */}
+                {/* محتوى التقرير - يتدفق بحرية عبر عدة صفحات في الطباعة */}
                 <div className="flex-grow overflow-y-auto no-scrollbar bg-white dark:bg-gray-900 print:!block print:!overflow-visible print:!h-auto print:!static">
                     <ReportDetail report={report} user={user} viewerRole={viewerRole} hideMargin={hideMargin} />
                 </div>
