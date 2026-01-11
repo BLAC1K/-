@@ -43,97 +43,76 @@
       }
       .no-scrollbar::-webkit-scrollbar { display: none; }
 
-      /* نظام الطباعة المحسن للتقارير الطويلة */
+      /* نظام الطباعة المحسن - حل مشكلة الصفحة البيضاء والاقتطاع */
       @media print {
         @page {
-          margin: 1.5cm;
+          margin: 1cm;
           size: A4 portrait;
         }
         
         html, body {
           height: auto !important;
-          min-height: 100% !important;
           overflow: visible !important;
           background: white !important;
           margin: 0 !important;
           padding: 0 !important;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
         }
 
-        /* إخفاء الواجهة تماماً عند الطباعة باستخدام visibility لضمان عمل العناصر المتداخلة */
-        body {
-          visibility: hidden;
+        /* إخفاء كل شيء بشكل افتراضي */
+        body * {
+          visibility: hidden !important;
         }
         
+        /* إظهار منطقة الطباعة وأبنائها فقط */
         #printable-area, #printable-area * {
-          visibility: visible;
+          visibility: visible !important;
+          opacity: 1 !important;
+          transform: none !important; /* إلغاء الأنيميشن */
         }
         
-        /* جعل منطقة الطباعة حاوية رئيسية تتدفق عبر الصفحات */
+        /* جعل منطقة الطباعة العنصر الرئيسي في الصفحة */
         #printable-area {
           position: absolute !important;
           left: 0 !important;
           top: 0 !important;
           width: 100% !important;
-          height: auto !important;
           display: block !important;
           overflow: visible !important;
+          height: auto !important;
           background: white !important;
-          color: black !important;
           padding: 0 !important;
           margin: 0 !important;
-          box-shadow: none !important;
           border: none !important;
         }
 
-        /* إلغاء نظام Flexbox والارتفاعات المحددة للطباعة */
-        #printable-area div, 
-        #printable-area section, 
-        #printable-area main, 
-        #printable-area table {
+        /* إزالة قيود الارتفاع عن كافة الأباء لضمان تعدد الصفحات */
+        #root, #root > div, [role="dialog"], [aria-modal="true"] {
+          height: auto !important;
+          overflow: visible !important;
           display: block !important;
           position: static !important;
-          overflow: visible !important;
-          height: auto !important;
-          max-height: none !important;
-          flex: none !important;
-          width: 100% !important;
-        }
-
-        /* منع انقطاع العناصر في منتصف الصفحة */
-        .print-avoid-break, tr, section, p, h4 {
-          page-break-inside: avoid !important;
-          break-inside: avoid-page !important;
+          transform: none !important;
+          opacity: 1 !important;
         }
 
         .no-print {
           display: none !important;
         }
 
-        /* تنسيق الجداول للطباعة */
+        /* تنسيق الجداول لمنع الاقتطاع */
         table {
-          display: table !important;
-          border-collapse: collapse !important;
+          width: 100% !important;
           page-break-inside: auto !important;
+          border-collapse: collapse !important;
         }
         tr {
-          display: table-row !important;
           page-break-inside: avoid !important;
-        }
-        td, th {
-          display: table-cell !important;
-          border: 1px solid #ddd !important;
-          padding: 8px !important;
-        }
-
-        .dark {
-          background-color: white !important;
-          color: black !important;
+          page-break-after: auto !important;
         }
         
-        p, span, td, th {
-          color: black !important;
+        /* منع تقسيم الفقرات في نهاية الصفحة */
+        section, p, h4 {
+          page-break-inside: avoid !important;
         }
       }
     </style>

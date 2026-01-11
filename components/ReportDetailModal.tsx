@@ -37,11 +37,13 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
     };
 
     return (
+        /* في الطباعة: يتم تحويل هذا العنصر لـ display: block بواسطة index.html */
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 md:p-8 no-print" aria-modal="true" role="dialog" onClick={onClose}>
-            {/* id="printable-area" سيتحول لـ display: block عند الطباعة */}
+            
+            {/* id="printable-area" هو المرجع الوحيد للطباعة، تم إلغاء قيود الشفافية والأنيميشن له في CSS */}
             <div id="printable-area" className="relative w-full h-full max-w-5xl sm:h-[95vh] sm:rounded-[2.5rem] bg-white dark:bg-gray-800 shadow-2xl flex flex-col overflow-hidden print:!block print:!static print:!h-auto print:!overflow-visible print:!bg-white" onClick={e => e.stopPropagation()}>
                 
-                {/* ترويسة الطباعة الرسمية - تظهر فقط في الطباعة */}
+                {/* ترويسة الطباعة الرسمية - تظهر في الورق فقط */}
                 <div className="hidden print:block p-10 border-b-2 border-black mb-6">
                     <div className="flex justify-between items-start">
                         <div className="text-right space-y-1">
@@ -62,7 +64,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                     </div>
                 </div>
 
-                {/* رأس الشاشة الرقمي - يختفي عند الطباعة */}
+                {/* رأس الشاشة الرقمي - يتم إخفاؤه في الطباعة */}
                 <div className="p-4 sm:p-6 border-b dark:border-gray-700 no-print flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
                     <div className="flex items-center space-x-3 space-x-reverse">
                          <Avatar src={user.profilePictureUrl} name={user.fullName} size={48} />
@@ -85,7 +87,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                             className="flex items-center gap-2 px-4 py-2 bg-brand-light text-white rounded-xl font-bold shadow-md hover:scale-105 transition-all text-xs md:text-sm"
                         >
                             <DownloadIcon className="w-4 h-4" />
-                            <span>طباعة التقرير</span>
+                            <span>طباعة / حفظ PDF</span>
                         </button>
                         <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                             <XCircleIcon className="w-8 h-8"/>
@@ -93,7 +95,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                     </div>
                 </div>
 
-                {/* منطقة المحتوى - تتحول إلى كتلة بسيطة عند الطباعة للسماح بتدفق الصفحات */}
+                {/* منطقة محتوى التقرير - تتدفق بحرية في الطباعة */}
                 <div className="flex-grow overflow-y-auto no-scrollbar bg-white dark:bg-gray-900 print:!block print:!overflow-visible print:!h-auto print:!static">
                     <ReportDetail report={report} user={user} viewerRole={viewerRole} hideMargin={hideMargin} />
                 </div>
