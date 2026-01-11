@@ -43,90 +43,72 @@
       }
       .no-scrollbar::-webkit-scrollbar { display: none; }
 
-      /* نظام الطباعة النهائي لإصلاح مشكلة الصفحة البيضاء */
+      /* نظام الطباعة المحسن - العزل الكامل */
       @media print {
         @page {
-          margin: 1.5cm;
+          margin: 1cm;
           size: A4 portrait;
         }
         
-        /* إخفاء كافة عناصر الواجهة الرقمية تماماً */
-        .no-print, 
-        aside, 
-        header, 
-        footer, 
-        button,
-        .fixed.inset-0.bg-black\/70 { 
-          display: none !important; 
-        }
-
-        html, body {
-          height: auto !important;
-          overflow: visible !important;
+        /* 1. إخفاء كل شيء في الصفحة برمجياً */
+        body {
+          visibility: hidden !important;
           background: white !important;
-          color: black !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          width: 100% !important;
-        }
-
-        /* تحويل الحاوية الرئيسية إلى وضع السكون */
-        #root {
-          display: block !important;
           height: auto !important;
           overflow: visible !important;
         }
 
-        /* إجبار الحاوية المنبثقة على أن تصبح جزءاً من الصفحة العادية */
-        [role="dialog"], [aria-modal="true"] {
-          position: static !important;
-          display: block !important;
-          background: transparent !important;
-          padding: 0 !important;
-          margin: 0 !important;
-          box-shadow: none !important;
-          overflow: visible !important;
-        }
-
-        #printable-area {
-          position: static !important;
-          display: block !important;
-          width: 100% !important;
-          height: auto !important;
-          overflow: visible !important;
-          background: white !important;
-          color: black !important;
-          box-shadow: none !important;
-          border: none !important;
-          transform: none !important;
-          opacity: 1 !important;
+        /* 2. إظهار منطقة الطباعة فقط وخصائصها */
+        #printable-area, #printable-area * {
           visibility: visible !important;
         }
-
-        /* تحطيم كافة قيود Flexbox الداخلية أثناء الطباعة */
-        #printable-area .flex, 
-        #printable-area .flex-col,
-        #printable-area .overflow-y-auto {
+        
+        /* 3. تحويل منطقة الطباعة إلى عنصر ساكن في أعلى الصفحة */
+        #printable-area {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
           display: block !important;
           height: auto !important;
-          max-height: none !important;
           overflow: visible !important;
+          background: white !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: none !important;
+          box-shadow: none !important;
         }
 
-        /* تنسيق الجداول لمنع الاقتطاع */
+        /* 4. كسر كل قيود الـ Flexbox والتمرير والتموضع الثابت للعناصر الأبوية */
+        #root, #root > div, [role="dialog"], [aria-modal="true"], main, section {
+          display: block !important;
+          position: static !important;
+          overflow: visible !important;
+          height: auto !important;
+          max-height: none !important;
+          width: 100% !important;
+          opacity: 1 !important;
+          transform: none !important;
+          background: transparent !important;
+        }
+
+        /* إخفاء العناصر غير المطلوبة يدوياً للـ PDF */
+        .no-print {
+          display: none !important;
+          height: 0 !important;
+          width: 0 !important;
+          overflow: hidden !important;
+        }
+
+        /* منع انقسام الجداول والفقرات */
+        tr, section, p, h4 {
+          page-break-inside: avoid !important;
+          break-inside: avoid-page !important;
+        }
+
         table {
           width: 100% !important;
           border-collapse: collapse !important;
-          page-break-inside: auto !important;
-        }
-        tr {
-          page-break-inside: avoid !important;
-          page-break-after: auto !important;
-        }
-        
-        section, p, h1, h2, h3, h4 {
-          page-break-inside: avoid !important;
-          color: black !important;
         }
       }
     </style>

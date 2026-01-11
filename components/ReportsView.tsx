@@ -92,7 +92,7 @@ const ReportsView: React.FC = () => {
     // 1. حالة عرض تفاصيل تقرير معين
     if (viewingReport && selectedEmployee) {
         return (
-            <div id="printable-area" className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden animate-fade-in border dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden animate-fade-in border dark:border-gray-700 print:!block print:!border-none print:!shadow-none">
                 <div className="flex flex-col md:flex-row items-center justify-between p-5 bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-700 gap-4 no-print">
                      <div className="flex items-center gap-4">
                          <Avatar src={selectedEmployee.profilePictureUrl} name={selectedEmployee.fullName} size={44} />
@@ -105,9 +105,9 @@ const ReportsView: React.FC = () => {
                         <button onClick={() => setShowDeleteConfirm(true)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
                             <TrashIcon className="w-5 h-5" />
                         </button>
-                        <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-1.5 bg-brand-light text-white rounded-lg font-bold shadow-md text-xs">
+                        <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-brand-light text-white rounded-xl font-bold shadow-md text-xs">
                             <DownloadIcon className="w-4 h-4" />
-                            <span>حفظ كـ PDF</span>
+                            <span>طباعة / حفظ كـ PDF</span>
                         </button>
                         <button onClick={() => setViewingReport(null)} className="p-2 text-gray-400 hover:text-gray-700">
                             <ArrowRightIcon className="w-7 h-7" />
@@ -115,22 +115,28 @@ const ReportsView: React.FC = () => {
                     </div>
                 </div>
 
-                {/* ترويسة الطباعة الرسمية */}
-                <div className="hidden print:block p-8 border-b-2 border-black">
-                    <div className="flex justify-between items-start">
-                        <div className="text-right">
-                            <h1 className="text-sm font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
-                            <h2 className="text-xs font-bold text-gray-700">شعبة الفنون والمسرح</h2>
-                            <p className="text-[10px] mt-2 font-bold">المنتسب: {selectedEmployee.fullName}</p>
-                        </div>
-                        <div className="text-left text-[10px]">
-                             <p className="font-bold">التاريخ: {viewingReport.date}</p>
-                             <p>التسلسل: {viewingReport.sequenceNumber}</p>
+                {/* منطقة الطباعة المعزولة */}
+                <div id="printable-area" className="bg-white dark:bg-gray-900 print:!p-0 print:!block">
+                    {/* ترويسة الطباعة الرسمية - تظهر في الورق فقط */}
+                    <div className="hidden print:block p-10 border-b-4 border-double border-black mb-10">
+                        <div className="flex justify-between items-start">
+                            <div className="text-right space-y-1">
+                                <h1 className="text-lg font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
+                                <h2 className="text-base font-bold text-gray-700">شعبة الفنون والمسرح</h2>
+                                <div className="pt-4 mt-4 border-r-4 border-gray-400 pr-4">
+                                    <p className="text-base font-bold">المنتسب: <span className="font-medium">{selectedEmployee.fullName}</span></p>
+                                    <p className="text-sm">العنوان الوظيفي: {selectedEmployee.jobTitle}</p>
+                                    <p className="text-sm">الرقم الوظيفي: {selectedEmployee.badgeNumber}</p>
+                                </div>
+                            </div>
+                            <div className="text-left space-y-1">
+                                <p className="font-bold text-base text-brand-dark">تقرير تسلسلي: {viewingReport.sequenceNumber}</p>
+                                <p className="text-sm">التاريخ: {viewingReport.date}</p>
+                                <p className="text-sm">اليوم: {viewingReport.day}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <div className="bg-white dark:bg-gray-900">
+                    
                     <ReportDetail report={viewingReport} user={selectedEmployee} viewerRole={Role.MANAGER} />
                 </div>
                 
@@ -163,7 +169,7 @@ const ReportsView: React.FC = () => {
     const hasFilteredResults = Object.keys(groupedEmployees).some(key => groupedEmployees[key].length > 0);
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6 animate-fade-in no-print">
             <div className="p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 space-y-4">
                 <div className="flex flex-col md:flex-row gap-4 items-end">
                     <div className="flex-1 w-full">
