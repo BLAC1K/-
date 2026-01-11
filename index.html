@@ -43,19 +43,22 @@
       }
       .no-scrollbar::-webkit-scrollbar { display: none; }
 
-      /* أنماط الطباعة المتقدمة */
+      /* أنماط الطباعة الاحترافية للتقارير الطويلة */
       @media print {
         @page {
-          margin: 1cm;
-          size: auto;
+          margin: 1.5cm;
+          size: A4;
         }
         
         html, body {
           height: auto !important;
           overflow: visible !important;
           background: white !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
 
+        /* إخفاء كل شيء ما عدا منطقة الطباعة */
         body * {
           visibility: hidden;
         }
@@ -64,13 +67,12 @@
           visibility: visible;
         }
         
+        /* تحويل الحاوية إلى وضع الكتلة للسماح بتعدد الصفحات */
         #printable-area {
-          position: absolute !important;
-          left: 0 !important;
-          top: 0 !important;
+          position: relative !important;
+          display: block !important;
           width: 100% !important;
           height: auto !important;
-          display: block !important;
           overflow: visible !important;
           background: white !important;
           color: black !important;
@@ -78,13 +80,25 @@
           margin: 0 !important;
           box-shadow: none !important;
           border: none !important;
+          top: 0 !important;
+          left: 0 !important;
         }
 
-        /* إلغاء شريط التمرير الداخلي عند الطباعة */
+        /* إلغاء الفليكس والارتفاع المحدد عند الطباعة */
+        #printable-area .flex, 
+        #printable-area .flex-col,
         #printable-area .overflow-y-auto {
-          overflow: visible !important;
-          height: auto !important;
           display: block !important;
+          height: auto !important;
+          max-height: none !important;
+          overflow: visible !important;
+          flex: none !important;
+        }
+
+        /* منع اقتطاع الجداول والفقرات الهامة */
+        section, .print-page-break, tr, p {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
         }
 
         .no-print {
@@ -96,28 +110,10 @@
           color: black !important;
         }
 
-        .print-border {
-          border: 1px solid #ddd !important;
-        }
-
-        /* منع قطع الفقرات في منتصف الصفحة */
-        .print-page-break {
-          page-break-inside: avoid;
-          break-inside: avoid;
-          margin-bottom: 1rem;
-        }
-        
-        /* تحسين مظهر الجداول في الطباعة */
-        table {
-          page-break-inside: auto;
-          width: 100% !important;
-        }
-        tr {
-          page-break-inside: avoid;
-          page-break-after: auto;
-        }
-        thead {
-          display: table-header-group;
+        /* ضمان ظهور نصوص المربعات الملونة بوضوح في الطباعة */
+        .bg-gray-50, .bg-blue-50, .bg-green-50 {
+          background-color: #f9fafb !important;
+          border: 1px solid #eee !important;
         }
       }
     </style>
