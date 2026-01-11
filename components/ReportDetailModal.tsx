@@ -37,9 +37,9 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 md:p-8" aria-modal="true" role="dialog" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 md:p-8 no-print" aria-modal="true" role="dialog" onClick={onClose}>
             {/* الحاوية مكبرة للأجهزة اللوحية والكمبيوتر لضمان عدم التداخل */}
-            <div id="printable-area" className="relative w-full h-full max-w-5xl sm:h-[95vh] sm:rounded-[2.5rem] bg-white dark:bg-gray-800 shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div id="printable-area" className="relative w-full h-full max-w-5xl sm:h-[95vh] sm:rounded-[2.5rem] bg-white dark:bg-gray-800 shadow-2xl flex flex-col overflow-hidden print:!h-auto print:!overflow-visible print:!block" onClick={e => e.stopPropagation()}>
                 
                 {/* ترويسة الطباعة الرسمية - بدون لوجو وبأحجام صغيرة */}
                 <div className="hidden print:block p-8 border-b border-black mb-4">
@@ -93,7 +93,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                     </div>
                 </div>
 
-                <div className="flex-grow overflow-y-auto no-scrollbar bg-white dark:bg-gray-900">
+                <div className="flex-grow overflow-y-auto no-scrollbar bg-white dark:bg-gray-900 print:!overflow-visible print:!h-auto print:!block">
                     <ReportDetail report={report} user={user} viewerRole={viewerRole} hideMargin={hideMargin} />
                 </div>
             </div>
