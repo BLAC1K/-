@@ -43,6 +43,7 @@ const EmployeeDashboard: React.FC = () => {
     const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [randomGreeting, setRandomGreeting] = useState('');
     const [randomQuote, setRandomQuote] = useState('');
 
@@ -295,7 +296,7 @@ const EmployeeDashboard: React.FC = () => {
                             </button>
                         )}
                         <ThemeToggle />
-                        <button onClick={logout} className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-500 rounded-xl">
+                        <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-500 rounded-xl">
                             <LogoutIcon className="w-6 h-6"/>
                             <span className="mr-3">خروج</span>
                         </button>
@@ -483,6 +484,17 @@ const EmployeeDashboard: React.FC = () => {
                     onCancel={() => setShowSubmitConfirm(false)} 
                     confirmText="تأكيد الإرسال النهائي"
                     cancelText="مراجعة التقرير"
+                />
+            )}
+
+            {showLogoutConfirm && (
+                <ConfirmModal 
+                    title="تأكيد الخروج" 
+                    message="هل أنت متأكد من رغبتك في تسجيل الخروج من النظام؟" 
+                    onConfirm={logout} 
+                    onCancel={() => setShowLogoutConfirm(false)} 
+                    confirmText="تسجيل الخروج"
+                    cancelText="البقاء"
                 />
             )}
         </div>
