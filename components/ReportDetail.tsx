@@ -48,30 +48,30 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
     };
 
     return (
-        <div className="w-full flex flex-col space-y-8 p-4 sm:p-8 md:p-10 bg-inherit text-right" dir="rtl">
+        <div className="w-full flex flex-col space-y-8 p-4 sm:p-8 md:p-10 bg-inherit text-right print:!block print:!p-0 print:!space-y-6" dir="rtl">
             
-            {/* 1. قسم المهام اليومية - جدول كامل العرض لمنع التداخل */}
-            <section className="w-full block overflow-hidden">
-                <div className="flex items-center mb-3 border-r-4 border-brand-light pr-3">
-                    <h4 className="text-xs md:text-sm font-bold text-brand-dark dark:text-brand-light uppercase tracking-wide">
+            {/* 1. قسم المهام اليومية */}
+            <section className="w-full block overflow-hidden print:!mb-8">
+                <div className="flex items-center mb-4 border-r-4 border-brand-light pr-4">
+                    <h4 className="text-sm font-bold text-brand-dark dark:text-brand-light uppercase tracking-wide">
                         بيان المهام والنشاطات اليومية المنجزة
                     </h4>
                 </div>
-                <div className="w-full bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-sm overflow-x-auto">
+                <div className="w-full bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-sm overflow-hidden print:!border-gray-300">
                     <table className="w-full border-collapse">
                         <thead>
-                            <tr className="bg-gray-50 dark:bg-gray-700/50 border-b dark:border-gray-600">
+                            <tr className="bg-gray-50 dark:bg-gray-700/50 border-b dark:border-gray-600 print:!bg-gray-100">
                                 <th className="px-4 py-3 text-[11px] font-bold text-gray-600 dark:text-gray-300 w-12 text-center border-l dark:border-gray-600">ت</th>
                                 <th className="px-4 py-3 text-[11px] font-bold text-gray-600 dark:text-gray-300 text-right">وصف المهمة</th>
                                 {isManager && <th className="px-4 py-3 text-[11px] font-bold text-gray-600 dark:text-gray-300 w-20 text-center no-print">إجراء</th>}
                             </tr>
                         </thead>
-                        <tbody className="divide-y dark:divide-gray-700">
+                        <tbody className="divide-y dark:divide-gray-700 print:divide-gray-300">
                             {report.tasks.map((task, idx) => (
                                 <tr key={task.id} className={`${task.isDeleted ? 'bg-red-50/30' : 'hover:bg-gray-50/50'} transition-colors`}>
-                                    <td className="px-4 py-3 text-[11px] text-center font-bold text-gray-400 border-l dark:border-gray-600">{idx + 1}</td>
+                                    <td className="px-4 py-3 text-xs text-center font-bold text-gray-400 border-l dark:border-gray-600 print:!text-black">{idx + 1}</td>
                                     <td className="px-4 py-3">
-                                        <p className={`text-[12px] md:text-[13px] leading-relaxed ${task.isDeleted ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                                        <p className={`text-sm leading-relaxed ${task.isDeleted ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200 print:!text-black'}`}>
                                             {task.text}
                                         </p>
                                         {task.isDeleted && task.managerComment && (
@@ -94,32 +94,32 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                 </div>
             </section>
 
-            {/* 2. قسم التفاصيل الإضافية - عرض عمودي مرتب */}
-            <div className="flex flex-col md:flex-row gap-6">
-                <section className="flex-1 bg-gray-50 dark:bg-gray-800/50 p-5 rounded-2xl border dark:border-gray-700">
-                    <h4 className="text-[10px] font-bold text-gray-400 mb-2 uppercase border-b dark:border-gray-700 pb-1">خلاصة الإنجاز</h4>
-                    <p className="text-[12px] md:text-[13px] text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">{report.accomplished || 'لا توجد بيانات'}</p>
+            {/* 2. قسم التفاصيل الإضافية */}
+            <div className="flex flex-col md:flex-row gap-6 print:!block print:!space-y-6">
+                <section className="flex-1 bg-gray-50 dark:bg-gray-800/50 p-6 rounded-2xl border dark:border-gray-700 print:!bg-white print:!border-gray-200">
+                    <h4 className="text-[10px] font-bold text-gray-400 mb-2 uppercase border-b dark:border-gray-700 pb-1 print:!text-gray-700 print:!border-gray-200">خلاصة الإنجاز العام</h4>
+                    <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap print:!text-black">{report.accomplished || 'لا توجد بيانات'}</p>
                 </section>
-                <section className="flex-1 bg-gray-50 dark:bg-gray-800/50 p-5 rounded-2xl border dark:border-gray-700">
-                    <h4 className="text-[10px] font-bold text-gray-400 mb-2 uppercase border-b dark:border-gray-700 pb-1">المعوقات والمقترحات</h4>
-                    <p className="text-[12px] md:text-[13px] text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">{report.notAccomplished || 'لا توجد معوقات'}</p>
+                <section className="flex-1 bg-gray-50 dark:bg-gray-800/50 p-6 rounded-2xl border dark:border-gray-700 print:!bg-white print:!border-gray-200">
+                    <h4 className="text-[10px] font-bold text-gray-400 mb-2 uppercase border-b dark:border-gray-700 pb-1 print:!text-gray-700 print:!border-gray-200">المعوقات والمقترحات</h4>
+                    <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap print:!text-black">{report.notAccomplished || 'لا توجد معوقات'}</p>
                 </section>
             </div>
 
-            {/* 3. هامش المسؤول - تصميم إداري نظيف */}
+            {/* 3. هامش المسؤول */}
             {!hideMargin && (
-                <section className="print-page-break block w-full">
-                    <div className="flex items-center mb-3 border-r-4 border-brand-light pr-3">
-                        <h4 className="text-xs font-bold text-brand-dark dark:text-brand-light uppercase">هامش وتوجيهات مسؤول الشعبة</h4>
+                <section className="block w-full print:!mt-10">
+                    <div className="flex items-center mb-4 border-r-4 border-brand-light pr-4">
+                        <h4 className="text-sm font-bold text-brand-dark dark:text-brand-light uppercase">هامش وتوجيهات مسؤول الشعبة</h4>
                     </div>
-                    <div className={`p-6 rounded-3xl border-2 ${report.managerComment ? 'bg-green-50/20 border-green-100 dark:border-green-900/10' : 'bg-gray-50 border-dashed border-gray-300 dark:border-gray-700'}`}>
+                    <div className={`p-8 rounded-3xl border-2 ${report.managerComment ? 'bg-green-50/20 border-green-100 dark:border-green-900/10' : 'bg-gray-50 border-dashed border-gray-300 dark:border-gray-700'} print:!bg-white print:!border-gray-400 print:!rounded-xl`}>
                         {isManager && isEditingComment ? (
                             <div className="no-print space-y-4">
                                 <textarea
                                     value={comment}
                                     onChange={(e) => setComment(e.target.value)}
                                     rows={3}
-                                    className="w-full p-4 text-xs md:text-sm bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-brand-light"
+                                    className="w-full p-4 text-sm bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-brand-light"
                                     placeholder="اكتب التوجيهات هنا..."
                                 />
                                 <div className="flex justify-end gap-2">
@@ -129,19 +129,19 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                             </div>
                         ) : (
                             <div onClick={() => isManager && setIsEditingComment(true)} className={`${isManager ? 'cursor-pointer' : ''}`}>
-                                <p className={`text-xs md:text-sm leading-relaxed whitespace-pre-wrap italic ${!report.managerComment ? 'text-gray-400' : 'text-gray-800 dark:text-gray-100'}`}>
+                                <p className={`text-sm leading-relaxed whitespace-pre-wrap italic ${!report.managerComment ? 'text-gray-400' : 'text-gray-800 dark:text-gray-100 print:!text-black'}`}>
                                     {report.managerComment || (isManager ? 'انقر لإضافة هامش المسؤول...' : 'لم يتم إضافة توجيهات بعد.')}
                                 </p>
                                 
                                 {report.managerComment && (
-                                    <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-end">
+                                    <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-between items-end print:!border-gray-400">
                                         <div className="text-right">
-                                            <p className="font-bold text-[11px] text-gray-900 dark:text-white">مسؤول الشعبة</p>
-                                            <p className="text-[10px] text-gray-500">{manager.fullName}</p>
+                                            <p className="font-bold text-xs text-gray-900 dark:text-white print:!text-black">مسؤول الشعبة</p>
+                                            <p className="text-[10px] text-gray-500 print:!text-gray-700">{manager.fullName}</p>
                                         </div>
-                                        <div className="hidden print:block text-center opacity-30">
-                                            <div className="w-20 border-b border-black h-4 mb-1"></div>
-                                            <p className="text-[8px]">ختم وتوقيع</p>
+                                        <div className="hidden print:block text-center opacity-40">
+                                            <div className="w-24 border-b-2 border-black h-4 mb-2"></div>
+                                            <p className="text-[8px] font-bold">الختم والتوقيع</p>
                                         </div>
                                     </div>
                                 )}
@@ -151,16 +151,16 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                 </section>
             )}
 
-            {/* 4. المرفقات - عرض شبكي مرتب في الأسفل */}
-            <section className="print-page-break block w-full">
-                <h4 className="text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-widest border-b dark:border-gray-700 pb-1">المرفقات والوثائق المصاحبة</h4>
+            {/* 4. المرفقات */}
+            <section className="block w-full print:!mt-8">
+                <h4 className="text-[10px] font-bold text-gray-400 mb-4 uppercase tracking-widest border-b dark:border-gray-700 pb-1 print:!text-black print:!border-gray-400">المرفقات والوثائق المصاحبة</h4>
                 {report.attachments && report.attachments.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 print:!grid-cols-4 print:!gap-2">
                         {report.attachments.map((file, idx) => (
                             <div 
                                 key={idx} 
                                 onClick={() => setPreviewAttachment(file)}
-                                className="group relative aspect-square bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all"
+                                className="group relative aspect-square bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all print:!border-gray-300"
                             >
                                 {file.type.startsWith('image/') ? (
                                     <img src={file.content} alt={file.name} className="h-full w-full object-cover" />
@@ -173,20 +173,17 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                                 <div className="absolute inset-0 bg-brand-dark/10 opacity-0 group-hover:opacity-100 flex items-center justify-center no-print">
                                     <span className="bg-white px-2 py-0.5 rounded text-[9px] font-bold text-brand-dark shadow-sm">عرض</span>
                                 </div>
-                                <div className="absolute bottom-0 inset-x-0 p-1 bg-black/50 backdrop-blur-sm">
-                                    <p className="text-[8px] text-white truncate text-center">{file.name}</p>
-                                </div>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <p className="text-[10px] text-gray-400 italic">لا توجد مرفقات.</p>
+                    <p className="text-[10px] text-gray-400 italic">لا توجد مرفقات مرتبطة بهذا التقرير.</p>
                 )}
             </section>
 
             {isManager && <AIReportAnalysis report={report} />}
 
-            {/* نافذة معاينة المرفق (Lightbox) */}
+            {/* Lightbox for attachments (No print) */}
             {previewAttachment && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 no-print" onClick={() => setPreviewAttachment(null)}>
                     <button onClick={() => setPreviewAttachment(null)} className="absolute top-6 left-6 text-white/70 hover:text-white bg-white/10 p-2.5 rounded-full transition-all">

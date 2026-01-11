@@ -38,31 +38,31 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 md:p-8 no-print" aria-modal="true" role="dialog" onClick={onClose}>
-            {/* id="printable-area" هو العنصر الوحيد الذي يظهر في الطباعة كما هو محدد في index.html */}
-            <div id="printable-area" className="relative w-full h-full max-w-5xl sm:h-[95vh] sm:rounded-[2.5rem] bg-white dark:bg-gray-800 shadow-2xl flex flex-col overflow-hidden print:!h-auto print:!overflow-visible print:!block print:!static print:!bg-white" onClick={e => e.stopPropagation()}>
+            {/* الحاوية الرئيسية للتطبيق الرقمي */}
+            <div id="printable-area" className="relative w-full h-full max-w-5xl sm:h-[95vh] sm:rounded-[2.5rem] bg-white dark:bg-gray-800 shadow-2xl flex flex-col overflow-hidden print:!block print:!static print:!h-auto print:!overflow-visible print:!bg-white" onClick={e => e.stopPropagation()}>
                 
-                {/* ترويسة الطباعة الرسمية - تظهر فقط عند الطباعة */}
-                <div className="hidden print:block p-8 border-b-2 border-black mb-6">
+                {/* ترويسة الطباعة الرسمية - تظهر فقط في الطباعة */}
+                <div className="hidden print:block p-10 border-b-2 border-black mb-6">
                     <div className="flex justify-between items-start">
                         <div className="text-right space-y-1">
-                            <h1 className="text-sm font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
-                            <h2 className="text-xs font-bold text-gray-700">شعبة الفنون والمسرح</h2>
-                            <div className="pt-3 mt-3 border-r-2 border-gray-300 pr-3">
-                                <p className="text-[11px] font-bold">الاسم: <span className="font-medium">{user.fullName}</span></p>
-                                <p className="text-[10px]">العنوان الوظيفي: {user.jobTitle}</p>
-                                <p className="text-[10px]">الرقم الوظيفي: {user.badgeNumber}</p>
-                                <p className="text-[10px]">الوحدة: {user.unit || '---'}</p>
+                            <h1 className="text-base font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
+                            <h2 className="text-sm font-bold text-gray-700">شعبة الفنون والمسرح</h2>
+                            <div className="pt-4 mt-4 border-r-4 border-gray-300 pr-4">
+                                <p className="text-sm font-bold">الاسم: <span className="font-medium">{user.fullName}</span></p>
+                                <p className="text-xs">العنوان الوظيفي: {user.jobTitle}</p>
+                                <p className="text-xs">الرقم الوظيفي: {user.badgeNumber}</p>
+                                <p className="text-xs">الوحدة: {user.unit || '---'}</p>
                             </div>
                         </div>
                         <div className="text-left space-y-1">
-                             <p className="font-bold text-xs text-brand-dark">تقرير تسلسلي: {report.sequenceNumber}</p>
-                             <p className="text-[10px]">التاريخ: {report.date}</p>
-                             <p className="text-[10px]">اليوم: {report.day}</p>
+                             <p className="font-bold text-sm text-brand-dark">تقرير تسلسلي: {report.sequenceNumber}</p>
+                             <p className="text-xs">التاريخ: {report.date}</p>
+                             <p className="text-xs">اليوم: {report.day}</p>
                         </div>
                     </div>
                 </div>
 
-                {/* رأس الشاشة الرقمي - يختفي تماماً عند الطباعة */}
+                {/* رأس الشاشة الرقمي - يختفي عند الطباعة */}
                 <div className="p-4 sm:p-6 border-b dark:border-gray-700 no-print flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
                     <div className="flex items-center space-x-3 space-x-reverse">
                          <Avatar src={user.profilePictureUrl} name={user.fullName} size={48} />
@@ -93,8 +93,8 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                     </div>
                 </div>
 
-                {/* منطقة محتوى التقرير - تتحول إلى كتلة بسيطة عند الطباعة للسماح بتدفق الصفحات */}
-                <div className="flex-grow overflow-y-auto no-scrollbar bg-white dark:bg-gray-900 print:!overflow-visible print:!h-auto print:!block print:!static">
+                {/* محتوى التقرير - يتدفق عبر الصفحات في الطباعة */}
+                <div className="flex-grow overflow-y-auto no-scrollbar bg-white dark:bg-gray-900 print:!block print:!overflow-visible print:!h-auto print:!static">
                     <ReportDetail report={report} user={user} viewerRole={viewerRole} hideMargin={hideMargin} />
                 </div>
             </div>

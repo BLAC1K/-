@@ -43,7 +43,7 @@
       }
       .no-scrollbar::-webkit-scrollbar { display: none; }
 
-      /* أنماط الطباعة الاحترافية للتقارير الطويلة */
+      /* أنماط الطباعة المتقدمة للتقارير الطويلة متعددة الصفحات */
       @media print {
         @page {
           margin: 1.5cm;
@@ -52,68 +52,83 @@
         
         html, body {
           height: auto !important;
+          min-height: 100% !important;
           overflow: visible !important;
           background: white !important;
           margin: 0 !important;
           padding: 0 !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
 
-        /* إخفاء كل شيء ما عدا منطقة الطباعة */
-        body * {
-          visibility: hidden;
+        /* إخفاء كافة عناصر الواجهة الرقمية */
+        body > * {
+          display: none !important;
         }
         
-        #printable-area, #printable-area * {
-          visibility: visible;
-        }
-        
-        /* تحويل الحاوية إلى وضع الكتلة للسماح بتعدد الصفحات */
+        /* إظهار منطقة الطباعة فقط وجعلها حاوية رئيسية */
         #printable-area {
-          position: relative !important;
           display: block !important;
+          visibility: visible !important;
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
           width: 100% !important;
           height: auto !important;
+          min-height: 100% !important;
           overflow: visible !important;
           background: white !important;
-          color: black !important;
-          padding: 0 !important;
           margin: 0 !important;
-          box-shadow: none !important;
-          border: none !important;
-          top: 0 !important;
-          left: 0 !important;
+          padding: 0 !important;
         }
 
-        /* إلغاء الفليكس والارتفاع المحدد عند الطباعة */
-        #printable-area .flex, 
-        #printable-area .flex-col,
-        #printable-area .overflow-y-auto {
+        #printable-area * {
+          visibility: visible !important;
+        }
+
+        /* تحطيم كافة قيود Flexbox و Overflow الداخلية */
+        #printable-area div, 
+        #printable-area section, 
+        #printable-area main, 
+        #printable-area table {
           display: block !important;
+          position: static !important;
+          overflow: visible !important;
           height: auto !important;
           max-height: none !important;
-          overflow: visible !important;
-          flex: none !important;
+          width: 100% !important;
+          float: none !important;
         }
 
-        /* منع اقتطاع الجداول والفقرات الهامة */
-        section, .print-page-break, tr, p {
+        /* تحسين توزيع الصفحات ومنع اقتطاع الفقرات */
+        .print-avoid-break, tr, section, p, h4 {
           page-break-inside: avoid !important;
-          break-inside: avoid !important;
+          break-inside: avoid-page !important;
         }
 
         .no-print {
           display: none !important;
         }
 
-        .dark {
-          background-color: white !important;
-          color: black !important;
+        /* ضمان ظهور الجداول بشكل صحيح */
+        table {
+          display: table !important;
+          border-collapse: collapse !important;
+          page-break-inside: auto !important;
         }
-
-        /* ضمان ظهور نصوص المربعات الملونة بوضوح في الطباعة */
-        .bg-gray-50, .bg-blue-50, .bg-green-50 {
-          background-color: #f9fafb !important;
-          border: 1px solid #eee !important;
+        tr {
+          display: table-row !important;
+          page-break-inside: avoid !important;
+          page-break-after: auto !important;
+        }
+        td, th {
+          display: table-cell !important;
+        }
+        
+        /* تحسين جودة النصوص */
+        p, span, td, th {
+          color: black !important;
+          font-size: 11pt !important;
         }
       }
     </style>
