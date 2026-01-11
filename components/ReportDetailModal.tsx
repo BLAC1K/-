@@ -37,29 +37,27 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
     };
 
     return (
-        /* طبقة الخلفية - يتم تجاهلها تماماً في الطباعة بفضل CSS في index.html */
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 md:p-8 no-print" aria-modal="true" role="dialog" onClick={onClose}>
-            
-            {/* منطقة الطباعة المعزولة */}
-            <div id="printable-area" className="relative w-full h-full max-w-5xl sm:h-[95vh] sm:rounded-[2.5rem] bg-white dark:bg-gray-800 shadow-2xl flex flex-col overflow-hidden print:!block print:!static print:!h-auto print:!overflow-visible print:!bg-white print:!shadow-none" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 md:p-8" aria-modal="true" role="dialog" onClick={onClose}>
+            {/* الحاوية مكبرة للأجهزة اللوحية والكمبيوتر لضمان عدم التداخل */}
+            <div id="printable-area" className="relative w-full h-full max-w-5xl sm:h-[95vh] sm:rounded-[2.5rem] bg-white dark:bg-gray-800 shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                 
-                {/* ترويسة الطباعة الرسمية - تظهر في الورق فقط */}
-                <div className="hidden print:block p-10 border-b-4 border-double border-black mb-10">
+                {/* ترويسة الطباعة الرسمية - بدون لوجو وبأحجام صغيرة */}
+                <div className="hidden print:block p-8 border-b border-black mb-4">
                     <div className="flex justify-between items-start">
-                        <div className="text-right space-y-1">
-                            <h1 className="text-lg font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
-                            <h2 className="text-base font-bold text-gray-700">شعبة الفنون والمسرح</h2>
-                            <div className="pt-4 mt-4 border-r-4 border-gray-400 pr-4">
-                                <p className="text-base font-bold">المنتسب: <span className="font-medium">{user.fullName}</span></p>
-                                <p className="text-sm">العنوان الوظيفي: {user.jobTitle}</p>
-                                <p className="text-sm">الرقم الوظيفي: {user.badgeNumber}</p>
-                                <p className="text-sm">الوحدة: {user.unit || '---'}</p>
+                        <div className="text-right space-y-0.5">
+                            <h1 className="text-sm font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
+                            <h2 className="text-xs font-bold text-gray-700">شعبة الفنون والمسرح</h2>
+                            <div className="pt-2 mt-2 border-r border-gray-400 pr-2">
+                                <p className="text-[10px] font-bold">الاسم: <span className="font-medium">{user.fullName}</span></p>
+                                <p className="text-[9px]">العنوان الوظيفي: {user.jobTitle}</p>
+                                <p className="text-[9px]">الرقم الوظيفي: {user.badgeNumber}</p>
+                                <p className="text-[9px]">الوحدة: {user.unit || '---'}</p>
                             </div>
                         </div>
-                        <div className="text-left space-y-1">
-                             <p className="font-bold text-base text-brand-dark">تقرير تسلسلي: {report.sequenceNumber}</p>
-                             <p className="text-sm">التاريخ: {report.date}</p>
-                             <p className="text-sm">اليوم: {report.day}</p>
+                        <div className="text-left space-y-0.5">
+                             <p className="font-bold text-xs text-brand-dark">تقرير تسلسلي: {report.sequenceNumber}</p>
+                             <p className="text-[9px]">التاريخ: {report.date}</p>
+                             <p className="text-[9px]">اليوم: {report.day}</p>
                         </div>
                     </div>
                 </div>
@@ -87,7 +85,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                             className="flex items-center gap-2 px-4 py-2 bg-brand-light text-white rounded-xl font-bold shadow-md hover:scale-105 transition-all text-xs md:text-sm"
                         >
                             <DownloadIcon className="w-4 h-4" />
-                            <span>طباعة / حفظ كـ PDF</span>
+                            <span>طباعة التقرير</span>
                         </button>
                         <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                             <XCircleIcon className="w-8 h-8"/>
@@ -95,8 +93,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                     </div>
                 </div>
 
-                {/* محتوى التقرير */}
-                <div className="flex-grow overflow-y-auto no-scrollbar bg-white dark:bg-gray-900 print:!block print:!overflow-visible print:!h-auto print:!static">
+                <div className="flex-grow overflow-y-auto no-scrollbar bg-white dark:bg-gray-900">
                     <ReportDetail report={report} user={user} viewerRole={viewerRole} hideMargin={hideMargin} />
                 </div>
             </div>
