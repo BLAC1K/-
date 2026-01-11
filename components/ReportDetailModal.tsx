@@ -38,7 +38,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 md:p-8 no-print" aria-modal="true" role="dialog" onClick={onClose}>
-            {/* الحاوية الرئيسية للتطبيق الرقمي */}
+            {/* id="printable-area" سيتحول لـ display: block عند الطباعة */}
             <div id="printable-area" className="relative w-full h-full max-w-5xl sm:h-[95vh] sm:rounded-[2.5rem] bg-white dark:bg-gray-800 shadow-2xl flex flex-col overflow-hidden print:!block print:!static print:!h-auto print:!overflow-visible print:!bg-white" onClick={e => e.stopPropagation()}>
                 
                 {/* ترويسة الطباعة الرسمية - تظهر فقط في الطباعة */}
@@ -93,7 +93,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                     </div>
                 </div>
 
-                {/* محتوى التقرير - يتدفق عبر الصفحات في الطباعة */}
+                {/* منطقة المحتوى - تتحول إلى كتلة بسيطة عند الطباعة للسماح بتدفق الصفحات */}
                 <div className="flex-grow overflow-y-auto no-scrollbar bg-white dark:bg-gray-900 print:!block print:!overflow-visible print:!h-auto print:!static">
                     <ReportDetail report={report} user={user} viewerRole={viewerRole} hideMargin={hideMargin} />
                 </div>
