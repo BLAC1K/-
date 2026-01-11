@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { Role, Attachment, Report, Task, DirectTask } from '../types';
+import { Role, Attachment, Report, DirectTask } from '../types';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import PaperclipIcon from './icons/PaperclipIcon';
@@ -25,8 +25,6 @@ import CameraIcon from './icons/CameraIcon';
 import DocumentTextIcon from './icons/DocumentTextIcon';
 import InstallIcon from './icons/InstallIcon';
 import SparklesIcon from './icons/SparklesIcon';
-import PercentageCircle from './StarRating';
-import CheckCircleIcon from './icons/CheckCircleIcon';
 import XMarkIcon from './icons/XMarkIcon';
 import EditIcon from './icons/EditIcon';
 import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
@@ -46,6 +44,7 @@ const EmployeeDashboard: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     const [randomGreeting, setRandomGreeting] = useState('');
+    const [randomQuote, setRandomQuote] = useState('');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -61,10 +60,15 @@ const EmployeeDashboard: React.FC = () => {
         "سعداء برؤيتك، لنجعل اليوم يوماً استثنائياً بالإنجازات."
     ], []);
 
-    const [plannerTasks, setPlannerTasks] = useState<Task[]>(() => {
-        const saved = localStorage.getItem(`planner_${currentUser?.id}`);
-        return saved ? JSON.parse(saved) : [{ id: Date.now().toString(), text: '', isDone: false }];
-    });
+    const quotes = useMemo(() => [
+        "النجاح هو مجموع تفاصيل صغيرة أتقنتها كل يوم.",
+        "الإبداع لا ينمو إلا في بيئة مليئة بالشغف والعمل الجاد.",
+        "لا تبحث عن الفرص، بل اصنعها بعملك المتميز.",
+        "كل إنجاز عظيم بدأ بفكرة بسيطة وإصرار كبير.",
+        "أنت لا تبني تقريراً فقط، أنت توثق رحلة نجاحك.",
+        "اجعل من عملك فناً، ومن فنك رسالة تلمس القلوب.",
+        "التميز ليس فعلاً، بل هو عادة نكررها كل صباح."
+    ], []);
 
     useEffect(() => {
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
@@ -73,11 +77,14 @@ const EmployeeDashboard: React.FC = () => {
         const handlePromptReady = () => setIsPwaReady(true);
         window.addEventListener('pwa-prompt-ready', handlePromptReady);
         
-        const randomIdx = Math.floor(Math.random() * greetings.length);
-        setRandomGreeting(greetings[randomIdx]);
+        const randomGIdx = Math.floor(Math.random() * greetings.length);
+        setRandomGreeting(greetings[randomGIdx]);
+
+        const randomQIdx = Math.floor(Math.random() * quotes.length);
+        setRandomQuote(quotes[randomQIdx]);
 
         return () => window.removeEventListener('pwa-prompt-ready', handlePromptReady);
-    }, [greetings]);
+    }, [greetings, quotes]);
 
     useEffect(() => {
         if (notification) {
@@ -153,13 +160,6 @@ const EmployeeDashboard: React.FC = () => {
     const unreadTasksCount = useMemo(() => 
         directTasks.filter(t => t.employeeId === currentUser?.id && t.status === 'pending' && !t.isReadByEmployee).length
     , [directTasks, currentUser]);
-
-    const plannerProgress = useMemo(() => {
-        const total = plannerTasks.filter(t => t.text.trim() !== '').length;
-        if (total === 0) return 0;
-        const done = plannerTasks.filter(t => t.text.trim() !== '' && t.isDone).length;
-        return (done / total) * 100;
-    }, [plannerTasks]);
 
     if (!currentUser) return null;
 
@@ -295,7 +295,7 @@ const EmployeeDashboard: React.FC = () => {
                             </button>
                         )}
                         <ThemeToggle />
-                        <button logout={logout} className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-500 rounded-xl">
+                        <button onClick={logout} className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-500 rounded-xl">
                             <LogoutIcon className="w-6 h-6"/>
                             <span className="mr-3">خروج</span>
                         </button>
@@ -320,139 +320,154 @@ const EmployeeDashboard: React.FC = () => {
                 </header>
 
                 <main className="flex-1 overflow-y-auto p-4 md:p-10 no-scrollbar bg-inherit">
-                    <div className="container mx-auto max-w-4xl">
-                        {activeTab === 'new-report' && (
-                            <form onSubmit={handleSubmitReportClick} className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6 animate-fade-in pb-20">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-xl font-bold dark:text-white">{editingDraftId ? 'تعديل المسودة' : 'تقرير عمل جديد'}</h3>
-                                    {isSyncing && <span className="text-[10px] text-brand-light animate-pulse">جاري الحفظ التلقائي...</span>}
-                                </div>
-                                
-                                <div className="space-y-3">
-                                    <label className="text-sm font-bold text-gray-600 dark:text-gray-400">قائمة المهام المنجزة:</label>
-                                    {reportForm.tasks.map((task, index) => (
-                                        <div key={task.id} className="flex gap-2">
-                                            <textarea 
-                                                value={task.text} 
-                                                onChange={(e) => setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === task.id ? { ...t, text: e.target.value } : t) }))} 
-                                                placeholder={`صف المهمة ${index + 1} هنا بالتفصيل...`} 
-                                                rows={2}
-                                                className="flex-1 px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/50 transition-all resize-none" 
-                                            />
-                                            {index > 0 && (
-                                                <button type="button" onClick={() => setReportForm(p => ({...p, tasks: p.tasks.filter(t => t.id !== task.id)}))} className="p-3 text-red-500 hover:bg-red-50 h-fit rounded-xl">
-                                                    <TrashIcon className="w-5 h-5" />
-                                                </button>
-                                            )}
+                    <div className="container mx-auto max-w-4xl min-h-full flex flex-col">
+                        <div className="flex-grow">
+                            {activeTab === 'home' && (
+                                <div className="space-y-6 animate-fade-in">
+                                    {/* بطاقة الترحيب المطورة */}
+                                    <div className="bg-gradient-to-br from-brand-light to-brand-dark p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center text-white relative overflow-hidden transition-all duration-500">
+                                        <div className="absolute top-0 right-0 p-6 opacity-10"><AppLogoIcon className="w-40 h-40" /></div>
+                                        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+                                        
+                                        <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center backdrop-blur-md mb-4 ring-4 ring-white/10">
+                                            <SparklesIcon className="w-12 h-12 text-brand-accent-yellow" />
                                         </div>
-                                    ))}
-                                    <button type="button" onClick={() => setReportForm(p => ({...p, tasks: [...p.tasks, {id: Date.now().toString(), text: ''}]}))} className="flex items-center text-xs font-bold text-brand-light"><PlusIcon className="w-4 h-4 ml-1" /> إضافة مهمة أخرى</button>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <textarea placeholder="ملخص ما تم إنجازه بشكل عام..." value={reportForm.accomplished} onChange={e => setReportForm(p => ({...p, accomplished: e.target.value}))} rows={3} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none" />
-                                    <textarea placeholder="المعوقات والمقترحات (إن وجدت)..." value={reportForm.notAccomplished} onChange={e => setReportForm(p => ({...p, notAccomplished: e.target.value}))} rows={2} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none" />
-                                </div>
-
-                                <div className="space-y-3">
-                                    <label className="text-sm font-bold text-gray-600 dark:text-gray-400 block">المرفقات والوثائق:</label>
-                                    <div className="flex gap-3">
-                                        <button type="button" onClick={() => fileInputRef.current?.click()} className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300">
-                                            <DocumentTextIcon className="w-6 h-6" />
-                                            <span>ملف / مستند</span>
-                                        </button>
-                                        <button type="button" onClick={() => cameraInputRef.current?.click()} className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300">
-                                            <CameraIcon className="w-6 h-6" />
-                                            <span>كاميرا</span>
-                                        </button>
-                                    </div>
-                                    <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileChange} />
-                                    <input type="file" ref={cameraInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
-
-                                    {reportForm.attachments.length > 0 && (
-                                        <div className="grid grid-cols-2 gap-3 mt-4">
-                                            {reportForm.attachments.map((file, idx) => (
-                                                <div key={idx} className="relative group p-2 bg-gray-50 dark:bg-gray-700 rounded-xl border dark:border-gray-600">
-                                                    <button type="button" onClick={() => removeAttachment(idx)} className="absolute -top-2 -left-2 bg-red-500 text-white rounded-full p-1 shadow-lg z-10"><XMarkIcon className="w-4 h-4" /></button>
-                                                    <div className="flex items-center gap-2 overflow-hidden">
-                                                        {file.type.startsWith('image/') ? <img src={file.content} className="w-10 h-10 rounded-lg object-cover" /> : <div className="w-10 h-10 bg-brand-light/10 text-brand-light rounded-lg flex items-center justify-center"><PaperclipIcon className="w-5 h-5" /></div>}
-                                                        <div className="flex-1 min-w-0"><p className="text-[10px] font-bold truncate dark:text-white">{file.name}</p></div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex gap-4">
-                                    <button type="button" onClick={handleSaveDraft} className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 text-brand-dark dark:text-gray-200 rounded-2xl font-bold shadow-md">حفظ كمسودة</button>
-                                    <button type="submit" disabled={isSubmitting} className="flex-[2] py-4 bg-brand-light text-white rounded-2xl font-bold text-lg shadow-xl shadow-brand-light/30 transition-all active:scale-95 disabled:opacity-50">إرسال التقرير النهائي</button>
-                                </div>
-                            </form>
-                        )}
-                        {activeTab === 'home' && (
-                            <div className="space-y-6 animate-fade-in pb-20">
-                                <div className="bg-gradient-to-br from-brand-light to-brand-dark p-6 rounded-3xl shadow-xl flex flex-col items-center text-center text-white relative overflow-hidden transition-all duration-500">
-                                    <div className="absolute top-0 right-0 p-4 opacity-10"><AppLogoIcon className="w-24 h-24" /></div>
-                                    <h3 className="text-2xl font-bold z-10">أهلاً بك، {currentUser.fullName.split(' ')[0]}</h3>
-                                    <p className="text-white/90 text-sm mt-2 z-10 font-medium bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-sm animate-fade-in">
-                                        {randomGreeting}
-                                    </p>
-                                    
-                                    <div className="mt-4 flex flex-col items-center gap-1 z-10">
-                                        <p className="text-white text-sm font-bold shadow-sm">
-                                            {new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                        
+                                        <h3 className="text-3xl font-bold z-10">أهلاً بك، {currentUser.fullName.split(' ')[0]}</h3>
+                                        <p className="text-white/90 text-sm mt-3 z-10 font-medium bg-white/10 px-6 py-2 rounded-full backdrop-blur-sm">
+                                            {randomGreeting}
                                         </p>
+                                        
+                                        <div className="mt-8 pt-6 border-t border-white/20 w-full max-w-sm z-10">
+                                            <p className="text-white/80 text-xs uppercase tracking-widest font-bold mb-1">تاريخ اليوم</p>
+                                            <p className="text-xl font-bold">
+                                                {new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                            </p>
+                                        </div>
                                     </div>
-                                    
-                                    <div className="mt-6 w-full max-w-xs bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
-                                        <p className="text-xs font-bold mb-3">إنجازك اليوم</p>
-                                        <div className="flex items-center gap-4">
-                                            <PercentageCircle percentage={plannerProgress} size={60} strokeWidth={6} className="text-white" />
-                                            <div className="text-right">
-                                                <p className="text-lg font-bold">{Math.round(plannerProgress)}%</p>
-                                                <p className="text-[10px] opacity-70">تم إنجاز {plannerTasks.filter(t => t.isDone && t.text).length} مهام</p>
+
+                                    {/* بطاقة العبارات التحفيزية */}
+                                    <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 w-2 h-full bg-brand-light"></div>
+                                        <div className="flex flex-col items-center text-center">
+                                            <div className="text-4xl text-brand-light/20 font-serif mb-2">"</div>
+                                            <p className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-relaxed max-w-lg">
+                                                {randomQuote}
+                                            </p>
+                                            <div className="mt-6 flex items-center gap-2">
+                                                <div className="w-1 h-1 bg-brand-light rounded-full"></div>
+                                                <div className="w-8 h-1 bg-brand-light/30 rounded-full"></div>
+                                                <div className="w-1 h-1 bg-brand-light rounded-full"></div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
-                                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center"><SparklesIcon className="w-5 h-5 ml-2 text-brand-accent-yellow" />مخطط المهام اليومي</h3>
-                                    <div className="space-y-2">
-                                        {plannerTasks.map((task, idx) => (
-                                            <div key={task.id} className="flex items-center gap-3">
-                                                <button onClick={() => setPlannerTasks(p => p.map(t => t.id === task.id ? {...t, isDone: !t.isDone} : t))} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.isDone ? 'bg-brand-accent-green border-brand-accent-green text-white' : 'border-gray-200 dark:border-gray-600'}`}>{task.isDone && <CheckCircleIcon className="w-4 h-4" />}</button>
-                                                <input type="text" value={task.text} onChange={(e) => setPlannerTasks(p => p.map(t => t.id === task.id ? {...t, text: e.target.value} : t))} placeholder={`مهمة اليوم ${idx + 1}...`} className={`flex-1 bg-transparent border-none focus:ring-0 text-sm p-1 transition-all ${task.isDone ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'}`} />
+                            )}
+
+                            {activeTab === 'new-report' && (
+                                <form onSubmit={handleSubmitReportClick} className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6 animate-fade-in">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-xl font-bold dark:text-white">{editingDraftId ? 'تعديل المسودة' : 'تقرير عمل جديد'}</h3>
+                                        {isSyncing && <span className="text-[10px] text-brand-light animate-pulse">جاري الحفظ التلقائي...</span>}
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                        <label className="text-sm font-bold text-gray-600 dark:text-gray-400">قائمة المهام المنجزة:</label>
+                                        {reportForm.tasks.map((task, index) => (
+                                            <div key={task.id} className="flex gap-2">
+                                                <textarea 
+                                                    value={task.text} 
+                                                    onChange={(e) => setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === task.id ? { ...t, text: e.target.value } : t) }))} 
+                                                    placeholder={`صف المهمة ${index + 1} هنا بالتفصيل...`} 
+                                                    rows={2}
+                                                    className="flex-1 px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/50 transition-all resize-none" 
+                                                />
+                                                {index > 0 && (
+                                                    <button type="button" onClick={() => setReportForm(p => ({...p, tasks: p.tasks.filter(t => t.id !== task.id)}))} className="p-3 text-red-500 hover:bg-red-50 h-fit rounded-xl">
+                                                        <TrashIcon className="w-5 h-5" />
+                                                    </button>
+                                                )}
                                             </div>
                                         ))}
-                                        <button onClick={() => setPlannerTasks(p => [...p, {id: Date.now().toString(), text: '', isDone: false}])} className="flex items-center text-xs font-bold text-brand-light mt-2 p-1"><PlusIcon className="w-4 h-4 ml-1" /> إضافة مهمة</button>
+                                        <button type="button" onClick={() => setReportForm(p => ({...p, tasks: [...p.tasks, {id: Date.now().toString(), text: ''}]}))} className="flex items-center text-xs font-bold text-brand-light"><PlusIcon className="w-4 h-4 ml-1" /> إضافة مهمة أخرى</button>
                                     </div>
-                                </div>
-                            </div>
-                        )}
-                        {activeTab === 'archive' && <div className="pb-20 space-y-4">{myReports.map(r => <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />)}</div>}
-                        {activeTab === 'tasks' && <div className="pb-20"><DirectTasksView /></div>}
-                        {activeTab === 'drafts' && (
-                             <div className="space-y-4 animate-fade-in pb-20">
-                             <h3 className="text-xl font-bold dark:text-white mb-4">المسودات ({myDrafts.length})</h3>
-                             {myDrafts.length > 0 ? myDrafts.map(draft => (
-                                 <div key={draft.id} className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between group">
-                                     <div className="flex-1">
-                                         <div className="flex items-center gap-2 mb-1">
-                                             <span className="text-xs font-bold text-brand-light bg-brand-light/10 px-2 py-0.5 rounded-full">مسودة</span>
-                                             <span className="text-xs text-gray-500">{draft.date}</span>
+
+                                    <div className="space-y-4">
+                                        <textarea placeholder="ملخص ما تم إنجازه بشكل عام..." value={reportForm.accomplished} onChange={e => setReportForm(p => ({...p, accomplished: e.target.value}))} rows={3} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none" />
+                                        <textarea placeholder="المعوقات والمقترحات (إن وجدت)..." value={reportForm.notAccomplished} onChange={e => setReportForm(p => ({...p, notAccomplished: e.target.value}))} rows={2} className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none" />
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <label className="text-sm font-bold text-gray-600 dark:text-gray-400 block">المرفقات والوثائق:</label>
+                                        <div className="flex gap-3">
+                                            <button type="button" onClick={() => fileInputRef.current?.click()} className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300">
+                                                <DocumentTextIcon className="w-6 h-6" />
+                                                <span>ملف / مستند</span>
+                                            </button>
+                                            <button type="button" onClick={() => cameraInputRef.current?.click()} className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300">
+                                                <CameraIcon className="w-6 h-6" />
+                                                <span>كاميرا</span>
+                                            </button>
+                                        </div>
+                                        <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileChange} />
+                                        <input type="file" ref={cameraInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
+
+                                        {reportForm.attachments.length > 0 && (
+                                            <div className="grid grid-cols-2 gap-3 mt-4">
+                                                {reportForm.attachments.map((file, idx) => (
+                                                    <div key={idx} className="relative group p-2 bg-gray-50 dark:bg-gray-700 rounded-xl border dark:border-gray-600">
+                                                        <button type="button" onClick={() => removeAttachment(idx)} className="absolute -top-2 -left-2 bg-red-500 text-white rounded-full p-1 shadow-lg z-10"><XMarkIcon className="w-4 h-4" /></button>
+                                                        <div className="flex items-center gap-2 overflow-hidden">
+                                                            {file.type.startsWith('image/') ? <img src={file.content} className="w-10 h-10 rounded-lg object-cover" /> : <div className="w-10 h-10 bg-brand-light/10 text-brand-light rounded-lg flex items-center justify-center"><PaperclipIcon className="w-5 h-5" /></div>}
+                                                            <div className="flex-1 min-w-0"><p className="text-[10px] font-bold truncate dark:text-white">{file.name}</p></div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-4">
+                                        <button type="button" onClick={handleSaveDraft} className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 text-brand-dark dark:text-gray-200 rounded-2xl font-bold shadow-md">حفظ كمسودة</button>
+                                        <button type="submit" disabled={isSubmitting} className="flex-[2] py-4 bg-brand-light text-white rounded-2xl font-bold text-lg shadow-xl shadow-brand-light/30 transition-all active:scale-95 disabled:opacity-50">إرسال التقرير النهائي</button>
+                                    </div>
+                                </form>
+                            )}
+                            
+                            {activeTab === 'archive' && <div className="space-y-4">{myReports.map(r => <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />)}</div>}
+                            {activeTab === 'tasks' && <DirectTasksView />}
+                            {activeTab === 'drafts' && (
+                                 <div className="space-y-4 animate-fade-in">
+                                 <h3 className="text-xl font-bold dark:text-white mb-4">المسودات ({myDrafts.length})</h3>
+                                 {myDrafts.length > 0 ? myDrafts.map(draft => (
+                                     <div key={draft.id} className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between group">
+                                         <div className="flex-1">
+                                             <div className="flex items-center gap-2 mb-1">
+                                                 <span className="text-xs font-bold text-brand-light bg-brand-light/10 px-2 py-0.5 rounded-full">مسودة</span>
+                                                 <span className="text-xs text-gray-500">{draft.date}</span>
+                                             </div>
+                                             <p className="text-sm font-bold dark:text-white">{draft.tasks[0]?.text || 'مسودة فارغة'}</p>
                                          </div>
-                                         <p className="text-sm font-bold dark:text-white">{draft.tasks[0]?.text || 'مسودة فارغة'}</p>
+                                         <div className="flex gap-2">
+                                             <button onClick={() => handleEditDraft(draft)} className="p-2 text-brand-light hover:bg-brand-light/10 rounded-xl"><EditIcon className="w-5 h-5" /></button>
+                                             <button onClick={() => deleteReport(draft.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><TrashIcon className="w-5 h-5" /></button>
+                                         </div>
                                      </div>
-                                     <div className="flex gap-2">
-                                         <button onClick={() => handleEditDraft(draft)} className="p-2 text-brand-light hover:bg-brand-light/10 rounded-xl"><EditIcon className="w-5 h-5" /></button>
-                                         <button onClick={() => deleteReport(draft.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl"><TrashIcon className="w-5 h-5" /></button>
-                                     </div>
-                                 </div>
-                             )) : <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700"><p className="text-gray-500">لا توجد مسودات حالياً.</p></div>}
-                         </div>
-                        )}
-                        {activeTab === 'profile' && <div className="pb-20"><ProfileManagement user={currentUser} /></div>}
+                                 )) : <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700"><p className="text-gray-500">لا توجد مسودات حالياً.</p></div>}
+                             </div>
+                            )}
+                            {activeTab === 'profile' && <ProfileManagement user={currentUser} />}
+                        </div>
+
+                        {/* تذييل الحقوق (Footer) المعتمد */}
+                        <footer className="mt-12 py-8 border-t dark:border-gray-800 text-center space-y-2 no-print">
+                            <div className="flex justify-center items-center gap-3 opacity-30 grayscale mb-4">
+                                <div className="w-8 h-8"><AppLogoIcon /></div>
+                                <span className="text-sm font-bold dark:text-white">مهامي اليومية</span>
+                            </div>
+                            <p className="text-xs text-gray-400 font-medium">© جميع الحقوق محفوظة {new Date().getFullYear()}م</p>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">تصميم وتطوير: حسين كاظم</p>
+                        </footer>
                     </div>
                 </main>
             </div>
