@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Report, User, Role } from '../types';
 import Avatar from './Avatar';
@@ -7,7 +6,7 @@ import CommentIcon from './icons/CommentIcon';
 
 interface ReportViewProps {
     report: Report;
-    user: User;
+    user: User; // The user who submitted the report
     viewerRole: Role;
     onClick: () => void;
 }
@@ -15,40 +14,26 @@ interface ReportViewProps {
 const ReportView: React.FC<ReportViewProps> = ({ report, user, viewerRole, onClick }) => {
     const isManager = viewerRole === Role.MANAGER;
     
-    const getStatusIndicator = () => {
+    const getStatus = () => {
         if (!isManager) {
             if (report.managerComment && !report.isCommentReadByEmployee) {
-                return <span className="px-3 py-1 text-[9px] font-black text-white bg-brand-light rounded-full animate-pulse uppercase tracking-wider">توجيه جديد</span>;
+                return <span className="px-2 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900/50 dark:text-blue-300">تعليق جديد</span>;
             }
             if (report.managerComment) {
-                 return <span className="px-3 py-1 text-[9px] font-black text-green-600 bg-green-50 dark:bg-green-900/20 rounded-full border border-green-100 dark:border-green-900/30 uppercase tracking-wider">تم التوجيه</span>;
+                 return <span className="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full dark:bg-green-900/50 dark:text-green-300">تم التعليق</span>;
             }
-            return null;
+            if (report.isViewedByManager) {
+                return <span className="px-2 py-1 text-xs font-medium text-gray-800 bg-gray-200 rounded-full dark:bg-gray-600 dark:text-gray-200">تمت المشاهدة</span>;
+            }
+            return <span className="px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full dark:bg-yellow-900/50 dark:text-yellow-300">تم الإرسال</span>;
         }
         
-        if (isManager) {
-            if (report.managerComment) {
-                return (
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-full border border-green-100 dark:border-green-900/30">
-                        <CommentIcon className="w-3 h-3" />
-                        <span className="text-[9px] font-black uppercase tracking-wider">تم الرد</span>
-                    </div>
-                );
-            }
-            
-            if (!report.isViewedByManager) {
-                return (
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-brand-light text-white rounded-full shadow-lg shadow-brand-light/20">
-                        <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
-                        <span className="text-[9px] font-black uppercase tracking-widest">جديد</span>
-                    </div>
-                );
-            }
-
+        if (isManager && report.managerComment) {
             return (
-                <span className="px-3 py-1 text-[9px] font-black text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 uppercase tracking-wider">
-                    مقروء
-                </span>
+                <div className="flex items-center text-green-600 dark:text-green-400" title="تم التعليق على هذا التقرير">
+                    <CommentIcon className="w-5 h-5" />
+                    <span className="mr-1 text-xs font-semibold">تم التعليق</span>
+                </div>
             );
         }
 
@@ -57,30 +42,27 @@ const ReportView: React.FC<ReportViewProps> = ({ report, user, viewerRole, onCli
 
     return (
         <div 
-            className={`group relative bg-white dark:bg-gray-900 p-5 rounded-[2rem] shadow-sm hover:shadow-md border border-white dark:border-gray-800 cursor-pointer transition-all duration-300 active:scale-[0.98] ${isManager && !report.isViewedByManager ? 'ring-1 ring-brand-light/20' : ''}`}
+            className={`overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow-md border cursor-pointer hover:shadow-lg hover:border-brand-light dark:hover:border-brand-light transition-all duration-200 ${!report.isViewedByManager && isManager ? 'border-2 border-brand-light' : 'border-gray-200 dark:border-gray-700'}`}
             onClick={onClick}
             role="button"
+            aria-label={`عرض تقرير ${user.fullName} بتاريخ ${report.date}`}
         >
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="relative">
-                        <Avatar src={user.profilePictureUrl} name={user.fullName} size={48} className="ring-2 ring-gray-50 dark:ring-gray-800" />
-                        {isManager && !report.isViewedByManager && (
-                            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-brand-light border-2 border-white dark:border-gray-900 rounded-full"></span>
-                        )}
-                    </div>
-                    <div>
-                        <p className="font-black text-gray-800 dark:text-white text-sm leading-tight">{user.fullName}</p>
-                        <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-tighter">{report.date} • تقرير #{report.sequenceNumber}</p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3">
-                        {getStatusIndicator()}
-                        <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-gray-300 group-hover:text-brand-light transition-colors">
-                            <ChevronRightIcon className="w-4 h-4" />
+            <div className="px-4 py-4 sm:px-6">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3 space-x-reverse">
+                        <Avatar src={user.profilePictureUrl} name={user.fullName} size={40} />
+                        <div>
+                            <p className="font-semibold text-brand-dark dark:text-gray-100">{user.fullName}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{user.jobTitle}</p>
                         </div>
+                    </div>
+                     <div className="flex items-center space-x-4 space-x-reverse">
+                        <div className="text-left">
+                             <p className="text-sm font-semibold text-brand-dark dark:text-gray-200">التقرير رقم: {report.sequenceNumber}</p>
+                             <p className="text-xs text-gray-500 dark:text-gray-400">{report.date} - {report.day}</p>
+                        </div>
+                         {getStatus()}
+                         <ChevronRightIcon className="w-5 h-5 text-gray-400" />
                     </div>
                 </div>
             </div>

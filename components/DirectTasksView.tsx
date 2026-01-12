@@ -17,9 +17,8 @@ const DirectTasksView: React.FC = () => {
             .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
     }, [directTasks, currentUser]);
 
-    // معالجة القراءة اللحظية: بمجرد الدخول للواجهة، يتم اعتبار المهام المعلقة "مقروءة"
     useEffect(() => {
-        const unreadTasks = myTasks.filter(task => !task.isReadByEmployee);
+        const unreadTasks = myTasks.filter(task => task.status === 'pending' && !task.isReadByEmployee);
         if (unreadTasks.length > 0) {
             unreadTasks.forEach(task => {
                 markDirectTaskAsRead(task.id);
@@ -34,50 +33,77 @@ const DirectTasksView: React.FC = () => {
     };
 
     const handleReject = (taskId: string) => {
-        const reason = prompt('سبب الاعتذار:');
-        if (reason?.trim()) {
+        const reason = prompt('الرجاء ذكر سبب عدم إمكانية تنفيذ المهمة:');
+        if (reason && reason.trim() !== '') {
             updateDirectTaskStatus(taskId, 'rejected', reason);
+        } else if (reason !== null) { // User didn't cancel prompt
+            alert('يجب ذكر السبب.');
         }
     };
     
     if (myTasks.length === 0) {
         return (
-            <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 animate-fade-in">
-                <p className="text-gray-500">لا توجد مهام واردة حالياً.</p>
+            <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                <p className="text-gray-500 dark:text-gray-400">لا توجد مهام واردة حالياً.</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-4 animate-fade-in">
+        <div className="space-y-4">
             {myTasks.map(task => {
                 const manager = getManager(task.managerId);
                 return (
-                    <div key={task.id} className={`p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border-r-4 ${!task.isReadByEmployee ? 'border-brand-light ring-1 ring-brand-light/20' : 'border-gray-200 dark:border-gray-700'}`}>
-                        <div className="flex justify-between items-start gap-2">
-                            <div className="flex items-center gap-3">
+                    <div key={task.id} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md border-r-4 border-brand-light">
+                        <div className="flex justify-between items-start flex-wrap gap-y-2">
+                            <div className="flex items-center space-x-3 space-x-reverse">
                                 <Avatar src={manager?.profilePictureUrl} name={manager?.fullName || 'مسؤول'} size={40} />
                                 <div>
-                                    <p className="font-bold text-brand-dark dark:text-gray-100">{manager?.fullName || 'المسؤول'}</p>
-                                    <p className="text-[10px] text-gray-500">{new Date(task.sentAt).toLocaleString('ar-EG')}</p>
+                                    <p className="font-semibold text-brand-dark dark:text-gray-100">
+                                        مرسلة من: {manager?.fullName || 'المسؤول'}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        {new Date(task.sentAt).toLocaleString('ar-EG')}
+                                    </p>
                                 </div>
                             </div>
                             <TaskStatusBadge status={task.status} />
                         </div>
                         <div className="mt-4 pt-4 border-t dark:border-gray-700">
-                            <p className="text-sm dark:text-gray-200 leading-relaxed whitespace-pre-wrap">{task.content}</p>
+                            <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{task.content}</p>
                             
-                            {task.status === 'rejected' && (
-                                <p className="mt-3 text-xs text-red-500 font-bold bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">سبب الاعتذار: {task.rejectionReason}</p>
-                            )}
-
-                            {task.status === 'pending' && (
-                                <div className="mt-4 flex justify-end gap-2">
-                                    <button onClick={() => handleReject(task.id)} className="px-4 py-2 text-xs font-bold text-red-500 bg-red-50 rounded-xl">اعتذار</button>
-                                    <button onClick={() => handleAcknowledge(task.id)} className="px-4 py-2 text-xs font-bold text-white bg-brand-accent-green rounded-xl shadow-md">تم الاطلاع والعمل بموجبه</button>
+                            {task.status === 'rejected' && task.rejectionReason && (
+                                <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/20 rounded-md text-sm">
+                                    <p><span className="font-semibold text-red-800 dark:text-red-300">سبب الاعتذار:</span> {task.rejectionReason}</p>
                                 </div>
                             )}
+
+                            {task.status === 'acknowledged' && task.acknowledgedAt && (
+                                 <div className="mt-3 text-right">
+                                    <p className="flex items-center justify-end text-xs text-green-700 dark:text-green-400 font-medium">
+                                        <CheckCircleIcon className="w-4 h-4 ml-1" />
+                                        <span>تم الاطلاع عليه في: {new Date(task.acknowledgedAt).toLocaleString('ar-EG')}</span>
+                                    </p>
+                                </div>
+                            )}
+
                         </div>
+                        {task.status === 'pending' && (
+                            <div className="mt-4 pt-4 border-t dark:border-gray-700 flex justify-end items-center space-x-2 space-x-reverse">
+                                <button 
+                                    onClick={() => handleReject(task.id)}
+                                    className="px-3 py-1.5 text-sm font-semibold text-red-600 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 rounded-md transition-colors"
+                                >
+                                    لا أستطيع التنفيذ
+                                </button>
+                                <button 
+                                    onClick={() => handleAcknowledge(task.id)}
+                                    className="px-3 py-1.5 text-sm font-semibold text-white bg-brand-accent-green hover:bg-green-700 rounded-md transition-colors"
+                                >
+                                    تم الاطلاع والعمل بموجبه
+                                </button>
+                            </div>
+                        )}
                     </div>
                 );
             })}
