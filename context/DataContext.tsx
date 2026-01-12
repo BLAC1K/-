@@ -52,7 +52,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
-        // استخدام رابط صوتي أكثر وضوحاً وتجهيزه
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
         audioRef.current.load();
     }, []);
@@ -62,7 +61,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             audioRef.current.play().then(() => {
                 audioRef.current?.pause();
                 if (audioRef.current) audioRef.current.currentTime = 0;
-                console.log("Audio system unlocked successfully");
             }).catch(e => console.log("Audio unlock interaction needed", e));
         }
     }, []);
@@ -79,33 +77,24 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setNotification({ message: body, type, id: Date.now() });
         playNotificationSound();
 
-        // نظام الاهتزاز للهواتف الذكية
         if ("vibrate" in navigator) {
             navigator.vibrate([100, 50, 100]);
         }
 
-        // إشعار النظام (System Notification)
         if ("Notification" in window && Notification.permission === "granted") {
-            // Fix: Cast options as 'any' to avoid 'vibrate' property error in NotificationOptions type definition
             const options: any = {
                 body,
                 icon: 'https://img.icons8.com/fluency/192/task.png',
                 badge: 'https://img.icons8.com/fluency/48/task.png',
                 vibrate: [200, 100, 200],
                 tag: 'daily-tasks-alert',
-                requireInteraction: false
             };
             
-            try {
-                // محاولة إرسال الإشعار عبر السيرفس وركر لضمان الظهور في الخلفية
-                navigator.serviceWorker.ready.then(registration => {
-                    registration.showNotification(title, options);
-                }).catch(() => {
-                    new Notification(title, options);
-                });
-            } catch (e) {
-                console.warn("Local Notification API used as fallback", e);
-            }
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(title, options);
+            }).catch(() => {
+                new Notification(title, options);
+            });
         }
     }, [playNotificationSound]);
 
@@ -128,7 +117,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
             setIsCloud(data.isCloud);
         } catch (error: any) {
-            console.error("Sync Error:", error);
             if (!silent) setError(error.message || "فشل الاتصال بقاعدة البيانات.");
         } finally {
             setIsDataLoading(false);
@@ -154,19 +142,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (table === 'reports') {
                     if (eventType === 'INSERT' || eventType === 'UPDATE') {
                         const mapped = api.mapReport(newRecord);
-                        const oldReport = prev.reports.find(r => r.id === mapped.id);
-                        
                         const existsIndex = prev.reports.findIndex(r => r.id === mapped.id);
-                        if (existsIndex > -1) newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
-                        else newState.reports = [mapped, ...prev.reports];
+                        if (existsIndex > -1) {
+                            // للحفاظ على الترتيب والبيانات المحدثة
+                            newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
+                        } else {
+                            newState.reports = [mapped, ...prev.reports];
+                        }
 
                         if (eventType === 'INSERT' && mapped.status === 'submitted' && currentUser?.role === 'manager') {
                             const sender = prev.users.find(u => u.id === mapped.userId);
                             triggerNotification('تقرير جديد', `أرسل ${sender?.fullName.split(' ')[0]} تقريراً جديداً الآن.`);
-                        }
-                        
-                        if (eventType === 'UPDATE' && mapped.userId === loggedInUserId && mapped.managerComment && mapped.managerComment !== oldReport?.managerComment) {
-                            triggerNotification('توجيه إداري', 'وضع المسؤول ملاحظة جديدة على تقريرك.', 'success');
                         }
                     } else if (eventType === 'DELETE') {
                         newState.reports = prev.reports.filter(r => r.id !== oldRecord.id);
@@ -176,18 +162,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     if (eventType === 'INSERT' || eventType === 'UPDATE') {
                         const mapped = api.mapDirectTask(newRecord);
                         const existsIndex = prev.directTasks.findIndex(t => t.id === mapped.id);
-                        
                         if (existsIndex > -1) newState.directTasks = prev.directTasks.map(t => t.id === mapped.id ? mapped : t);
                         else newState.directTasks = [mapped, ...prev.directTasks];
-
-                        if (eventType === 'INSERT' && mapped.employeeId === loggedInUserId) {
-                            triggerNotification('مهمة فورية', 'وصلتك مهمة عمل جديدة، يرجى الاطلاع.', 'info');
-                        }
-
-                        if (eventType === 'UPDATE' && mapped.managerId === loggedInUserId && mapped.status !== 'pending') {
-                            const emp = prev.users.find(u => u.id === mapped.employeeId);
-                            triggerNotification('تحديث مهمة', `تم الرد على المهمة من قبل ${emp?.fullName.split(' ')[0]}.`);
-                        }
                     } else if (eventType === 'DELETE') {
                         newState.directTasks = prev.directTasks.filter(t => t.id !== oldRecord.id);
                     }
@@ -196,13 +172,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     if (eventType === 'INSERT' || eventType === 'UPDATE') {
                         const mapped = api.mapAnnouncement(newRecord);
                         const existsIndex = prev.announcements.findIndex(a => a.id === mapped.id);
-                        
                         if (existsIndex > -1) newState.announcements = prev.announcements.map(a => a.id === mapped.id ? mapped : a);
                         else newState.announcements = [mapped, ...prev.announcements];
-
-                        if (eventType === 'INSERT') {
-                            triggerNotification('تعميم عام', 'يوجد إعلان إداري جديد لجميع المنتسبين.', 'success');
-                        }
                     } else if (eventType === 'DELETE') {
                         newState.announcements = prev.announcements.filter(a => a.id !== oldRecord.id);
                     }
@@ -243,8 +214,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         try { await api.deleteReport(reportId); } catch (error) { throw error; }
     }, []);
 
-    const markReportAsViewed = useCallback(async (reportId: string) => api.markReportAsViewed(reportId), []);
-    const markCommentAsRead = useCallback(async (reportId: string) => api.markCommentAsRead(reportId), []);
+    const markReportAsViewed = useCallback(async (reportId: string) => {
+        // تحديث متفائل (Optimistic Update) لجعل التغيير لحظياً في الواجهة
+        setAppState(prev => ({
+            ...prev,
+            reports: prev.reports.map(r => r.id === reportId ? { ...r, isViewedByManager: true } : r)
+        }));
+        await api.markReportAsViewed(reportId);
+    }, []);
+
+    const markCommentAsRead = useCallback(async (reportId: string) => {
+        setAppState(prev => ({
+            ...prev,
+            reports: prev.reports.map(r => r.id === reportId ? { ...r, isCommentReadByEmployee: true } : r)
+        }));
+        await api.markCommentAsRead(reportId);
+    }, []);
+
     const addUser = useCallback(async (user: Omit<User, 'id'>) => api.createUser(user), []);
     const updateUser = useCallback(async (updatedUser: User) => api.updateUser(updatedUser), []);
     const deleteUser = useCallback(async (userId: string) => api.deleteUser(userId), []);
