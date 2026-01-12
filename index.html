@@ -43,36 +43,86 @@
       }
       .no-scrollbar::-webkit-scrollbar { display: none; }
 
-      /* أنماط الطباعة المتقدمة */
+      /* نظام الطباعة المحسن - حل مشكلة الصفحة البيضاء والطباعة الخاطئة */
       @media print {
+        @page {
+          margin: 1.5cm;
+          size: A4 portrait;
+        }
+
+        /* 1. إخفاء كل شيء بشكل افتراضي باستخدام display: none لضمان عدم حجز مساحة أو طباعة خلفية */
         body * {
-          visibility: hidden;
+          display: none !important;
         }
+
+        /* 2. إظهار منطقة الطباعة فقط وجميع عناصرها الداخلية */
         #printable-area, #printable-area * {
-          visibility: visible;
+          display: block !important;
+          visibility: visible !important;
         }
-        #printable-area {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
+
+        /* 3. إعادة ضبط الهيكل الأساسي للطباعة */
+        html, body {
+          display: block !important;
+          height: auto !important;
+          overflow: visible !important;
           background: white !important;
           color: black !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+        }
+
+        /* 4. إلغاء التموضع الثابت للـ Modal والـ Root لضمان تدفق التقرير */
+        #root, #root > div, [role="dialog"], [aria-modal="true"] {
+          display: block !important;
+          position: static !important;
+          overflow: visible !important;
+          height: auto !important;
+          max-height: none !important;
+          width: 100% !important;
+          transform: none !important;
+          opacity: 1 !important;
+          box-shadow: none !important;
+          background: white !important;
+        }
+
+        #printable-area {
+          position: static !important;
+          width: 100% !important;
           padding: 0 !important;
           margin: 0 !important;
+          border: none !important;
         }
+
+        /* إلغاء التمرير الداخلي في التقرير */
+        #printable-area .overflow-y-auto {
+          overflow: visible !important;
+          height: auto !important;
+          max-height: none !important;
+        }
+
         .no-print {
           display: none !important;
         }
-        .dark {
-          background-color: white !important;
-          color: black !important;
+
+        /* تحسين مظهر الجداول في الطباعة */
+        table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          page-break-inside: auto !important;
         }
-        .print-border {
-          border: 1px solid #ddd !important;
+        tr {
+          page-break-inside: avoid !important;
+          page-break-after: auto !important;
         }
-        .print-page-break {
-          page-break-inside: avoid;
+        th, td {
+          border: 1px solid #000 !important;
+          color: #000 !important;
+        }
+        
+        section, p, h1, h2, h3, h4 {
+          page-break-inside: avoid !important;
         }
       }
     </style>
