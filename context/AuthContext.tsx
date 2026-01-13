@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
 import { User } from '../types';
 import { useData } from './DataContext';
@@ -6,7 +7,7 @@ interface AuthContextType {
     currentUser: User | null;
     loading: boolean; // For initial load
     loginLoading: boolean; // For login button process
-    login: (username: string, password: string, rememberMe: boolean) => Promise<boolean>;
+    login: (username: string, password: string, rememberMe: boolean) => Promise<{success: boolean, message?: string}>;
     logout: () => void;
 }
 
@@ -19,7 +20,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
     const [loading, setLoading] = useState(true);
     const [loginLoading, setLoginLoading] = useState(false);
-    const { users } = useData();
+    const { users, isDataLoading } = useData();
 
     useEffect(() => {
         // Once the initial user ID is checked from storage, stop the initial loading.
@@ -27,15 +28,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     const currentUser = useMemo(() => {
-        if (!currentUserId) return null;
+        if (!currentUserId || users.length === 0) return null;
         return users.find(u => u.id === currentUserId) || null;
     }, [currentUserId, users]);
 
-    const login = useCallback(async (username: string, password: string, rememberMe: boolean): Promise<boolean> => {
+    const login = useCallback(async (username: string, password: string, rememberMe: boolean): Promise<{success: boolean, message?: string}> => {
         setLoginLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500)); 
-        const user = users.find(u => u.username === username && u.password === password);
+        
+        // التأكد من تحميل البيانات أولاً
+        if (users.length === 0 && !isDataLoading) {
+            setLoginLoading(false);
+            return { success: false, message: 'تعذر الاتصال بقاعدة البيانات حالياً.' };
+        }
+
+        // محاكاة تأخير بسيط للواقعية
+        await new Promise(resolve => setTimeout(resolve, 600)); 
+
+        const cleanUsername = username.trim().toLowerCase();
+        const cleanPassword = password.trim();
+
+        const user = users.find(u => 
+            u.username.toLowerCase() === cleanUsername && 
+            u.password === cleanPassword
+        );
+
         if (user) {
             setCurrentUserId(user.id);
             if (rememberMe) {
@@ -44,11 +60,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 sessionStorage.setItem('loggedInUserId', user.id);
             }
             setLoginLoading(false);
-            return true;
+            return { success: true };
         }
+
         setLoginLoading(false);
-        return false;
-    }, [users]);
+        return { success: false, message: 'اسم المستخدم أو كلمة المرور غير صحيحة.' };
+    }, [users, isDataLoading]);
 
     const logout = useCallback(() => {
         // Clear from both storages on logout
@@ -60,11 +77,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const value = useMemo(() => ({ currentUser, loading, loginLoading, login, logout }), [currentUser, loading, loginLoading, login, logout]);
 
     return (
-        <AuthContext.Provider value={value}>
+        <ThemeAwareProvider value={value}>
             {children}
-        </AuthContext.Provider>
+        </ThemeAwareProvider>
     );
 };
+
+// ملف تعريف وسيط لتجنب مشاكل التكرار في السياق
+const ThemeAwareProvider = AuthContext.Provider;
 
 export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
