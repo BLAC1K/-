@@ -61,7 +61,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             audioRef.current.play().then(() => {
                 audioRef.current?.pause();
                 if (audioRef.current) audioRef.current.currentTime = 0;
-            }).catch(e => console.log("Audio unlock interaction needed", e));
+            }).catch(e => console.log("Audio interaction needed"));
         }
     }, []);
 
@@ -69,14 +69,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (audioRef.current) {
             audioRef.current.currentTime = 0;
             audioRef.current.volume = 0.6;
-            audioRef.current.play().catch(e => console.warn("Sound blocked by browser policy", e));
+            audioRef.current.play().catch(e => console.warn("Sound blocked"));
         }
     }, []);
 
     const triggerNotification = useCallback((title: string, body: string, type: 'info' | 'success' = 'info') => {
         setNotification({ message: body, type, id: Date.now() });
         playNotificationSound();
-
+        
         if ("vibrate" in navigator) {
             navigator.vibrate([100, 50, 100]);
         }
@@ -85,21 +85,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const options: any = {
                 body,
                 icon: 'https://img.icons8.com/fluency/192/task.png',
-                badge: 'https://img.icons8.com/fluency/48/task.png',
                 vibrate: [200, 100, 200],
-                tag: 'daily-tasks-alert',
             };
-            
-            navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification(title, options);
-            }).catch(() => {
-                new Notification(title, options);
-            });
+            navigator.serviceWorker.ready.then(reg => reg.showNotification(title, options));
         }
     }, [playNotificationSound]);
 
     const testNotification = useCallback(() => {
-        triggerNotification("تجربة التنبيهات", "هذا إشعار تجريبي للتأكد من عمل الصوت والاشعارات بشكل صحيح.", "success");
+        triggerNotification("تجربة النظام", "أهلاً بك، نظام التنبيهات يعمل بنجاح.", "success");
     }, [triggerNotification]);
 
     const clearNotification = useCallback(() => setNotification(null), []);
@@ -117,7 +110,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
             setIsCloud(data.isCloud);
         } catch (error: any) {
-            if (!silent) setError(error.message || "فشل الاتصال بقاعدة البيانات.");
+            if (!silent) setError(error.message || "خطأ اتصال.");
         } finally {
             setIsDataLoading(false);
             setIsSyncing(false);
@@ -130,10 +123,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     useEffect(() => {
         loadData();
-        
         const unsubscribe = api.subscribeToAllChanges((payload) => {
-            const { table, eventType, new: newRecord, old: oldRecord } = payload;
-            
+            const { table, eventType, new: newRecord } = payload;
             setAppState(prev => {
                 const newState = { ...prev };
                 const loggedInUserId = localStorage.getItem('loggedInUserId') || sessionStorage.getItem('loggedInUserId');
@@ -142,125 +133,52 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (table === 'reports') {
                     if (eventType === 'INSERT' || eventType === 'UPDATE') {
                         const mapped = api.mapReport(newRecord);
-                        const existsIndex = prev.reports.findIndex(r => r.id === mapped.id);
-                        if (existsIndex > -1) {
-                            // للحفاظ على الترتيب والبيانات المحدثة
-                            newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
-                        } else {
-                            newState.reports = [mapped, ...prev.reports];
-                        }
+                        newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
+                        if (eventType === 'INSERT') newState.reports = [mapped, ...newState.reports];
 
                         if (eventType === 'INSERT' && mapped.status === 'submitted' && currentUser?.role === 'manager') {
                             const sender = prev.users.find(u => u.id === mapped.userId);
-                            triggerNotification('تقرير جديد', `أرسل ${sender?.fullName.split(' ')[0]} تقريراً جديداً الآن.`);
+                            triggerNotification('تقرير جديد', `وصل تقرير جديد من ${sender?.fullName.split(' ')[0]}`, 'success');
                         }
-                    } else if (eventType === 'DELETE') {
-                        newState.reports = prev.reports.filter(r => r.id !== oldRecord.id);
                     }
                 } 
-                else if (table === 'direct_tasks') {
-                    if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                        const mapped = api.mapDirectTask(newRecord);
-                        const existsIndex = prev.directTasks.findIndex(t => t.id === mapped.id);
-                        if (existsIndex > -1) newState.directTasks = prev.directTasks.map(t => t.id === mapped.id ? mapped : t);
-                        else newState.directTasks = [mapped, ...prev.directTasks];
-                    } else if (eventType === 'DELETE') {
-                        newState.directTasks = prev.directTasks.filter(t => t.id !== oldRecord.id);
-                    }
-                } 
-                else if (table === 'announcements') {
-                    if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                        const mapped = api.mapAnnouncement(newRecord);
-                        const existsIndex = prev.announcements.findIndex(a => a.id === mapped.id);
-                        if (existsIndex > -1) newState.announcements = prev.announcements.map(a => a.id === mapped.id ? mapped : a);
-                        else newState.announcements = [mapped, ...prev.announcements];
-                    } else if (eventType === 'DELETE') {
-                        newState.announcements = prev.announcements.filter(a => a.id !== oldRecord.id);
-                    }
-                } 
-                else if (table === 'users') {
-                    if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                        const mapped = api.mapUser(newRecord);
-                        const existsIndex = prev.users.findIndex(u => u.id === mapped.id);
-                        if (existsIndex > -1) newState.users = prev.users.map(u => u.id === mapped.id ? mapped : u);
-                        else newState.users = [...prev.users, mapped];
-                    } else if (eventType === 'DELETE') {
-                        newState.users = prev.users.filter(u => u.id !== oldRecord.id);
-                    }
-                }
-
                 return newState;
             });
         });
-
         return () => { unsubscribe(); };
     }, [loadData, triggerNotification]);
     
     const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);
-
-    const saveOrUpdateDraft = useCallback(async (draft: Partial<Report>) => {
-        try { await api.saveOrUpdateDraft(draft); } catch (error) { throw error; }
-    }, []);
-
-    const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => {
-        try { await api.createReport(report); } catch (error) { throw error; }
-    }, []);
-
-    const updateReport = useCallback(async (updatedReport: Report) => {
-        try { await api.updateReport(updatedReport); } catch (error) { throw error; }
-    }, []);
-
-    const deleteReport = useCallback(async (reportId: string) => {
-        try { await api.deleteReport(reportId); } catch (error) { throw error; }
-    }, []);
-
-    const markReportAsViewed = useCallback(async (reportId: string) => {
-        // تحديث متفائل (Optimistic Update) لجعل التغيير لحظياً في الواجهة
-        setAppState(prev => ({
-            ...prev,
-            reports: prev.reports.map(r => r.id === reportId ? { ...r, isViewedByManager: true } : r)
-        }));
-        await api.markReportAsViewed(reportId);
-    }, []);
-
-    const markCommentAsRead = useCallback(async (reportId: string) => {
-        setAppState(prev => ({
-            ...prev,
-            reports: prev.reports.map(r => r.id === reportId ? { ...r, isCommentReadByEmployee: true } : r)
-        }));
-        await api.markCommentAsRead(reportId);
-    }, []);
-
+    const saveOrUpdateDraft = useCallback(async (draft: Partial<Report>) => { try { await api.saveOrUpdateDraft(draft); } catch (e) { throw e; } }, []);
+    const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => { try { await api.createReport(report); } catch (e) { throw e; } }, []);
+    const updateReport = useCallback(async (updatedReport: Report) => { try { await api.updateReport(updatedReport); } catch (e) { throw e; } }, []);
+    const deleteReport = useCallback(async (reportId: string) => { try { await api.deleteReport(reportId); } catch (e) { throw e; } }, []);
+    const markReportAsViewed = useCallback(async (reportId: string) => { await api.markReportAsViewed(reportId); }, []);
+    const markCommentAsRead = useCallback(async (reportId: string) => { await api.markCommentAsRead(reportId); }, []);
     const addUser = useCallback(async (user: Omit<User, 'id'>) => api.createUser(user), []);
     const updateUser = useCallback(async (updatedUser: User) => api.updateUser(updatedUser), []);
     const deleteUser = useCallback(async (userId: string) => api.deleteUser(userId), []);
     const addAnnouncement = useCallback(async (content: string) => api.createAnnouncement(content), []);
-    const updateAnnouncement = useCallback(async (announcementId: string, content: string) => api.updateAnnouncement(announcementId, content), []);
-    const deleteAnnouncement = useCallback(async (announcementId: string) => api.deleteAnnouncement(announcementId), []);
-    const markAnnouncementAsRead = useCallback(async (announcementId: string, userId: string) => api.markAnnouncementAsRead(announcementId, userId), []);
-    const addDirectTask = useCallback(async (task: Omit<DirectTask, 'id' | 'sentAt' | 'status' | 'isReadByEmployee'>) => api.createDirectTask(task), []);
-    const updateDirectTaskStatus = useCallback(async (taskId: string, status: 'acknowledged' | 'rejected', rejectionReason?: string) => api.updateDirectTaskStatus(taskId, status, rejectionReason), []);
-    const markDirectTaskAsRead = useCallback(async (taskId: string) => api.markDirectTaskAsRead(taskId), []);
+    const updateAnnouncement = useCallback(async (annId: string, content: string) => api.updateAnnouncement(annId, content), []);
+    const deleteAnnouncement = useCallback(async (annId: string) => api.deleteAnnouncement(annId), []);
+    const markAnnouncementAsRead = useCallback(async (annId: string, uId: string) => api.markAnnouncementAsRead(annId, uId), []);
+    const addDirectTask = useCallback(async (task: any) => api.createDirectTask(task), []);
+    const updateDirectTaskStatus = useCallback(async (tId: string, s: any, r?: string) => api.updateDirectTaskStatus(tId, s, r), []);
+    const markDirectTaskAsRead = useCallback(async (tId: string) => api.markDirectTaskAsRead(tId), []);
 
     const value = useMemo(() => ({
         ...appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification
-    }), [
-        appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
+    }), [appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
-        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification
-    ]);
+        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification]);
 
-    return (
-        <DataContext.Provider value={value}>
-            {children}
-        </DataContext.Provider>
-    );
+    return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 
 export const useData = (): DataContextType => {
     const context = useContext(DataContext);
-    if (!context) throw new Error('useData must be used within a DataProvider');
+    if (!context) throw new Error('useData error');
     return context;
 };

@@ -12,7 +12,7 @@ import NewReportIcon from './icons/NewReportIcon';
 import InboxIcon from './icons/InboxIcon';
 import ProfileManagement from './ProfileManagement';
 import UserCircleIcon from './icons/UserCircleIcon';
-import ReportDetailModal from './ReportDetailModal';
+import ReportDetail from './ReportDetail';
 import Toast from './Toast';
 import MenuIcon from './icons/MenuIcon';
 import ThemeToggle from './ThemeToggle';
@@ -29,6 +29,8 @@ import XMarkIcon from './icons/XMarkIcon';
 import EditIcon from './icons/EditIcon';
 import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import ArrowPathIcon from './icons/ArrowPathIcon';
+import ArrowRightIcon from './icons/ArrowRightIcon';
+import DownloadIcon from './icons/DownloadIcon';
 
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
@@ -36,7 +38,7 @@ const EmployeeDashboard: React.FC = () => {
     
     const [activeTab, setActiveTab] = useState('home');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+    const [viewingReport, setViewingReport] = useState<Report | null>(null);
     const [toast, setToast] = useState<{message: string, type: 'info' | 'success'} | null>(null);
     const [isStandalone, setIsStandalone] = useState(false);
     const [isPwaReady, setIsPwaReady] = useState(!!window.deferredPrompt);
@@ -44,32 +46,9 @@ const EmployeeDashboard: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const [randomGreeting, setRandomGreeting] = useState('');
-    const [randomQuote, setRandomQuote] = useState('');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
-
-    const greetings = useMemo(() => [
-        "طاب يومك، نتمنى لك يوماً مليئاً بالإنجاز.",
-        "أهلاً بعودتك، لنواصل رحلة الإبداع معاً.",
-        "يسعدنا تواجدك اليوم، أنت ركن أساسي في فريقنا.",
-        "بداية يوم موفقة، همتكم العالية سر نجاحنا.",
-        "مرحباً بك، شعبة الفنون تشرق بحضورك وعطائك.",
-        "يوم جديد، فرص جديدة للإبداع.. أهلاً بك.",
-        "أهلاً بك مجدداً، عملك المتميز يترك أثراً دائماً.",
-        "سعداء برؤيتك، لنجعل اليوم يوماً استثنائياً بالإنجازات."
-    ], []);
-
-    const quotes = useMemo(() => [
-        "النجاح هو مجموع تفاصيل صغيرة أتقنتها كل يوم.",
-        "الإبداع لا ينمو إلا في بيئة مليئة بالشغف والعمل الجاد.",
-        "لا تبحث عن الفرص، بل اصنعها بعملك المتميز.",
-        "كل إنجاز عظيم بدأ بفكرة بسيطة وإصرار كبير.",
-        "أنت لا تبني تقريراً فقط، أنت توثق رحلة نجاحك.",
-        "اجعل من عملك فناً، ومن فنك رسالة تلمس القلوب.",
-        "التميز ليس فعلاً، بل هو عادة نكررها كل صباح."
-    ], []);
 
     useEffect(() => {
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
@@ -77,35 +56,15 @@ const EmployeeDashboard: React.FC = () => {
 
         const handlePromptReady = () => setIsPwaReady(true);
         window.addEventListener('pwa-prompt-ready', handlePromptReady);
-        
-        const randomGIdx = Math.floor(Math.random() * greetings.length);
-        setRandomGreeting(greetings[randomGIdx]);
-
-        const randomQIdx = Math.floor(Math.random() * quotes.length);
-        setRandomQuote(quotes[randomQIdx]);
 
         return () => window.removeEventListener('pwa-prompt-ready', handlePromptReady);
-    }, [greetings, quotes]);
+    }, []);
 
     useEffect(() => {
         if (notification) {
             setToast({ message: notification.message, type: notification.type });
         }
     }, [notification]);
-
-    const handleInstallClick = async () => {
-        if (window.deferredPrompt) {
-            window.deferredPrompt.prompt();
-            const { outcome } = await window.deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                window.deferredPrompt = null;
-                setIsPwaReady(false);
-                setIsStandalone(true);
-            }
-        } else {
-            window.dispatchEvent(new CustomEvent('open-install-instructions'));
-        }
-    };
 
     const [reportForm, setReportForm] = useState<{
         tasks: { id: string, text: string }[],
@@ -240,13 +199,14 @@ const EmployeeDashboard: React.FC = () => {
         });
         setEditingDraftId(draft.id);
         setActiveTab('new-report');
+        setViewingReport(null);
     };
 
     const NavItem: React.FC<{tabName: string; label: string; icon: React.ReactNode; count?: number}> = ({tabName, label, icon, count}) => {
-        const isActive = activeTab === tabName;
+        const isActive = activeTab === tabName && !viewingReport;
         return (
              <button
-                onClick={() => { setActiveTab(tabName); if (window.innerWidth < 768) setIsSidebarOpen(false); }}
+                onClick={() => { setActiveTab(tabName); setViewingReport(null); if (window.innerWidth < 768) setIsSidebarOpen(false); }}
                 className={`flex items-center w-full px-4 py-3 text-sm font-medium transition-colors rounded-xl ${isActive ? 'bg-brand-light text-white shadow-lg shadow-brand-light/30' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}
             >
                 <div className="w-6 h-6">{icon}</div>
@@ -255,6 +215,59 @@ const EmployeeDashboard: React.FC = () => {
             </button>
         );
     };
+
+    // عرض التقرير كصفحة مستقلة
+    if (viewingReport) {
+        return (
+            <div className="h-[100dvh] w-full bg-white dark:bg-gray-900 flex flex-col overflow-hidden animate-fade-in">
+                {/* رأس الصفحة المستقلة للتقرير مع زر رجوع واضح */}
+                <header id="report-header" className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700 no-print sticky top-0 z-50">
+                    <button 
+                        onClick={() => setViewingReport(null)}
+                        className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 text-brand-dark dark:text-gray-100 rounded-xl shadow-sm border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all font-bold active:scale-95"
+                    >
+                        <ArrowRightIcon className="w-5 h-5" />
+                        <span>العودة للقائمة</span>
+                    </button>
+                    
+                    <div className="hidden sm:flex flex-col items-center">
+                        <h2 className="text-sm font-bold text-gray-700 dark:text-gray-200">معاينة التقرير النهائي</h2>
+                        <span className="text-[10px] text-gray-500">{viewingReport.date} - #{viewingReport.sequenceNumber}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                         <button
+                            onClick={() => window.print()}
+                            className="flex items-center gap-2 px-4 py-2 bg-brand-light text-white rounded-xl font-bold shadow-md hover:bg-brand-dark transition-all text-xs"
+                        >
+                            <DownloadIcon className="w-4 h-4" />
+                            <span>طباعة / PDF</span>
+                        </button>
+                    </div>
+                </header>
+
+                <div id="printable-area" className="flex-1 overflow-y-auto no-scrollbar">
+                     {/* ترويسة الطباعة الرسمية */}
+                    <div className="hidden print:block p-8 border-b-2 border-black mb-6">
+                        <div className="flex justify-between items-start">
+                            <div className="text-right">
+                                <h1 className="text-sm font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
+                                <h2 className="text-xs font-bold text-gray-700">شعبة الفنون والمسرح</h2>
+                                <p className="text-[10px] mt-4 font-bold">الاسم: <span className="font-medium">{currentUser.fullName}</span></p>
+                                <p className="text-[10px]">العنوان الوظيفي: {currentUser.jobTitle}</p>
+                            </div>
+                            <div className="text-left">
+                                <p className="font-bold text-xs">التاريخ: {viewingReport.date}</p>
+                                <p className="text-[10px]">التسلسل: {viewingReport.sequenceNumber}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <ReportDetail report={viewingReport} user={currentUser} viewerRole={Role.EMPLOYEE} />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="h-[100dvh] w-full bg-[#fcfdfe] dark:bg-[#0d1117] flex overflow-hidden">
@@ -290,7 +303,7 @@ const EmployeeDashboard: React.FC = () => {
                     
                     <div className="p-4 border-t dark:border-gray-800 space-y-2 mb-safe">
                         {!isStandalone && (
-                            <button onClick={handleInstallClick} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl shadow-lg border border-white/10">
+                            <button onClick={() => { if (window.deferredPrompt) window.deferredPrompt.prompt(); else window.dispatchEvent(new CustomEvent('open-install-instructions')); }} className="flex items-center w-full px-4 py-3 text-sm font-bold text-white bg-brand-light rounded-xl shadow-lg border border-white/10">
                                 <InstallIcon className="w-6 h-6"/>
                                 <span className="mr-3 text-xs">تثبيت التطبيق</span>
                             </button>
@@ -325,7 +338,6 @@ const EmployeeDashboard: React.FC = () => {
                         <div className="flex-grow">
                             {activeTab === 'home' && (
                                 <div className="space-y-6 animate-fade-in">
-                                    {/* بطاقة الترحيب المطورة */}
                                     <div className="bg-gradient-to-br from-brand-light to-brand-dark p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center text-white relative overflow-hidden transition-all duration-500">
                                         <div className="absolute top-0 right-0 p-6 opacity-10"><AppLogoIcon className="w-40 h-40" /></div>
                                         <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
@@ -335,9 +347,7 @@ const EmployeeDashboard: React.FC = () => {
                                         </div>
                                         
                                         <h3 className="text-3xl font-bold z-10">أهلاً بك، {currentUser.fullName.split(' ')[0]}</h3>
-                                        <p className="text-white/90 text-sm mt-3 z-10 font-medium bg-white/10 px-6 py-2 rounded-full backdrop-blur-sm">
-                                            {randomGreeting}
-                                        </p>
+                                        <p className="text-white/90 text-sm mt-2 z-10 font-medium">نتمنى لك يوماً سعيداً وحافلاً بالإنجاز.</p>
                                         
                                         <div className="mt-8 pt-6 border-t border-white/20 w-full max-w-sm z-10">
                                             <p className="text-white/80 text-xs uppercase tracking-widest font-bold mb-1">تاريخ اليوم</p>
@@ -347,21 +357,20 @@ const EmployeeDashboard: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* بطاقة العبارات التحفيزية */}
-                                    <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 w-2 h-full bg-brand-light"></div>
-                                        <div className="flex flex-col items-center text-center">
-                                            <div className="text-4xl text-brand-light/20 font-serif mb-2">"</div>
-                                            <p className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-relaxed max-w-lg">
-                                                {randomQuote}
-                                            </p>
-                                            <div className="mt-6 flex items-center gap-2">
-                                                <div className="w-1 h-1 bg-brand-light rounded-full"></div>
-                                                <div className="w-8 h-1 bg-brand-light/30 rounded-full"></div>
-                                                <div className="w-1 h-1 bg-brand-light rounded-full"></div>
+                                    {unreadTasksCount > 0 && (
+                                        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-[2rem] border border-red-100 dark:border-red-900/50 flex items-center justify-between animate-pulse">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/40 rounded-2xl flex items-center justify-center text-red-600">
+                                                    <InboxIcon className="w-7 h-7" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-red-800 dark:text-red-300">لديك {unreadTasksCount} مهام جديدة</h4>
+                                                    <p className="text-xs text-red-600 dark:text-red-400">يرجى الاطلاع عليها في قسم المهام الواردة.</p>
+                                                </div>
                                             </div>
+                                            <button onClick={() => setActiveTab('tasks')} className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-red-600/20">عرض المهام</button>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             )}
 
@@ -369,7 +378,6 @@ const EmployeeDashboard: React.FC = () => {
                                 <form onSubmit={handleSubmitReportClick} className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6 animate-fade-in">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-xl font-bold dark:text-white">{editingDraftId ? 'تعديل المسودة' : 'تقرير عمل جديد'}</h3>
-                                        {isSyncing && <span className="text-[10px] text-brand-light animate-pulse">جاري الحفظ التلقائي...</span>}
                                     </div>
                                     
                                     <div className="space-y-3">
@@ -379,7 +387,7 @@ const EmployeeDashboard: React.FC = () => {
                                                 <textarea 
                                                     value={task.text} 
                                                     onChange={(e) => setReportForm(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === task.id ? { ...t, text: e.target.value } : t) }))} 
-                                                    placeholder={`صف المهمة ${index + 1} هنا بالتفصيل...`} 
+                                                    placeholder={`صف المهمة ${index + 1} هنا...`} 
                                                     rows={2}
                                                     className="flex-1 px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/50 transition-all resize-none" 
                                                 />
@@ -435,11 +443,25 @@ const EmployeeDashboard: React.FC = () => {
                                 </form>
                             )}
                             
-                            {activeTab === 'archive' && <div className="space-y-4">{myReports.map(r => <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />)}</div>}
+                            {activeTab === 'archive' && (
+                                <div className="space-y-4">
+                                    <h3 className="text-xl font-bold dark:text-white mb-4">أرشيف التقارير المرسلة</h3>
+                                    {myReports.map(r => (
+                                        <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setViewingReport(r)} />
+                                    ))}
+                                    {myReports.length === 0 && (
+                                        <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
+                                            <p className="text-gray-500">لا توجد تقارير في الأرشيف حالياً.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {activeTab === 'tasks' && <DirectTasksView />}
+                            
                             {activeTab === 'drafts' && (
                                  <div className="space-y-4 animate-fade-in">
-                                 <h3 className="text-xl font-bold dark:text-white mb-4">المسودات ({myDrafts.length})</h3>
+                                 <h3 className="text-xl font-bold dark:text-white mb-4">المسودات المحفوظة ({myDrafts.length})</h3>
                                  {myDrafts.length > 0 ? myDrafts.map(draft => (
                                      <div key={draft.id} className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between group">
                                          <div className="flex-1">
@@ -460,7 +482,6 @@ const EmployeeDashboard: React.FC = () => {
                             {activeTab === 'profile' && <ProfileManagement user={currentUser} />}
                         </div>
 
-                        {/* تذييل الحقوق (Footer) المعتمد */}
                         <footer className="mt-12 py-8 border-t dark:border-gray-800 text-center space-y-2 no-print">
                             <div className="flex justify-center items-center gap-3 opacity-30 grayscale mb-4">
                                 <div className="w-8 h-8"><AppLogoIcon /></div>
@@ -473,24 +494,23 @@ const EmployeeDashboard: React.FC = () => {
                 </main>
             </div>
 
-            {selectedReport && <ReportDetailModal report={selectedReport} user={currentUser} viewerRole={Role.EMPLOYEE} onClose={() => setSelectedReport(null)} />}
             {toast && <Toast message={toast.message} onClose={() => { setToast(null); clearNotification(); }} onClick={() => setToast(null)} type={toast.type} />}
             
             {showSubmitConfirm && (
                 <ConfirmModal 
                     title="تأكيد إرسال التقرير" 
-                    message="هل أنت متأكد من صحة جميع البيانات الواردة في التقرير؟ سيتم إرساله مباشرة للمسؤول للمراجعة." 
+                    message="هل أنت متأكد من صحة البيانات؟ سيتم إرساله للمسؤول للمراجعة." 
                     onConfirm={handleFinalSubmit} 
                     onCancel={() => setShowSubmitConfirm(false)} 
-                    confirmText="تأكيد الإرسال النهائي"
-                    cancelText="مراجعة التقرير"
+                    confirmText="تأكيد الإرسال"
+                    cancelText="مراجعة"
                 />
             )}
 
             {showLogoutConfirm && (
                 <ConfirmModal 
                     title="تأكيد الخروج" 
-                    message="هل أنت متأكد من رغبتك في تسجيل الخروج من النظام؟" 
+                    message="هل أنت متأكد من رغبتك في تسجيل الخروج؟" 
                     onConfirm={logout} 
                     onCancel={() => setShowLogoutConfirm(false)} 
                     confirmText="تسجيل الخروج"

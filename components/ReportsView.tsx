@@ -92,52 +92,58 @@ const ReportsView: React.FC = () => {
     // 1. حالة عرض تفاصيل تقرير معين
     if (viewingReport && selectedEmployee) {
         return (
-            <div id="printable-area" className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden animate-fade-in border dark:border-gray-700">
-                <div className="flex flex-col md:flex-row items-center justify-between p-5 bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-700 gap-4 no-print">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden animate-fade-in border dark:border-gray-700 min-h-full flex flex-col">
+                <div className="flex flex-col md:flex-row items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-700 gap-4 no-print sticky top-0 z-50">
+                     <button 
+                        onClick={() => setViewingReport(null)}
+                        className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 text-brand-dark dark:text-gray-100 rounded-xl shadow-sm border dark:border-gray-600 hover:bg-gray-50 transition-all font-bold active:scale-95"
+                    >
+                        <ArrowRightIcon className="w-5 h-5" />
+                        <span>العودة للمنتسب</span>
+                    </button>
+
                      <div className="flex items-center gap-4">
-                         <Avatar src={selectedEmployee.profilePictureUrl} name={selectedEmployee.fullName} size={44} />
+                         <Avatar src={selectedEmployee.profilePictureUrl} name={selectedEmployee.fullName} size={40} />
                          <div>
-                            <h3 className="text-sm md:text-base font-bold text-brand-dark dark:text-gray-100 leading-tight">التقرير #{viewingReport.sequenceNumber}: {selectedEmployee.fullName}</h3>
+                            <h3 className="text-xs md:text-sm font-bold text-brand-dark dark:text-gray-100 leading-tight">التقرير #{viewingReport.sequenceNumber}: {selectedEmployee.fullName}</h3>
                             <p className="text-[10px] text-gray-500">{viewingReport.date} - {viewingReport.day}</p>
                          </div>
                     </div>
+
                     <div className="flex items-center gap-2">
-                        <button onClick={() => setShowDeleteConfirm(true)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                        <button onClick={() => setShowDeleteConfirm(true)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all" title="حذف التقرير">
                             <TrashIcon className="w-5 h-5" />
                         </button>
-                        <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-1.5 bg-brand-light text-white rounded-lg font-bold shadow-md text-xs">
+                        <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-brand-light text-white rounded-lg font-bold shadow-md text-xs hover:bg-brand-dark transition-all">
                             <DownloadIcon className="w-4 h-4" />
-                            <span>حفظ كـ PDF</span>
-                        </button>
-                        <button onClick={() => setViewingReport(null)} className="p-2 text-gray-400 hover:text-gray-700">
-                            <ArrowRightIcon className="w-7 h-7" />
+                            <span>طباعة / PDF</span>
                         </button>
                     </div>
                 </div>
 
                 {/* ترويسة الطباعة الرسمية */}
-                <div className="hidden print:block p-8 border-b-2 border-black">
-                    <div className="flex justify-between items-start">
-                        <div className="text-right">
-                            <h1 className="text-sm font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
-                            <h2 className="text-xs font-bold text-gray-700">شعبة الفنون والمسرح</h2>
-                            <p className="text-[10px] mt-2 font-bold">المنتسب: {selectedEmployee.fullName}</p>
-                        </div>
-                        <div className="text-left text-[10px]">
-                             <p className="font-bold">التاريخ: {viewingReport.date}</p>
-                             <p>التسلسل: {viewingReport.sequenceNumber}</p>
+                <div id="printable-area" className="flex-1 overflow-y-auto no-scrollbar bg-white dark:bg-gray-900">
+                    <div className="hidden print:block p-8 border-b-2 border-black mb-6">
+                        <div className="flex justify-between items-start">
+                            <div className="text-right">
+                                <h1 className="text-sm font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
+                                <h2 className="text-xs font-bold text-gray-700">شعبة الفنون والمسرح</h2>
+                                <p className="text-[10px] mt-4 font-bold">المنتسب: <span className="font-medium">{selectedEmployee.fullName}</span></p>
+                                <p className="text-[9px]">العنوان الوظيفي: {selectedEmployee.jobTitle}</p>
+                            </div>
+                            <div className="text-left text-[10px]">
+                                 <p className="font-bold text-xs">التاريخ: {viewingReport.date}</p>
+                                 <p>التسلسل: {viewingReport.sequenceNumber}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <div className="bg-white dark:bg-gray-900">
                     <ReportDetail report={viewingReport} user={selectedEmployee} viewerRole={Role.MANAGER} />
                 </div>
                 
                 {showDeleteConfirm && (
                     <ConfirmModal
-                        title="حذف التقرير"
-                        message="سيتم حذف التقرير نهائياً من سجلات المنتسب."
+                        title="تأكيد حذف التقرير"
+                        message="سيتم حذف التقرير نهائياً من سجلات المنتسب. هل أنت متأكد؟"
                         onConfirm={handleDeleteReport}
                         onCancel={() => setShowDeleteConfirm(false)}
                         confirmText="تأكيد الحذف"

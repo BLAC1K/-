@@ -13,6 +13,7 @@ interface ToastProps {
 }
 
 const Toast: React.FC<ToastProps> = ({ message, onClose, onClick, duration = 5000, type = 'info' }) => {
+    
     useEffect(() => {
         const timer = setTimeout(() => {
             onClose();
@@ -39,9 +40,11 @@ const Toast: React.FC<ToastProps> = ({ message, onClose, onClick, duration = 500
                     )}
                 </div>
                 <div className="flex-1 mr-3">
-                    <p className={`text-sm font-bold ${isSuccess ? 'text-green-700 dark:text-green-400' : 'text-brand-dark dark:text-gray-100'}`}>
-                        {isSuccess ? 'نجاح العملية' : 'تنبيه جديد'}
-                    </p>
+                    <div className="flex items-center justify-between">
+                        <p className={`text-sm font-bold ${isSuccess ? 'text-green-700 dark:text-green-400' : 'text-brand-dark dark:text-gray-100'}`}>
+                            {isSuccess ? 'نجاح العملية' : 'تنبيه جديد'}
+                        </p>
+                    </div>
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 font-medium">{message}</p>
                     {!isSuccess && (
                         <button 
