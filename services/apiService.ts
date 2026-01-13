@@ -91,7 +91,6 @@ export const subscribeToAllChanges = (onUpdate: (payload: any) => void) => {
 };
 
 export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>): Promise<Report> => {
-    // التعديل هنا: جلب أعلى تسلسل للمنتسب المحدد فقط
     const { data: maxSeqData } = await supabase
         .from('reports')
         .select('sequence_number')
@@ -105,7 +104,7 @@ export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' 
     const dbReport = {
         id: newId, 
         user_id: report.userId, 
-        sequence_number: maxSeq + 1, // التسلسل الجديد الخاص بالمنتسب
+        sequence_number: maxSeq + 1, 
         date: report.date, 
         day: report.day,
         tasks: report.tasks, 
@@ -158,6 +157,10 @@ export const deleteReport = async (reportId: string): Promise<void> => {
 
 export const markReportAsViewed = async (reportId: string): Promise<void> => {
     await supabase.from('reports').update({ is_viewed_by_manager: true }).eq('id', reportId);
+};
+
+export const markAllReportsAsReadForUser = async (userId: string): Promise<void> => {
+    await supabase.from('reports').update({ is_viewed_by_manager: true }).eq('user_id', userId).eq('status', 'submitted');
 };
 
 export const markCommentAsRead = async (reportId: string): Promise<void> => {

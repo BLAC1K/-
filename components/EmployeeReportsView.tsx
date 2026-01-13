@@ -9,6 +9,8 @@ import ArrowRightIcon from './icons/ArrowRightIcon';
 import MonthlyEvaluation from './MonthlyEvaluation';
 import PaperAirplaneIcon from './icons/PaperAirplaneIcon';
 import XCircleIcon from './icons/XCircleIcon';
+import CheckCircleIcon from './icons/CheckCircleIcon';
+import ExclamationCircleIcon from './icons/ExclamationCircleIcon';
 
 
 interface SendTaskModalProps {
@@ -31,7 +33,6 @@ const SendTaskModal: React.FC<SendTaskModalProps> = ({ employee, manager, onClos
             content: taskContent,
         });
         
-        // Notify employee about the new task
         localStorage.setItem('task_notification', JSON.stringify({
             userId: employee.id,
             message: `لديك مهمة جديدة من ${manager.fullName}.`
@@ -82,10 +83,10 @@ interface EmployeeReportsViewProps {
 }
 
 const EmployeeReportsView: React.FC<EmployeeReportsViewProps> = ({ employee, onViewReport, onBack }) => {
-    const { reports } = useData();
+    const { reports, markAllReportsAsReadForUser } = useData();
     const { currentUser: manager } = useAuth();
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-    // Default to current month in YYYY-MM format
+    const [isMarkingRead, setIsMarkingRead] = useState(false);
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
 
     const allReports = useMemo(() => {
@@ -95,9 +96,32 @@ const EmployeeReportsView: React.FC<EmployeeReportsViewProps> = ({ employee, onV
     }, [reports, employee.id]);
     
     const reportsForSelectedMonth = useMemo(() => {
-        if (!selectedMonth) return allReports; // Show all if no month is selected
+        if (!selectedMonth) return allReports;
         return allReports.filter(r => r.date.startsWith(selectedMonth));
     }, [allReports, selectedMonth]);
+
+    // حساب العداد الكلي لجميع الشهور
+    const unreadCountTotal = useMemo(() => {
+        return allReports.filter(r => !r.isViewedByManager && r.status === 'submitted').length;
+    }, [allReports]);
+
+    // حساب العداد للشهر الحالي المختار فقط
+    const unreadCountInCurrentMonth = useMemo(() => {
+        return reportsForSelectedMonth.filter(r => !r.isViewedByManager && r.status === 'submitted').length;
+    }, [reportsForSelectedMonth]);
+
+    const hasUnreadInOtherMonths = unreadCountTotal > 0 && unreadCountInCurrentMonth === 0;
+
+    const handleMarkAllRead = async () => {
+        setIsMarkingRead(true);
+        try {
+            await markAllReportsAsReadForUser(employee.id);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsMarkingRead(false);
+        }
+    };
 
     const [year, month] = selectedMonth.split('-');
 
@@ -105,7 +129,6 @@ const EmployeeReportsView: React.FC<EmployeeReportsViewProps> = ({ employee, onV
     return (
          <>
          <div className="bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 rounded-3xl shadow-inner animate-fade-in border dark:border-gray-800">
-             {/* Header */}
              <div className="flex flex-col sm:flex-row items-center justify-between pb-6 mb-6 border-b dark:border-gray-700 gap-4">
                 <div className="flex items-center space-x-4 space-x-reverse">
                     <Avatar src={employee.profilePictureUrl} name={employee.fullName} size={64} className="ring-4 ring-brand-light/10" />
@@ -133,9 +156,8 @@ const EmployeeReportsView: React.FC<EmployeeReportsViewProps> = ({ employee, onV
                 </div>
             </div>
              
-             {/* Month selector and Evaluation */}
             <div className="mb-8">
-                 <div className="flex justify-start mb-4">
+                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                      <div className="flex flex-col w-full sm:w-auto">
                         <label htmlFor="month-selector" className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 mr-2">
                             تصفية التقارير حسب الشهر:
@@ -149,7 +171,27 @@ const EmployeeReportsView: React.FC<EmployeeReportsViewProps> = ({ employee, onV
                             aria-label="اختر الشهر"
                         />
                     </div>
+                    
+                    {unreadCountTotal > 0 && (
+                        <button 
+                            onClick={handleMarkAllRead}
+                            disabled={isMarkingRead}
+                            className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-brand-light bg-brand-light/10 hover:bg-brand-light/20 rounded-xl transition-all active:scale-95 border border-brand-light/20 shadow-sm"
+                        >
+                            <CheckCircleIcon className="w-4 h-4" />
+                            {isMarkingRead ? 'جارِ التحديث...' : `تصفير الإشعارات (${unreadCountTotal})`}
+                        </button>
+                    )}
                 </div>
+
+                {hasUnreadInOtherMonths && (
+                    <div className="mb-4 p-3 bg-brand-accent-yellow/10 border border-brand-accent-yellow/20 rounded-xl flex items-center gap-3 animate-fade-in no-print">
+                        <ExclamationCircleIcon className="w-6 h-6 text-brand-accent-yellow shrink-0" />
+                        <p className="text-[11px] font-bold text-brand-dark dark:text-brand-accent-yellow">
+                            💡 ملاحظة: يوجد <span className="underline">{unreadCountTotal}</span> تقرير غير مقروء في "أشهر سابقة". يمكنك تغيير الشهر أعلاه لرؤيتها أو الضغط على "تصفير الإشعارات".
+                        </p>
+                    </div>
+                )}
                 
                 <MonthlyEvaluation 
                     employee={employee}
@@ -160,7 +202,6 @@ const EmployeeReportsView: React.FC<EmployeeReportsViewProps> = ({ employee, onV
             </div>
 
 
-            {/* Reports List */}
             <div className="flex items-center justify-between mb-4 px-2">
                 <h4 className="font-bold text-lg text-gray-800 dark:text-gray-200">
                     سجل التقارير المختارة

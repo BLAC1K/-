@@ -24,6 +24,7 @@ interface DataContextType extends AppState {
     saveOrUpdateDraft: (draft: Partial<Report>) => Promise<void>;
     deleteReport: (reportId: string) => Promise<void>;
     markReportAsViewed: (reportId: string) => Promise<void>;
+    markAllReportsAsReadForUser: (userId: string) => Promise<void>;
     markCommentAsRead: (reportId: string) => Promise<void>;
     addUser: (user: Omit<User, 'id'>) => Promise<void>;
     updateUser: (user: User) => Promise<void>;
@@ -153,7 +154,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => { try { await api.createReport(report); } catch (e) { throw e; } }, []);
     const updateReport = useCallback(async (updatedReport: Report) => { try { await api.updateReport(updatedReport); } catch (e) { throw e; } }, []);
     const deleteReport = useCallback(async (reportId: string) => { try { await api.deleteReport(reportId); } catch (e) { throw e; } }, []);
-    const markReportAsViewed = useCallback(async (reportId: string) => { await api.markReportAsViewed(reportId); }, []);
+    const markReportAsViewed = useCallback(async (reportId: string) => { 
+        // تحديث محلي فوري
+        setAppState(prev => ({
+            ...prev,
+            reports: prev.reports.map(r => r.id === reportId ? { ...r, isViewedByManager: true } : r)
+        }));
+        await api.markReportAsViewed(reportId); 
+    }, []);
+    const markAllReportsAsReadForUser = useCallback(async (userId: string) => { 
+        // تحديث محلي فوري لجميع تقارير المستخدم
+        setAppState(prev => ({
+            ...prev,
+            reports: prev.reports.map(r => r.userId === userId ? { ...r, isViewedByManager: true } : r)
+        }));
+        await api.markAllReportsAsReadForUser(userId); 
+    }, []);
     const markCommentAsRead = useCallback(async (reportId: string) => { await api.markCommentAsRead(reportId); }, []);
     const addUser = useCallback(async (user: Omit<User, 'id'>) => api.createUser(user), []);
     const updateUser = useCallback(async (updatedUser: User) => api.updateUser(updatedUser), []);
@@ -167,10 +183,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const markDirectTaskAsRead = useCallback(async (tId: string) => api.markDirectTaskAsRead(tId), []);
 
     const value = useMemo(() => ({
-        ...appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
+        ...appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markAllReportsAsReadForUser,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification
-    }), [appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,
+    }), [appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markAllReportsAsReadForUser,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification]);
 

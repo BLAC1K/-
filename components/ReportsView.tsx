@@ -68,8 +68,11 @@ const ReportsView: React.FC = () => {
 
 
     const handleViewReport = (report: Report) => {
+        // تحديث محلي فوري لمنع تأخير اختفاء الإشعار
         if (!report.isViewedByManager) {
             markReportAsViewed(report.id);
+            // سنقوم بتغيير الحالة في التقرير المعروض حالياً ليظهر كمقروء فوراً
+            report.isViewedByManager = true;
         }
         setViewingReport(report);
     };
@@ -89,7 +92,6 @@ const ReportsView: React.FC = () => {
         }
     };
 
-    // 1. حالة عرض تفاصيل تقرير معين
     if (viewingReport && selectedEmployee) {
         return (
             <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden animate-fade-in border dark:border-gray-700 min-h-full flex flex-col">
@@ -121,7 +123,6 @@ const ReportsView: React.FC = () => {
                     </div>
                 </div>
 
-                {/* ترويسة الطباعة الرسمية */}
                 <div id="printable-area" className="flex-1 overflow-y-auto no-scrollbar bg-white dark:bg-gray-900">
                     <div className="hidden print:block p-8 border-b-2 border-black mb-6">
                         <div className="flex justify-between items-start">
@@ -154,7 +155,6 @@ const ReportsView: React.FC = () => {
         );
     }
 
-    // 2. حالة عرض قائمة تقارير منتسب معين (الملف الشخصي للمنتسب)
     if (selectedEmployee) {
         return (
             <EmployeeReportsView 
@@ -165,7 +165,6 @@ const ReportsView: React.FC = () => {
         );
     }
 
-    // 3. الحالة الافتراضية: عرض مجلدات الوحدات والبحث
     const hasFilteredResults = Object.keys(groupedEmployees).some(key => groupedEmployees[key].length > 0);
 
     return (
