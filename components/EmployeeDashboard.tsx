@@ -235,13 +235,16 @@ const EmployeeDashboard: React.FC = () => {
     };
 
     const openReportViewer = async (report: Report) => {
+        // تعيين التقرير الحالي أولاً
         setViewingReport(report);
-        // جلب المرفقات فوراً إذا كانت فارغة (Lazy Loading)
+        
+        // جلب المرفقات فوراً إذا لم تكن موجودة في الكائن الحالي
         if (!report.attachments || report.attachments.length === 0) {
             setIsLoadingAttachments(true);
             try {
                 const attachments = await api.fetchReportAttachments(report.id);
-                setViewingReport(prev => prev ? { ...prev, attachments } : null);
+                // تحديث كائن التقرير المعروض ليشمل المرفقات المجلوبة
+                setViewingReport(prev => prev && prev.id === report.id ? { ...prev, attachments } : prev);
             } catch (e) {
                 console.error("Error fetching attachments", e);
             } finally {
@@ -285,7 +288,7 @@ const EmployeeDashboard: React.FC = () => {
                     <div className="flex items-center gap-2">
                         {isLoadingAttachments && (
                             <div className="px-3 py-1 bg-brand-light/10 text-brand-light rounded-full text-[10px] font-bold animate-pulse">
-                                جاري جلب الصور...
+                                جاري جلب المرفقات...
                             </div>
                         )}
                          <button

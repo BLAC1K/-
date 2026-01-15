@@ -218,7 +218,12 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                                 className="group relative aspect-square bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all print:border-black print:rounded-none"
                             >
                                 {file.type.startsWith('image/') ? (
-                                    <img src={file.content} alt={file.name} className="h-full w-full object-cover" />
+                                    <img 
+                                        src={file.content} 
+                                        alt={file.name} 
+                                        className="h-full w-full object-cover max-w-full"
+                                        onLoad={(e) => e.currentTarget.classList.add('loaded')}
+                                    />
                                 ) : (
                                     <div className="h-full w-full bg-gray-50 dark:bg-gray-700 flex flex-col items-center justify-center">
                                         <DocumentTextIcon className="w-8 h-8 text-brand-light/40" />
@@ -235,7 +240,7 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                         ))}
                     </div>
                 ) : (
-                    <p className="text-[10px] text-gray-400 italic">لا توجد مرفقات.</p>
+                    <p className="text-[10px] text-gray-400 italic">لا توجد مرفقات مع هذا التقرير.</p>
                 )}
             </section>
 

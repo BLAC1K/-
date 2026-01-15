@@ -11,6 +11,7 @@ import UnitFolder from './UnitFolder';
 import ArrowPathIcon from './icons/ArrowPathIcon';
 import TrashIcon from './icons/TrashIcon';
 import ConfirmModal from './ConfirmModal';
+import * as api from '../services/apiService';
 
 const ReportsView: React.FC = () => {
     const { users, reports, markReportAsViewed, deleteReport } = useData();
@@ -21,6 +22,7 @@ const ReportsView: React.FC = () => {
     const [dateTo, setDateTo] = useState('');
     const [showOnlyUnread, setShowOnlyUnread] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isFetchingAttachments, setIsFetchingAttachments] = useState(false);
 
     const employees = useMemo(() => users.filter(u => u.role === Role.EMPLOYEE), [users]);
     
@@ -67,12 +69,25 @@ const ReportsView: React.FC = () => {
     }, [filteredEmployees]);
 
 
-    const handleViewReport = (report: Report) => {
+    const handleViewReport = async (report: Report) => {
         if (!report.isViewedByManager) {
             markReportAsViewed(report.id);
-            report.isViewedByManager = true;
         }
-        setViewingReport(report);
+
+        // جلب المرفقات فوراً إذا كانت فارغة (Lazy Loading)
+        let reportToView = { ...report };
+        if (!report.attachments || report.attachments.length === 0) {
+            setIsFetchingAttachments(true);
+            try {
+                const attachments = await api.fetchReportAttachments(report.id);
+                reportToView.attachments = attachments;
+            } catch (e) {
+                console.error("Error fetching attachments", e);
+            } finally {
+                setIsFetchingAttachments(false);
+            }
+        }
+        setViewingReport(reportToView);
     };
 
     const handleResetFilters = () => {
@@ -111,6 +126,11 @@ const ReportsView: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {isFetchingAttachments && (
+                             <div className="px-3 py-1 bg-brand-light/10 text-brand-light rounded-full text-[10px] font-bold animate-pulse">
+                                جاري جلب الصور...
+                            </div>
+                        )}
                         <button onClick={() => setShowDeleteConfirm(true)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all" title="حذف التقرير">
                             <TrashIcon className="w-5 h-5" />
                         </button>
@@ -122,7 +142,6 @@ const ReportsView: React.FC = () => {
                 </div>
 
                 <div id="printable-area" className="flex-1 overflow-y-auto no-scrollbar bg-white dark:bg-gray-900">
-                    {/* تم نقل الرأس الرسمي إلى داخل ReportDetail لضمان ظهوره في كل مكان */}
                     <ReportDetail report={viewingReport} user={selectedEmployee} viewerRole={Role.MANAGER} />
                 </div>
                 
