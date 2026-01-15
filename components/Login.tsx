@@ -7,11 +7,13 @@ import AppLogoIcon from './icons/AppLogoIcon';
 import UserIcon from './icons/UserIcon';
 import EyeIcon from './icons/EyeIcon';
 import EyeSlashIcon from './icons/EyeSlashIcon';
+import CheckCircleIcon from './icons/CheckCircleIcon';
+import ExclamationCircleIcon from './icons/ExclamationCircleIcon';
 
 
 const Login: React.FC = () => {
     const { login, loginLoading } = useAuth();
-    const { unlockAudio, isDataLoading } = useData();
+    const { unlockAudio, isDataLoading, isCloud, error: dataError } = useData();
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -50,10 +52,29 @@ const Login: React.FC = () => {
                     </div>
                     <h2 className="text-3xl font-bold text-white tracking-tight">المهام اليومية</h2>
                     <p className="mt-2 text-sm text-gray-200 opacity-90">نظام تسجيل التقارير الداخلي</p>
-                    <p className="mt-4 text-xs text-gray-200 bg-white/10 p-3 rounded-xl border border-white/5">
-                        {isDataLoading ? 'جاري تهيئة النظام...' : 'أدخل بياناتك للمتابعة'}
-                    </p>
+                    
+                    <div className="mt-4 w-full flex items-center justify-center gap-2 py-2 px-4 bg-white/10 rounded-xl border border-white/5">
+                        {isDataLoading ? (
+                             <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 border-2 border-white/50 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-[10px] text-gray-200">جاري التحقق من الاتصال...</span>
+                             </div>
+                        ) : dataError ? (
+                            <div className="flex items-center gap-2 text-brand-accent-yellow">
+                                <ExclamationCircleIcon className="w-4 h-4" />
+                                <span className="text-[10px] font-bold">خطأ في الربط مع Supabase</span>
+                            </div>
+                        ) : isCloud ? (
+                            <div className="flex items-center gap-2 text-green-400">
+                                <CheckCircleIcon className="w-4 h-4" />
+                                <span className="text-[10px] font-bold">متصل بقاعدة البيانات السحابية</span>
+                            </div>
+                        ) : (
+                            <span className="text-[10px] text-gray-200">أدخل بياناتك للمتابعة</span>
+                        )}
+                    </div>
                 </div>
+                
                 <form className="mt-8 space-y-5" onSubmit={handleLoginSubmit}>
                     <div className="space-y-4 rounded-md">
                         <div className="relative group">
@@ -114,7 +135,12 @@ const Login: React.FC = () => {
                         </label>
                     </div>
 
-                    {error && <p className="text-sm text-brand-accent-yellow text-center font-semibold bg-brand-accent-yellow/10 py-2 rounded-lg animate-pulse">{error}</p>}
+                    {(error || dataError) && (
+                        <p className="text-sm text-brand-accent-yellow text-center font-semibold bg-brand-accent-yellow/10 py-2 rounded-lg animate-pulse">
+                            {error || dataError}
+                        </p>
+                    )}
+                    
                     <div>
                         <button 
                             type="submit" 

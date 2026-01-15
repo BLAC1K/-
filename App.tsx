@@ -8,6 +8,7 @@ import ManagerDashboard from './components/ManagerDashboard';
 import { ThemeProvider } from './context/ThemeContext';
 import ExclamationCircleIcon from './components/icons/ExclamationCircleIcon';
 import InstallPWA from './components/InstallPWA';
+import MaintenanceNotice from './components/MaintenanceNotice';
 
 const AppContent: React.FC = () => {
     const { currentUser, loading: authLoading } = useAuth();
@@ -53,6 +54,7 @@ const AppContent: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {!currentUser ? <Login /> : (currentUser.role === 'employee' ? <EmployeeDashboard /> : <ManagerDashboard />)}
+            {currentUser && <MaintenanceNotice userName={currentUser.fullName} />}
             <InstallPWA />
         </div>
     );
