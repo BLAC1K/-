@@ -202,15 +202,20 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
             )}
 
             {/* 4. المرفقات */}
-            <section className="print-page-break block w-full no-print">
-                <h4 className="text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-widest border-b dark:border-gray-700 pb-1">المرفقات والوثائق المصاحبة</h4>
+            <section className="print-page-break block w-full">
+                <div className="no-print">
+                   <h4 className="text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-widest border-b dark:border-gray-700 pb-1">المرفقات والوثائق المصاحبة</h4>
+                </div>
+                <div className="hidden print:block mb-2">
+                    <h4 className="text-xs font-bold border-r-4 border-black pr-2">خامساً: المرفقات والوثائق</h4>
+                </div>
                 {report.attachments && report.attachments.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 print:grid-cols-3">
                         {report.attachments.map((file, idx) => (
                             <div 
                                 key={idx} 
                                 onClick={() => setPreviewAttachment(file)}
-                                className="group relative aspect-square bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all"
+                                className="group relative aspect-square bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all print:border-black print:rounded-none"
                             >
                                 {file.type.startsWith('image/') ? (
                                     <img src={file.content} alt={file.name} className="h-full w-full object-cover" />
@@ -220,11 +225,11 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                                         <span className="text-[8px] mt-1 font-bold text-gray-400 uppercase">DOC</span>
                                     </div>
                                 )}
-                                <div className="absolute inset-0 bg-brand-dark/10 opacity-0 group-hover:opacity-100 flex items-center justify-center">
+                                <div className="absolute inset-0 bg-brand-dark/10 opacity-0 group-hover:opacity-100 flex items-center justify-center no-print">
                                     <span className="bg-white px-2 py-0.5 rounded text-[9px] font-bold text-brand-dark shadow-sm">عرض</span>
                                 </div>
-                                <div className="absolute bottom-0 inset-x-0 p-1 bg-black/50 backdrop-blur-sm">
-                                    <p className="text-[8px] text-white truncate text-center">{file.name}</p>
+                                <div className="absolute bottom-0 inset-x-0 p-1 bg-black/50 backdrop-blur-sm print:bg-transparent print:relative">
+                                    <p className="text-[8px] text-white truncate text-center print:text-black print:text-[7px]">{file.name}</p>
                                 </div>
                             </div>
                         ))}

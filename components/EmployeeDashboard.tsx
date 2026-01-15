@@ -47,9 +47,9 @@ const EmployeeDashboard: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
 
     // للميزات اللحظية
-    const [activeUsers, setActiveUsers] = useState<any[]>([]);
     const [someoneTyping, setSomeoneTyping] = useState<string | null>(null);
     const broadcastChannelRef = useRef<any>(null);
 
@@ -234,6 +234,22 @@ const EmployeeDashboard: React.FC = () => {
         setViewingReport(null);
     };
 
+    const openReportViewer = async (report: Report) => {
+        setViewingReport(report);
+        // جلب المرفقات فوراً إذا كانت فارغة (Lazy Loading)
+        if (!report.attachments || report.attachments.length === 0) {
+            setIsLoadingAttachments(true);
+            try {
+                const attachments = await api.fetchReportAttachments(report.id);
+                setViewingReport(prev => prev ? { ...prev, attachments } : null);
+            } catch (e) {
+                console.error("Error fetching attachments", e);
+            } finally {
+                setIsLoadingAttachments(false);
+            }
+        }
+    };
+
     const toggleTaskStatus = (id: string) => {
         setReportForm(prev => ({
             ...prev,
@@ -267,6 +283,11 @@ const EmployeeDashboard: React.FC = () => {
                         <span>العودة للقائمة</span>
                     </button>
                     <div className="flex items-center gap-2">
+                        {isLoadingAttachments && (
+                            <div className="px-3 py-1 bg-brand-light/10 text-brand-light rounded-full text-[10px] font-bold animate-pulse">
+                                جاري جلب الصور...
+                            </div>
+                        )}
                          <button
                             onClick={() => window.print()}
                             className="flex items-center gap-2 px-4 py-2 bg-brand-light text-white rounded-xl font-bold shadow-md hover:bg-brand-dark transition-all text-xs"
@@ -499,7 +520,7 @@ const EmployeeDashboard: React.FC = () => {
                                 <div className="space-y-4 animate-fade-in">
                                     <h3 className="text-xl font-bold dark:text-white mb-4">الأرشيف المنجز</h3>
                                     {myReports.map(r => (
-                                        <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setViewingReport(r)} />
+                                        <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => openReportViewer(r)} />
                                     ))}
                                     {myReports.length === 0 && (
                                         <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
