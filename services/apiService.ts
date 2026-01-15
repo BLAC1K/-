@@ -78,6 +78,7 @@ export const fetchInitialData = async (): Promise<AppState> => {
     };
 };
 
+// تحسين: إضافة دعم الـ Broadcast والـ Presence
 export const subscribeToAllChanges = (onUpdate: (payload: any) => void) => {
     const channel = supabase
         .channel('schema-db-changes')
@@ -88,6 +89,22 @@ export const subscribeToAllChanges = (onUpdate: (payload: any) => void) => {
         .subscribe();
 
     return () => { supabase.removeChannel(channel); };
+};
+
+// ميزة جديدة: قناة البث السريع للفعاليات اللحظية
+export const subscribeToBroadcast = (eventName: string, callback: (payload: any) => void) => {
+    const channel = supabase.channel('room-1')
+        .on('broadcast', { event: eventName }, (payload) => callback(payload))
+        .subscribe();
+    return channel;
+};
+
+export const sendBroadcast = (channel: any, eventName: string, payload: any) => {
+    channel.send({
+        type: 'broadcast',
+        event: eventName,
+        payload
+    });
 };
 
 export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>): Promise<Report> => {
