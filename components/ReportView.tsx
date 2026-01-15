@@ -15,7 +15,7 @@ const ReportView: React.FC<ReportViewProps> = ({ report, user, viewerRole, onCli
     const isManager = viewerRole === Role.MANAGER;
     
     const getStatus = () => {
-        // واجهة المنتسب
+        // واجهة المنتسب (الموظف)
         if (!isManager) {
             if (report.managerComment && !report.isCommentReadByEmployee) {
                 return (
@@ -26,7 +26,7 @@ const ReportView: React.FC<ReportViewProps> = ({ report, user, viewerRole, onCli
                 );
             }
             if (report.managerComment) {
-                 return <span className="px-3 py-1 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 rounded-full dark:bg-green-900/30 dark:text-green-300 dark:border-blue-800 font-cairo">تم التوجيه</span>;
+                 return <span className="px-3 py-1 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 rounded-full dark:bg-green-900/30 dark:text-green-300 dark:border-green-800 font-cairo">تم التوجيه</span>;
             }
             return <span className="px-3 py-1 text-[10px] font-bold text-gray-500 bg-gray-50 border border-gray-100 rounded-full dark:bg-gray-700/50 dark:text-gray-400 dark:border-gray-600 font-cairo">تم الإرسال</span>;
         }

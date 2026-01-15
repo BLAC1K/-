@@ -36,7 +36,7 @@ const MonthlyEvaluation: React.FC<MonthlyEvaluationProps> = ({ employee, reports
     useEffect(() => {
         const generateSummary = async () => {
             if (reportsForMonth.length === 0) {
-                setSummary('لا توجد بيانات كافية لإنشاء ملخص تقييم لهذا الشهر.');
+                setSummary('لا توجد بيانات كافية لإنشاء ملخص لهذا الشهر.');
                 setIsLoading(false);
                 return;
             }
@@ -45,6 +45,7 @@ const MonthlyEvaluation: React.FC<MonthlyEvaluationProps> = ({ employee, reports
             setError('');
 
             try {
+                // Fix: Access process.env.API_KEY directly as per GenAI guidelines
                 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
                 
                 const accomplishedSummary = reportsForMonth
@@ -54,24 +55,24 @@ const MonthlyEvaluation: React.FC<MonthlyEvaluationProps> = ({ employee, reports
                     .join('\n');
                     
                 const prompt = `
-تحليل أداء المنتسب "${employee.fullName}" لشهر ${monthName} ${year}.
+تحليل أداء الموظف "${employee.fullName}" لشهر ${monthName} ${year}.
 البيانات:
-- عدد التقارير المرفوعة: ${metrics.totalReports}
-- نسبة التقييم العام: ${metrics.avgRating.toFixed(1)}%
-- ملخص الإنجازات المذكورة:
-${accomplishedSummary || "لم تذكر إنجازات تفصيلية."}
+- التقارير: ${metrics.totalReports}
+- التقييم: ${metrics.avgRating.toFixed(1)}%
+- الإنجازات:
+${accomplishedSummary || "لم تذكر إنجازات محددة."}
 
-بناءً على هذه البيانات، قدم تقييماً مهنياً موجزاً لأداء المنتسب باللغة العربية في 3-5 نقاط مركزة.
+قدم تقييماً مهنياً موجزاً باللغة العربية في 3-5 نقاط.
 `;
                 const response = await ai.models.generateContent({
                     model: 'gemini-3-flash-preview',
                     contents: prompt,
                 });
 
-                setSummary(response.text || "لم يتمكن النظام من توليد ملخص في الوقت الحالي.");
+                setSummary(response.text || "لم يتمكن الذكاء الاصطناعي من توليد ملخص.");
             } catch (err: any) {
                 console.error("Evaluation Error:", err);
-                setError('تعذر إنشاء التقييم الذكي حالياً.');
+                setError('تعذر إنشاء الملخص حالياً.');
             } finally {
                 setIsLoading(false);
             }
@@ -85,38 +86,38 @@ ${accomplishedSummary || "لم تذكر إنجازات تفصيلية."}
     return (
         <div className="p-4 border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm">
             <h4 className="font-semibold text-lg text-gray-800 dark:text-gray-200 mb-4">
-                خلاصة أداء المنتسب لشهر {monthName} {year}
+                تقييم شهر {monthName} {year}
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6 text-center">
                 <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">نسبة التقييم</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">التقييم</p>
                     <PercentageCircle percentage={metrics.avgRating} size={50} strokeWidth={5} />
                 </div>
                 <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">نسبة الالتزام</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">الالتزام</p>
                     <PercentageCircle percentage={metrics.commitmentRate} size={50} strokeWidth={5} />
                 </div>
                 <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex flex-col justify-center">
                      <p className="text-xl font-bold text-brand-dark dark:text-gray-100">{metrics.totalReports}</p>
-                     <p className="text-[10px] text-gray-500 dark:text-gray-400">تقارير منجزة</p>
+                     <p className="text-[10px] text-gray-500 dark:text-gray-400">تقارير</p>
                 </div>
                 <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex flex-col justify-center">
                      <p className="text-xl font-bold text-brand-dark dark:text-gray-100">{metrics.totalTasks}</p>
-                     <p className="text-[10px] text-gray-500 dark:text-gray-400">مهمة منفذة</p>
+                     <p className="text-[10px] text-gray-500 dark:text-gray-400">مهام</p>
                 </div>
                  <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex flex-col justify-center">
                      <p className="text-xl font-bold text-brand-dark dark:text-gray-100">{metrics.notAccomplishedCount}</p>
-                     <p className="text-[10px] text-gray-500 dark:text-gray-400">معوقات مرصودة</p>
+                     <p className="text-[10px] text-gray-500 dark:text-gray-400">معوقات</p>
                 </div>
             </div>
 
             <div>
                 <h5 className="flex items-center font-semibold text-md text-gray-800 dark:text-gray-200 mb-2">
                     <SparklesIcon className="w-5 h-5 ml-2 text-brand-accent-yellow" />
-                    تحليل الأداء الذكي (AI)
+                    تحليل الأداء الذكي
                 </h5>
                 <div className="p-4 bg-blue-50 dark:bg-gray-900/40 rounded-lg min-h-[80px] text-sm text-gray-700 dark:text-gray-300 border border-blue-100 dark:border-gray-700">
-                    {isLoading && <p className="animate-pulse">جارِ تحليل أداء المنتسب...</p>}
+                    {isLoading && <p className="animate-pulse">جارِ التحليل...</p>}
                     {error && <p className="text-red-500">{error}</p>}
                     {!isLoading && !error && <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: summary.replace(/\n/g, '<br />') }}></div>}
                 </div>

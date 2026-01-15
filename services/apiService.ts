@@ -15,7 +15,6 @@ const generateId = () => crypto.randomUUID();
 export const mapUser = (row: any): User => ({
     id: row.id,
     fullName: row.full_name,
-    // Removed redundant and incorrect badge_number property to match User interface
     badgeNumber: row.badge_number,
     username: row.username,
     password: row.password,
@@ -61,19 +60,11 @@ export const mapDirectTask = (row: any): DirectTask => ({
     isReadByEmployee: row.is_read_by_employee
 });
 
-/**
- * تحسين: جلب البيانات الأساسية فقط بدون المرفقات (Base64) لتسريع التحميل
- */
 export const fetchInitialData = async (): Promise<AppState> => {
     if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
-    
     const [usersRes, reportsRes, annRes, tasksRes] = await Promise.all([
         supabase.from('users').select('*'),
-        // جلب آخر 50 تقرير فقط واستثناء عمود المرفقات الثقيل
-        supabase.from('reports')
-            .select('id, user_id, sequence_number, date, day, status, manager_comment, is_viewed_by_manager, is_comment_read_by_employee, rating, accomplished, not_accomplished, tasks')
-            .order('date', { ascending: false })
-            .limit(50),
+        supabase.from('reports').select('*'),
         supabase.from('announcements').select('*'),
         supabase.from('direct_tasks').select('*')
     ]);
@@ -87,20 +78,6 @@ export const fetchInitialData = async (): Promise<AppState> => {
     };
 };
 
-/**
- * دالة جديدة لجلب المرفقات فقط عند الحاجة (فتح تقرير معين)
- */
-export const fetchReportAttachments = async (reportId: string): Promise<any[]> => {
-    const { data, error } = await supabase
-        .from('reports')
-        .select('attachments')
-        .eq('id', reportId)
-        .single();
-    
-    if (error) throw error;
-    return data?.attachments || [];
-};
-
 export const subscribeToAllChanges = (onUpdate: (payload: any) => void) => {
     const channel = supabase
         .channel('schema-db-changes')
@@ -111,21 +88,6 @@ export const subscribeToAllChanges = (onUpdate: (payload: any) => void) => {
         .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-};
-
-export const subscribeToBroadcast = (eventName: string, callback: (payload: any) => void) => {
-    const channel = supabase.channel('room-1')
-        .on('broadcast', { event: eventName }, (payload) => callback(payload))
-        .subscribe();
-    return channel;
-};
-
-export const sendBroadcast = (channel: any, eventName: string, payload: any) => {
-    channel.send({
-        type: 'broadcast',
-        event: eventName,
-        payload
-    });
 };
 
 export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>): Promise<Report> => {

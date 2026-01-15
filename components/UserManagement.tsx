@@ -48,7 +48,7 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.fullName || !formData.badgeNumber || !formData.username || !formData.jobTitle || !formData.password) {
-            setError('الرجاء تعبئة جميع الحقول المطلوبة.');
+            setError('الرجاء تعبئة جميع الحقول.');
             return;
         }
         
@@ -64,7 +64,7 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className="w-full max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
-                <h2 className="text-xl font-bold text-brand-dark dark:text-gray-100 mb-4">{user ? 'تعديل بيانات المنتسب' : 'إضافة منتسب جديد للنظام'}</h2>
+                <h2 className="text-xl font-bold text-brand-dark dark:text-gray-100 mb-4">{user ? 'تعديل بيانات المنتسب' : 'إضافة منتسب جديد'}</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="flex items-center space-x-4 space-x-reverse">
                         <Avatar src={imagePreview || undefined} name={formData.fullName} size={64} />
@@ -80,13 +80,13 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
                         </div>
                     </div>
                      <div>
-                        <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">الاسم الثلاثي للمنتسب</label>
+                        <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">الاسم الثلاثي</label>
                         <input type="text" name="fullName" id="fullName" value={formData.fullName} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" required />
                     </div>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
-                            <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-700 dark:text-gray-300">العنوان الوظيفي</label>
-                            <input type="text" name="jobTitle" id="jobTitle" value={formData.jobTitle} onChange={handleChange} placeholder="مثال: منتسب" className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" required />
+                            <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-700 dark:text-gray-300">الصفة الوظيفية</label>
+                            <input type="text" name="jobTitle" id="jobTitle" value={formData.jobTitle} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" required />
                         </div>
                         <div>
                             <label htmlFor="badgeNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300">الرقم الوظيفي</label>
@@ -96,7 +96,7 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
                      <div>
                         <label htmlFor="unit" className="block text-sm font-medium text-gray-700 dark:text-gray-300">الوحدة التنظيمية</label>
                         <select name="unit" id="unit" value={formData.unit} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-brand-light focus:border-brand-light sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200">
-                            <option value="">غير محدد</option>
+                            <option value="">غير معين</option>
                             {UNITS.map(unit => <option key={unit} value={unit}>{unit}</option>)}
                         </select>
                      </div>
@@ -133,11 +133,11 @@ const UserFormModal: React.FC<{ user?: User; onClose: () => void; onSave: (user:
                         </div>
                     </div>
 
-                    {error && <p className="text-sm text-red-500 font-bold">{error}</p>}
+                    {error && <p className="text-sm text-red-500">{error}</p>}
                     <div className="flex justify-end pt-4 mt-4 border-t dark:border-gray-700 space-x-2 space-x-reverse">
                         <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500" disabled={isSaving}>إلغاء</button>
-                        <button type="submit" className="px-4 py-2 text-white bg-brand-light rounded-md hover:bg-brand-dark disabled:bg-opacity-50 font-bold" disabled={isSaving}>
-                            {isSaving ? 'جارِ الحفظ...' : 'حفظ البيانات'}
+                        <button type="submit" className="px-4 py-2 text-white bg-brand-light rounded-md hover:bg-brand-dark disabled:bg-opacity-50" disabled={isSaving}>
+                            {isSaving ? 'جارِ الحفظ...' : 'حفظ'}
                         </button>
                     </div>
                 </form>
@@ -190,13 +190,13 @@ const UserManagement: React.FC = () => {
     return (
         <div className="space-y-6">
              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-semibold text-brand-dark dark:text-gray-100">سجل بيانات المنتسبين</h2>
+                <h2 className="text-2xl font-semibold text-brand-dark dark:text-gray-100">قائمة المنتسبين</h2>
                 <button
                     onClick={openAddModal}
-                    className="flex items-center px-4 py-2 text-sm font-medium text-white bg-brand-light border border-transparent rounded-md shadow-sm hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light transition-all active:scale-95"
+                    className="flex items-center px-4 py-2 text-sm font-medium text-white bg-brand-light border border-transparent rounded-md shadow-sm hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light"
                 >
                     <PlusIcon className="w-5 h-5 ml-2" />
-                    إضافة منتسب جديد
+                    إضافة منتسب
                 </button>
             </div>
              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
@@ -221,19 +221,19 @@ const UserManagement: React.FC = () => {
                         </div>
                         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
                             <p className="text-sm flex items-center">
-                                <span className="font-semibold text-gray-700 dark:text-gray-300 w-24 shrink-0">الوحدة:</span>
+                                <span className="font-semibold text-gray-700 dark:text-gray-300 w-20 shrink-0">الوحدة:</span>
                                 <span className="mr-2 text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full text-xs">{user.unit || 'غير معين'}</span>
                             </p>
                             <p className="text-sm flex items-center">
-                                <span className="font-semibold text-gray-700 dark:text-gray-300 w-24 shrink-0">الرقم الوظيفي:</span>
+                                <span className="font-semibold text-gray-700 dark:text-gray-300 w-20 shrink-0">الرقم الوظيفي:</span>
                                 <span className="mr-2 text-gray-600 dark:text-gray-400">{user.badgeNumber}</span>
                             </p>
                         </div>
                     </div>
                 )) : (
-                    <div className="col-span-1 sm:col-span-2 xl:col-span-3 text-center py-10 px-4 bg-white dark:bg-gray-800 rounded-lg shadow-md border-2 border-dashed border-gray-200 dark:border-gray-700">
-                        <p className="text-gray-500 dark:text-gray-400 font-bold">
-                            لا يوجد منتسبون مسجلون في النظام حالياً.
+                    <div className="col-span-1 sm:col-span-2 xl:col-span-3 text-center py-10 px-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                        <p className="text-gray-500 dark:text-gray-400">
+                            لا يوجد منتسبون مضافون حالياً.
                         </p>
                     </div>
                 )}
@@ -242,11 +242,11 @@ const UserManagement: React.FC = () => {
              {deletingUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" onClick={() => setDeletingUser(null)}>
                     <div className="w-full max-w-md p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
-                        <h2 className="text-xl font-bold text-brand-dark dark:text-gray-100 mb-4">تأكيد حذف الحساب</h2>
-                        <p className="dark:text-gray-200">هل أنت متأكد من حذف بيانات المنتسب <span className="font-bold">{deletingUser.fullName}</span> نهائياً؟ هذا الإجراء سيحذف كافة التقارير المرتبطة به.</p>
+                        <h2 className="text-xl font-bold text-brand-dark dark:text-gray-100 mb-4">تأكيد الحذف</h2>
+                        <p className="dark:text-gray-200">هل أنت متأكد من حذف حساب <span className="font-bold">{deletingUser.fullName}</span>؟ سيتم حذف جميع تقاريره وبياناته بشكل دائم.</p>
                         <div className="flex justify-end pt-4 mt-4 border-t dark:border-gray-700 space-x-2 space-x-reverse">
                             <button onClick={() => setDeletingUser(null)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">إلغاء</button>
-                            <button onClick={handleDelete} className="px-4 py-2 text-white bg-brand-accent-red rounded-md hover:bg-red-700 font-bold">تأكيد الحذف النهائي</button>
+                            <button onClick={handleDelete} className="px-4 py-2 text-white bg-brand-accent-red rounded-md hover:bg-red-700">تأكيد الحذف</button>
                         </div>
                     </div>
                 </div>

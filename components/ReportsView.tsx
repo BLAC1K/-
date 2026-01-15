@@ -11,7 +11,6 @@ import UnitFolder from './UnitFolder';
 import ArrowPathIcon from './icons/ArrowPathIcon';
 import TrashIcon from './icons/TrashIcon';
 import ConfirmModal from './ConfirmModal';
-import * as api from '../services/apiService';
 
 const ReportsView: React.FC = () => {
     const { users, reports, markReportAsViewed, deleteReport } = useData();
@@ -22,7 +21,6 @@ const ReportsView: React.FC = () => {
     const [dateTo, setDateTo] = useState('');
     const [showOnlyUnread, setShowOnlyUnread] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [isFetchingAttachments, setIsFetchingAttachments] = useState(false);
 
     const employees = useMemo(() => users.filter(u => u.role === Role.EMPLOYEE), [users]);
     
@@ -69,25 +67,14 @@ const ReportsView: React.FC = () => {
     }, [filteredEmployees]);
 
 
-    const handleViewReport = async (report: Report) => {
+    const handleViewReport = (report: Report) => {
+        // تحديث محلي فوري لمنع تأخير اختفاء الإشعار
         if (!report.isViewedByManager) {
             markReportAsViewed(report.id);
+            // سنقوم بتغيير الحالة في التقرير المعروض حالياً ليظهر كمقروء فوراً
+            report.isViewedByManager = true;
         }
-
-        // جلب المرفقات فوراً إذا كانت فارغة (Lazy Loading)
-        let reportToView = { ...report };
-        if (!report.attachments || report.attachments.length === 0) {
-            setIsFetchingAttachments(true);
-            try {
-                const attachments = await api.fetchReportAttachments(report.id);
-                reportToView.attachments = attachments;
-            } catch (e) {
-                console.error("Error fetching attachments", e);
-            } finally {
-                setIsFetchingAttachments(false);
-            }
-        }
-        setViewingReport(reportToView);
+        setViewingReport(report);
     };
 
     const handleResetFilters = () => {
@@ -126,11 +113,6 @@ const ReportsView: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {isFetchingAttachments && (
-                             <div className="px-3 py-1 bg-brand-light/10 text-brand-light rounded-full text-[10px] font-bold animate-pulse">
-                                جاري جلب الصور...
-                            </div>
-                        )}
                         <button onClick={() => setShowDeleteConfirm(true)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all" title="حذف التقرير">
                             <TrashIcon className="w-5 h-5" />
                         </button>
@@ -142,6 +124,20 @@ const ReportsView: React.FC = () => {
                 </div>
 
                 <div id="printable-area" className="flex-1 overflow-y-auto no-scrollbar bg-white dark:bg-gray-900">
+                    <div className="hidden print:block p-8 border-b-2 border-black mb-6">
+                        <div className="flex justify-between items-start">
+                            <div className="text-right">
+                                <h1 className="text-sm font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
+                                <h2 className="text-xs font-bold text-gray-700">شعبة الفنون والمسرح</h2>
+                                <p className="text-[10px] mt-4 font-bold">المنتسب: <span className="font-medium">{selectedEmployee.fullName}</span></p>
+                                <p className="text-[9px]">العنوان الوظيفي: {selectedEmployee.jobTitle}</p>
+                            </div>
+                            <div className="text-left text-[10px]">
+                                 <p className="font-bold text-xs">التاريخ: {viewingReport.date}</p>
+                                 <p>التسلسل: {viewingReport.sequenceNumber}</p>
+                            </div>
+                        </div>
+                    </div>
                     <ReportDetail report={viewingReport} user={selectedEmployee} viewerRole={Role.MANAGER} />
                 </div>
                 
