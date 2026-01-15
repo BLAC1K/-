@@ -68,10 +68,8 @@ const ReportsView: React.FC = () => {
 
 
     const handleViewReport = (report: Report) => {
-        // تحديث محلي فوري لمنع تأخير اختفاء الإشعار
         if (!report.isViewedByManager) {
             markReportAsViewed(report.id);
-            // سنقوم بتغيير الحالة في التقرير المعروض حالياً ليظهر كمقروء فوراً
             report.isViewedByManager = true;
         }
         setViewingReport(report);
@@ -124,20 +122,7 @@ const ReportsView: React.FC = () => {
                 </div>
 
                 <div id="printable-area" className="flex-1 overflow-y-auto no-scrollbar bg-white dark:bg-gray-900">
-                    <div className="hidden print:block p-8 border-b-2 border-black mb-6">
-                        <div className="flex justify-between items-start">
-                            <div className="text-right">
-                                <h1 className="text-sm font-bold">قسم التنمية والتأهيل الاجتماعي للشباب</h1>
-                                <h2 className="text-xs font-bold text-gray-700">شعبة الفنون والمسرح</h2>
-                                <p className="text-[10px] mt-4 font-bold">المنتسب: <span className="font-medium">{selectedEmployee.fullName}</span></p>
-                                <p className="text-[9px]">العنوان الوظيفي: {selectedEmployee.jobTitle}</p>
-                            </div>
-                            <div className="text-left text-[10px]">
-                                 <p className="font-bold text-xs">التاريخ: {viewingReport.date}</p>
-                                 <p>التسلسل: {viewingReport.sequenceNumber}</p>
-                            </div>
-                        </div>
-                    </div>
+                    {/* تم نقل الرأس الرسمي إلى داخل ReportDetail لضمان ظهوره في كل مكان */}
                     <ReportDetail report={viewingReport} user={selectedEmployee} viewerRole={Role.MANAGER} />
                 </div>
                 
