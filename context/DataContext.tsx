@@ -20,6 +20,7 @@ interface DataContextType extends AppState {
     clearNotification: () => void;
     getUserById: (id: string) => User | undefined;
     addReport: (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => Promise<void>;
+    submitReport: (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>, draftId?: string) => Promise<void>;
     updateReport: (updatedReport: Report) => Promise<void>;
     saveOrUpdateDraft: (draft: Partial<Report>) => Promise<void>;
     deleteReport: (reportId: string) => Promise<void>;
@@ -152,6 +153,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);
     const saveOrUpdateDraft = useCallback(async (draft: Partial<Report>) => { try { await api.saveOrUpdateDraft(draft); } catch (e) { throw e; } }, []);
     const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => { try { await api.createReport(report); } catch (e) { throw e; } }, []);
+    const submitReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>, draftId?: string) => { try { await api.submitReport(report, draftId); } catch (e) { throw e; } }, []);
     const updateReport = useCallback(async (updatedReport: Report) => { try { await api.updateReport(updatedReport); } catch (e) { throw e; } }, []);
     const deleteReport = useCallback(async (reportId: string) => { try { await api.deleteReport(reportId); } catch (e) { throw e; } }, []);
     const markReportAsViewed = useCallback(async (reportId: string) => { 
@@ -183,10 +185,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const markDirectTaskAsRead = useCallback(async (tId: string) => api.markDirectTaskAsRead(tId), []);
 
     const value = useMemo(() => ({
-        ...appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markAllReportsAsReadForUser,
+        ...appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, 
+        addReport, submitReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markAllReportsAsReadForUser,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification
-    }), [appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markAllReportsAsReadForUser,
+    }), [appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, 
+        addReport, submitReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markAllReportsAsReadForUser,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification]);
 

@@ -38,7 +38,7 @@ export const mapReport = (row: any): Report => ({
     isViewedByManager: row.is_viewed_by_manager,
     isCommentReadByEmployee: row.is_comment_read_by_employee,
     rating: row.rating,
-    status: row.status
+    status: row.status || 'submitted' // Treat legacy data (null status) as submitted
 });
 
 export const mapAnnouncement = (row: any): Announcement => ({
@@ -62,16 +62,46 @@ export const mapDirectTask = (row: any): DirectTask => ({
 
 export const fetchInitialData = async (): Promise<AppState> => {
     if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
-    const [usersRes, reportsRes, annRes, tasksRes] = await Promise.all([
+    
+    const [usersRes, annRes, tasksRes] = await Promise.all([
         supabase.from('users').select('*'),
-        supabase.from('reports').select('*'),
-        supabase.from('announcements').select('*'),
-        supabase.from('direct_tasks').select('*')
+        supabase.from('announcements').select('*').order('date', { ascending: false }),
+        supabase.from('direct_tasks').select('*').order('sent_at', { ascending: false })
     ]);
+
+    // Smart Fetch Strategy
+    let reportsData: any[] = [];
+    
+    // Attempt 1: Fetch up to 2000 latest reports with full data (attachments included)
+    // This covers most recent history with images.
+    const { data: fullData, error: fullError } = await supabase
+        .from('reports')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(2000);
+
+    if (fullError || !fullData) {
+        console.warn("Full reports fetch failed, switching to lightweight mode (no attachments)...", fullError);
+        
+        // Attempt 2: Fallback to lightweight fetch (ALL history, NO attachments)
+        // This ensures that even if images are too heavy, the report text/list ALWAYS appears.
+        const { data: lightData, error: lightError } = await supabase
+            .from('reports')
+            .select('id, user_id, sequence_number, date, day, tasks, accomplished, not_accomplished, manager_comment, is_viewed_by_manager, is_comment_read_by_employee, rating, status')
+            .order('date', { ascending: false }); // No limit on lightweight fetch
+
+        if (lightError) {
+            console.error("Critical: Failed to fetch reports even in lightweight mode.", lightError);
+        } else {
+            reportsData = lightData || [];
+        }
+    } else {
+        reportsData = fullData;
+    }
 
     return {
         users: (usersRes.data || []).map(mapUser),
-        reports: (reportsRes.data || []).map(mapReport),
+        reports: reportsData.map(mapReport),
         announcements: (annRes.data || []).map(mapAnnouncement),
         directTasks: (tasksRes.data || []).map(mapDirectTask),
         isCloud: true
@@ -90,34 +120,51 @@ export const subscribeToAllChanges = (onUpdate: (payload: any) => void) => {
     return () => { supabase.removeChannel(channel); };
 };
 
-export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>): Promise<Report> => {
-    const { data: maxSeqData } = await supabase
+export const submitReport = async (reportData: Omit<Report, 'id' | 'sequenceNumber' | 'status'>, draftId?: string): Promise<Report> => {
+    const { data: maxSeqData, error: seqError } = await supabase
         .from('reports')
         .select('sequence_number')
-        .eq('user_id', report.userId)
+        .eq('user_id', reportData.userId)
         .eq('status', 'submitted')
         .order('sequence_number', { ascending: false })
         .limit(1);
 
+    if (seqError) {
+        console.error("Error fetching sequence number:", seqError);
+        throw seqError;
+    }
+
     const maxSeq = maxSeqData && maxSeqData.length > 0 ? maxSeqData[0].sequence_number : 0;
-    const newId = generateId();
-    const dbReport = {
-        id: newId, 
-        user_id: report.userId, 
-        sequence_number: maxSeq + 1, 
-        date: report.date, 
-        day: report.day,
-        tasks: report.tasks, 
-        accomplished: report.accomplished, 
-        not_accomplished: report.notAccomplished,
-        attachments: report.attachments, 
-        status: 'submitted', 
-        is_viewed_by_manager: false, 
+    const nextSeq = maxSeq + 1;
+
+    const submissionData = {
+        user_id: reportData.userId,
+        sequence_number: nextSeq,
+        date: reportData.date,
+        day: reportData.day,
+        tasks: reportData.tasks,
+        accomplished: reportData.accomplished,
+        not_accomplished: reportData.notAccomplished,
+        attachments: reportData.attachments,
+        status: 'submitted',
+        is_viewed_by_manager: false,
         is_comment_read_by_employee: false
     };
-    const { error } = await supabase.from('reports').insert(dbReport);
-    if (error) throw error;
-    return { ...report, id: newId, status: 'submitted', sequenceNumber: maxSeq + 1 } as Report;
+
+    if (draftId) {
+        const { error } = await supabase.from('reports').update(submissionData).eq('id', draftId);
+        if (error) throw error;
+        return { ...reportData, id: draftId, sequenceNumber: nextSeq, status: 'submitted' } as Report;
+    } else {
+        const newId = generateId();
+        const { error } = await supabase.from('reports').insert({ id: newId, ...submissionData });
+        if (error) throw error;
+        return { ...reportData, id: newId, sequenceNumber: nextSeq, status: 'submitted' } as Report;
+    }
+};
+
+export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>): Promise<Report> => {
+    return submitReport(report);
 };
 
 export const saveOrUpdateDraft = async (draft: Partial<Report>): Promise<Report> => {
