@@ -135,15 +135,62 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (table === 'reports') {
                     if (eventType === 'INSERT' || eventType === 'UPDATE') {
                         const mapped = api.mapReport(newRecord);
+                        
+                        // Capture the previous version of the report to detect changes
+                        const previousReport = prev.reports.find(r => r.id === mapped.id);
+
                         newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
                         if (eventType === 'INSERT') newState.reports = [mapped, ...newState.reports];
 
+                        // Notification 1: New Report for Manager
                         if (eventType === 'INSERT' && mapped.status === 'submitted' && currentUser?.role === 'manager') {
                             const sender = prev.users.find(u => u.id === mapped.userId);
                             triggerNotification('تقرير جديد', `وصل تقرير جديد من ${sender?.fullName.split(' ')[0]}`, 'success');
                         }
+
+                        // Notification 2: New/Updated Manager Comment for Employee
+                        if (eventType === 'UPDATE' && currentUser && currentUser.id === mapped.userId) {
+                             const oldComment = previousReport?.managerComment;
+                             const newComment = mapped.managerComment;
+                             
+                             // Check if comment was added or changed (and is not empty)
+                             if (newComment && newComment.trim().length > 0 && newComment !== oldComment) {
+                                 triggerNotification('توجيه إداري جديد', `تم إضافة توجيه على تقريرك بتاريخ ${mapped.date}`, 'info');
+                             }
+                        }
                     }
-                } 
+                } else if (table === 'direct_tasks') {
+                     if (eventType === 'INSERT') {
+                         const newTask = api.mapDirectTask(newRecord);
+                         newState.directTasks = [newTask, ...prev.directTasks];
+                         
+                         if (currentUser && newTask.employeeId === currentUser.id) {
+                              const manager = prev.users.find(u => u.id === newTask.managerId);
+                              triggerNotification('مهمة جديدة', `وصلتك مهمة جديدة من ${manager?.fullName || 'المسؤول'}`, 'info');
+                         }
+                     } else if (eventType === 'UPDATE') {
+                         const updatedTask = api.mapDirectTask(newRecord);
+                         newState.directTasks = prev.directTasks.map(t => t.id === updatedTask.id ? updatedTask : t);
+                     }
+                } else if (table === 'announcements') {
+                     if (eventType === 'INSERT') {
+                         const newAnn = api.mapAnnouncement(newRecord);
+                         newState.announcements = [newAnn, ...prev.announcements];
+                         if (currentUser && currentUser.role === 'employee') {
+                             triggerNotification('توجيه عام جديد', 'تم نشر توجيه عام جديد من الإدارة', 'info');
+                         }
+                     } else if (eventType === 'UPDATE') {
+                         const updatedAnn = api.mapAnnouncement(newRecord);
+                         newState.announcements = prev.announcements.map(a => a.id === updatedAnn.id ? updatedAnn : a);
+                     }
+                } else if (table === 'users') {
+                     if (eventType === 'INSERT' || eventType === 'UPDATE') {
+                         const mappedUser = api.mapUser(newRecord);
+                         newState.users = prev.users.map(u => u.id === mappedUser.id ? mappedUser : u);
+                         if (eventType === 'INSERT') newState.users = [...prev.users, mappedUser];
+                     }
+                }
+
                 return newState;
             });
         });
