@@ -90,17 +90,20 @@ export const fetchInitialData = async (): Promise<AppState> => {
 
     let reportsData: any[] = [];
     
+    // تم تقليل العدد من 2000 إلى 40 لضمان سرعة الفتح وتجنب تحميل الصور الثقيلة
     const { data: fullData, error: fullError } = await supabase
         .from('reports')
         .select('*')
         .order('date', { ascending: false })
-        .limit(2000);
+        .limit(40);
 
     if (fullError || !fullData) {
+        // Fallback في حال حدوث خطأ، نجلب البيانات الخفيفة فقط
         const { data: lightData } = await supabase
             .from('reports')
             .select('id, user_id, sequence_number, date, day, tasks, accomplished, not_accomplished, manager_comment, is_viewed_by_manager, is_comment_read_by_employee, rating, status')
-            .order('date', { ascending: false });
+            .order('date', { ascending: false })
+            .limit(40);
         reportsData = lightData || [];
     } else {
         reportsData = fullData;
@@ -212,6 +215,10 @@ export const deleteReport = async (reportId: string): Promise<void> => {
 
 export const markReportAsViewed = async (reportId: string): Promise<void> => {
     await supabase.from('reports').update({ is_viewed_by_manager: true }).eq('id', reportId);
+};
+
+export const markReportAsUnread = async (reportId: string): Promise<void> => {
+    await supabase.from('reports').update({ is_viewed_by_manager: false }).eq('id', reportId);
 };
 
 export const markAllReportsAsReadForUser = async (userId: string): Promise<void> => {

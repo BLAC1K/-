@@ -11,9 +11,11 @@ import UnitFolder from './UnitFolder';
 import ArrowPathIcon from './icons/ArrowPathIcon';
 import TrashIcon from './icons/TrashIcon';
 import ConfirmModal from './ConfirmModal';
+import EyeIcon from './icons/EyeIcon';
+import EyeSlashIcon from './icons/EyeSlashIcon';
 
 const ReportsView: React.FC = () => {
-    const { users, reports, markReportAsViewed, deleteReport } = useData();
+    const { users, reports, markReportAsViewed, markReportAsUnread, deleteReport } = useData();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null);
     const [viewingReport, setViewingReport] = useState<Report | null>(null);
@@ -77,6 +79,18 @@ const ReportsView: React.FC = () => {
         setViewingReport(report);
     };
 
+    const toggleReadStatus = async () => {
+        if (!viewingReport) return;
+        
+        if (viewingReport.isViewedByManager) {
+            await markReportAsUnread(viewingReport.id);
+            setViewingReport({ ...viewingReport, isViewedByManager: false });
+        } else {
+            await markReportAsViewed(viewingReport.id);
+            setViewingReport({ ...viewingReport, isViewedByManager: true });
+        }
+    };
+
     const handleResetFilters = () => {
         setSearchTerm('');
         setDateFrom('');
@@ -113,7 +127,14 @@ const ReportsView: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <button onClick={() => setShowDeleteConfirm(true)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all" title="حذف التقرير">
+                         <button
+                            onClick={toggleReadStatus}
+                            className={`p-2 rounded-lg transition-colors border ${viewingReport.isViewedByManager ? 'text-gray-400 border-gray-200 dark:border-gray-600 hover:text-brand-light hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-brand-light border-brand-light/30 bg-brand-light/10 hover:bg-brand-light/20'}`}
+                            title={viewingReport.isViewedByManager ? "تمييز كغير مقروء" : "تمييز كمقروء"}
+                        >
+                            {viewingReport.isViewedByManager ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                        </button>
+                        <button onClick={() => setShowDeleteConfirm(true)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all border border-transparent hover:border-red-200" title="حذف التقرير">
                             <TrashIcon className="w-5 h-5" />
                         </button>
                         <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-brand-light text-white rounded-lg font-bold shadow-md text-xs hover:bg-brand-dark transition-all">

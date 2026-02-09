@@ -25,6 +25,7 @@ interface DataContextType extends AppState {
     saveOrUpdateDraft: (draft: Partial<Report>) => Promise<void>;
     deleteReport: (reportId: string) => Promise<void>;
     markReportAsViewed: (reportId: string) => Promise<void>;
+    markReportAsUnread: (reportId: string) => Promise<void>;
     markAllReportsAsReadForUser: (userId: string) => Promise<void>;
     markCommentAsRead: (reportId: string) => Promise<void>;
     addUser: (user: Omit<User, 'id'>) => Promise<void>;
@@ -234,6 +235,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }));
         await api.markReportAsViewed(reportId); 
     }, []);
+    const markReportAsUnread = useCallback(async (reportId: string) => {
+        setAppState(prev => ({
+            ...prev,
+            reports: prev.reports.map(r => r.id === reportId ? { ...r, isViewedByManager: false } : r)
+        }));
+        await api.markReportAsUnread(reportId);
+    }, []);
     const markAllReportsAsReadForUser = useCallback(async (userId: string) => { 
         setAppState(prev => ({
             ...prev,
@@ -255,11 +263,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const value = useMemo(() => ({
         ...appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, 
-        addReport, submitReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markAllReportsAsReadForUser,
+        addReport, submitReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markReportAsUnread, markAllReportsAsReadForUser,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification
     }), [appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, 
-        addReport, submitReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markAllReportsAsReadForUser,
+        addReport, submitReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markReportAsUnread, markAllReportsAsReadForUser,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification]);
 

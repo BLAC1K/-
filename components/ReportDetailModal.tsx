@@ -8,6 +8,8 @@ import Avatar from './Avatar';
 import DownloadIcon from './icons/DownloadIcon';
 import TrashIcon from './icons/TrashIcon';
 import ConfirmModal from './ConfirmModal';
+import EyeIcon from './icons/EyeIcon';
+import EyeSlashIcon from './icons/EyeSlashIcon';
 
 interface ReportDetailModalProps {
     report: Report;
@@ -18,9 +20,10 @@ interface ReportDetailModalProps {
 }
 
 const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, viewerRole, onClose, hideMargin = false }) => {
-    const { markReportAsViewed, markCommentAsRead, deleteReport } = useData();
+    const { markReportAsViewed, markReportAsUnread, markCommentAsRead, deleteReport } = useData();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+    // Only run on mount to avoid reverting manual toggles
     useEffect(() => {
         if (viewerRole === Role.MANAGER && !report.isViewedByManager) {
             markReportAsViewed(report.id);
@@ -28,12 +31,21 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
         if (viewerRole === Role.EMPLOYEE && report.managerComment && !report.isCommentReadByEmployee) {
             markCommentAsRead(report.id);
         }
-    }, [report, viewerRole, markReportAsViewed, markCommentAsRead]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [report.id, viewerRole]); 
 
     const handleDelete = async () => {
         await deleteReport(report.id);
         setShowDeleteConfirm(false);
         onClose();
+    };
+
+    const toggleReadStatus = async () => {
+        if (report.isViewedByManager) {
+            await markReportAsUnread(report.id);
+        } else {
+            await markReportAsViewed(report.id);
+        }
     };
 
     return (
@@ -73,12 +85,21 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                     </div>
                     <div className="flex items-center gap-2">
                         {viewerRole === Role.MANAGER && (
-                            <button
-                                onClick={() => setShowDeleteConfirm(true)}
-                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
-                            >
-                                <TrashIcon className="w-5 h-5" />
-                            </button>
+                            <>
+                                <button
+                                    onClick={toggleReadStatus}
+                                    className={`p-2 rounded-xl transition-colors ${report.isViewedByManager ? 'text-gray-400 hover:text-brand-light hover:bg-gray-200 dark:hover:bg-gray-700' : 'text-brand-light bg-brand-light/10 hover:bg-brand-light/20'}`}
+                                    title={report.isViewedByManager ? "تمييز كغير مقروء" : "تمييز كمقروء"}
+                                >
+                                    {report.isViewedByManager ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                                </button>
+                                <button
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                                >
+                                    <TrashIcon className="w-5 h-5" />
+                                </button>
+                            </>
                         )}
                         <button
                             onClick={() => window.print()}
