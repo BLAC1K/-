@@ -7,6 +7,7 @@ import DocumentTextIcon from './icons/DocumentTextIcon';
 import XMarkIcon from './icons/XMarkIcon';
 import DownloadIcon from './icons/DownloadIcon';
 import AIReportAnalysis from './AIReportAnalysis';
+import CheckBadgeIcon from './icons/CheckBadgeIcon';
 
 interface ReportDetailProps {
     report: Report;
@@ -21,6 +22,7 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
     const [isEditingComment, setIsEditingComment] = useState(false);
     const [comment, setComment] = useState(report.managerComment || '');
     const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
     
     const isManager = viewerRole === Role.MANAGER;
 
@@ -41,10 +43,26 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
     };
     
     const handleSaveManagerComment = async () => {
+        setIsSaving(true);
         const updatedReport = { ...report, managerComment: comment };
         setReport(updatedReport);
         setIsEditingComment(false);
         await updateReport(updatedReport);
+        setIsSaving(false);
+    };
+
+    // وظيفة الاطلاع السريع (الزر الجديد)
+    const handleQuickAcknowledge = async (e: React.MouseEvent) => {
+        e.stopPropagation(); // منع فتح وضع التعديل عند الضغط على الزر
+        setIsSaving(true);
+        // تم التعديل: النص فقط "تم الاطلاع"
+        const quickComment = "تم الاطلاع";
+        
+        setComment(quickComment);
+        const updatedReport = { ...report, managerComment: quickComment };
+        setReport(updatedReport);
+        await updateReport(updatedReport);
+        setIsSaving(false);
     };
 
     return (
@@ -112,7 +130,7 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                     <div className="flex items-center mb-3 border-r-4 border-brand-light pr-3">
                         <h4 className="text-xs font-bold text-brand-dark dark:text-brand-light uppercase">هامش وتوجيهات مسؤول الشعبة</h4>
                     </div>
-                    <div className={`p-6 rounded-3xl border-2 ${report.managerComment ? 'bg-green-50/20 border-green-100 dark:border-green-900/10' : 'bg-gray-50 border-dashed border-gray-300 dark:border-gray-700'}`}>
+                    <div className={`p-6 rounded-3xl border-2 transition-all relative ${report.managerComment ? 'bg-green-50/20 border-green-100 dark:border-green-900/10' : 'bg-gray-50 border-dashed border-gray-300 dark:border-gray-700'}`}>
                         {isManager && isEditingComment ? (
                             <div className="no-print space-y-4">
                                 <textarea
@@ -124,15 +142,35 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
                                 />
                                 <div className="flex justify-end gap-2">
                                     <button onClick={() => setIsEditingComment(false)} className="text-xs text-gray-500 px-3">إلغاء</button>
-                                    <button onClick={handleSaveManagerComment} className="px-6 py-2 bg-brand-light text-white rounded-xl font-bold text-xs shadow-md">حفظ التوجيه</button>
+                                    <button onClick={handleSaveManagerComment} disabled={isSaving} className="px-6 py-2 bg-brand-light text-white rounded-xl font-bold text-xs shadow-md">
+                                        {isSaving ? 'جارِ الحفظ...' : 'حفظ التوجيه'}
+                                    </button>
                                 </div>
                             </div>
                         ) : (
-                            <div onClick={() => isManager && setIsEditingComment(true)} className={`${isManager ? 'cursor-pointer' : ''}`}>
+                            <div onClick={() => isManager && setIsEditingComment(true)} className={`${isManager ? 'cursor-pointer group' : ''}`}>
                                 <p className={`text-xs md:text-sm leading-relaxed whitespace-pre-wrap italic ${!report.managerComment ? 'text-gray-400' : 'text-gray-800 dark:text-gray-100'}`}>
-                                    {report.managerComment || (isManager ? 'انقر لإضافة هامش المسؤول...' : 'لم يتم إضافة توجيهات بعد.')}
+                                    {report.managerComment || (isManager ? 'انقر لكتابة ملاحظة يدوية...' : 'لم يتم إضافة توجيهات بعد.')}
                                 </p>
                                 
+                                {/* زر الاطلاع السريع للمدير - يظهر فقط إذا لم يكن هناك تعليق */}
+                                {isManager && !report.managerComment && (
+                                    <div className="mt-6 flex justify-center no-print">
+                                        <button 
+                                            onClick={handleQuickAcknowledge}
+                                            disabled={isSaving}
+                                            className="flex items-center gap-2 px-6 py-3 bg-brand-light text-white rounded-full font-bold shadow-lg shadow-brand-light/30 hover:scale-105 active:scale-95 transition-all hover:bg-brand-dark"
+                                        >
+                                            {isSaving ? (
+                                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                            ) : (
+                                                <CheckBadgeIcon className="w-6 h-6" />
+                                            )}
+                                            <span>تم الاطلاع</span>
+                                        </button>
+                                    </div>
+                                )}
+
                                 {report.managerComment && (
                                     <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-end">
                                         <div className="text-right">
