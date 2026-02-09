@@ -38,7 +38,7 @@ export const mapReport = (row: any): Report => ({
     isViewedByManager: row.is_viewed_by_manager,
     isCommentReadByEmployee: row.is_comment_read_by_employee,
     rating: row.rating,
-    status: row.status || 'submitted' // Treat legacy data (null status) as submitted
+    status: row.status || 'submitted'
 });
 
 export const mapAnnouncement = (row: any): Announcement => ({
@@ -60,6 +60,25 @@ export const mapDirectTask = (row: any): DirectTask => ({
     isReadByEmployee: row.is_read_by_employee
 });
 
+// دوال جلب عنصر واحد لضمان التحديث الفوري الدقيق
+export const fetchReportById = async (id: string): Promise<Report | null> => {
+    const { data, error } = await supabase.from('reports').select('*').eq('id', id).single();
+    if (error || !data) return null;
+    return mapReport(data);
+};
+
+export const fetchDirectTaskById = async (id: string): Promise<DirectTask | null> => {
+    const { data, error } = await supabase.from('direct_tasks').select('*').eq('id', id).single();
+    if (error || !data) return null;
+    return mapDirectTask(data);
+};
+
+export const fetchAnnouncementById = async (id: string): Promise<Announcement | null> => {
+    const { data, error } = await supabase.from('announcements').select('*').eq('id', id).single();
+    if (error || !data) return null;
+    return mapAnnouncement(data);
+};
+
 export const fetchInitialData = async (): Promise<AppState> => {
     if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
     
@@ -69,11 +88,8 @@ export const fetchInitialData = async (): Promise<AppState> => {
         supabase.from('direct_tasks').select('*').order('sent_at', { ascending: false })
     ]);
 
-    // Smart Fetch Strategy
     let reportsData: any[] = [];
     
-    // Attempt 1: Fetch up to 2000 latest reports with full data (attachments included)
-    // This covers most recent history with images.
     const { data: fullData, error: fullError } = await supabase
         .from('reports')
         .select('*')
@@ -81,20 +97,11 @@ export const fetchInitialData = async (): Promise<AppState> => {
         .limit(2000);
 
     if (fullError || !fullData) {
-        console.warn("Full reports fetch failed, switching to lightweight mode (no attachments)...", fullError);
-        
-        // Attempt 2: Fallback to lightweight fetch (ALL history, NO attachments)
-        // This ensures that even if images are too heavy, the report text/list ALWAYS appears.
-        const { data: lightData, error: lightError } = await supabase
+        const { data: lightData } = await supabase
             .from('reports')
             .select('id, user_id, sequence_number, date, day, tasks, accomplished, not_accomplished, manager_comment, is_viewed_by_manager, is_comment_read_by_employee, rating, status')
-            .order('date', { ascending: false }); // No limit on lightweight fetch
-
-        if (lightError) {
-            console.error("Critical: Failed to fetch reports even in lightweight mode.", lightError);
-        } else {
-            reportsData = lightData || [];
-        }
+            .order('date', { ascending: false });
+        reportsData = lightData || [];
     } else {
         reportsData = fullData;
     }
@@ -115,7 +122,11 @@ export const subscribeToAllChanges = (onUpdate: (payload: any) => void) => {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_tasks' }, (p) => onUpdate({ table: 'direct_tasks', ...p }))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, (p) => onUpdate({ table: 'announcements', ...p }))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (p) => onUpdate({ table: 'users', ...p }))
-        .subscribe();
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('Realtime Connected!');
+            }
+        });
 
     return () => { supabase.removeChannel(channel); };
 };
@@ -129,10 +140,7 @@ export const submitReport = async (reportData: Omit<Report, 'id' | 'sequenceNumb
         .order('sequence_number', { ascending: false })
         .limit(1);
 
-    if (seqError) {
-        console.error("Error fetching sequence number:", seqError);
-        throw seqError;
-    }
+    if (seqError) throw seqError;
 
     const maxSeq = maxSeqData && maxSeqData.length > 0 ? maxSeqData[0].sequence_number : 0;
     const nextSeq = maxSeq + 1;

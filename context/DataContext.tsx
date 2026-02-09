@@ -125,74 +125,98 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     useEffect(() => {
         loadData();
-        const unsubscribe = api.subscribeToAllChanges((payload) => {
-            const { table, eventType, new: newRecord } = payload;
-            setAppState(prev => {
-                const newState = { ...prev };
-                const loggedInUserId = localStorage.getItem('loggedInUserId') || sessionStorage.getItem('loggedInUserId');
-                const currentUser = prev.users.find(u => u.id === loggedInUserId);
+        const unsubscribe = api.subscribeToAllChanges(async (payload) => {
+            const { table, eventType, new: newRecord, old: oldRecord } = payload;
+            const loggedInUserId = localStorage.getItem('loggedInUserId') || sessionStorage.getItem('loggedInUserId');
+            
+            // Robust Realtime Handling: Fetch full fresh object instead of relying on payload
+            if (table === 'reports') {
+                if (eventType === 'DELETE') {
+                    setAppState(prev => ({...prev, reports: prev.reports.filter(r => r.id !== oldRecord.id)}));
+                } else {
+                    const freshReport = await api.fetchReportById(newRecord.id);
+                    if (freshReport) {
+                        setAppState(prev => {
+                            const exists = prev.reports.some(r => r.id === freshReport.id);
+                            // Detect Changes for Notifications
+                            const currentUser = prev.users.find(u => u.id === loggedInUserId);
+                            const oldReport = prev.reports.find(r => r.id === freshReport.id);
+                            
+                            // Manager Notification for New Report
+                            if (eventType === 'INSERT' && freshReport.status === 'submitted' && currentUser?.role === 'manager') {
+                                const sender = prev.users.find(u => u.id === freshReport.userId);
+                                triggerNotification('تقرير جديد', `وصل تقرير جديد من ${sender?.fullName.split(' ')[0]}`, 'success');
+                            }
+                            
+                            // Employee Notification for Manager Comment/Ack
+                            if (eventType === 'UPDATE' && currentUser && currentUser.id === freshReport.userId) {
+                                const oldComment = oldReport?.managerComment;
+                                const newComment = freshReport.managerComment;
+                                if (newComment && newComment.trim().length > 0 && newComment !== oldComment) {
+                                     triggerNotification('توجيه إداري جديد', `تم إضافة توجيه/اطلاع على تقريرك بتاريخ ${freshReport.date}`, 'info');
+                                }
+                            }
 
-                if (table === 'reports') {
-                    if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                        const mapped = api.mapReport(newRecord);
-                        
-                        // Capture the previous version of the report to detect changes
-                        const previousReport = prev.reports.find(r => r.id === mapped.id);
-
-                        newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);
-                        if (eventType === 'INSERT') newState.reports = [mapped, ...newState.reports];
-
-                        // Notification 1: New Report for Manager
-                        if (eventType === 'INSERT' && mapped.status === 'submitted' && currentUser?.role === 'manager') {
-                            const sender = prev.users.find(u => u.id === mapped.userId);
-                            triggerNotification('تقرير جديد', `وصل تقرير جديد من ${sender?.fullName.split(' ')[0]}`, 'success');
-                        }
-
-                        // Notification 2: New/Updated Manager Comment for Employee
-                        if (eventType === 'UPDATE' && currentUser && currentUser.id === mapped.userId) {
-                             const oldComment = previousReport?.managerComment;
-                             const newComment = mapped.managerComment;
-                             
-                             // Check if comment was added or changed (and is not empty)
-                             if (newComment && newComment.trim().length > 0 && newComment !== oldComment) {
-                                 triggerNotification('توجيه إداري جديد', `تم إضافة توجيه على تقريرك بتاريخ ${mapped.date}`, 'info');
-                             }
-                        }
+                            const newReports = exists 
+                                ? prev.reports.map(r => r.id === freshReport.id ? freshReport : r)
+                                : [freshReport, ...prev.reports];
+                            
+                            return {...prev, reports: newReports.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())};
+                        });
                     }
-                } else if (table === 'direct_tasks') {
-                     if (eventType === 'INSERT') {
-                         const newTask = api.mapDirectTask(newRecord);
-                         newState.directTasks = [newTask, ...prev.directTasks];
-                         
-                         if (currentUser && newTask.employeeId === currentUser.id) {
-                              const manager = prev.users.find(u => u.id === newTask.managerId);
-                              triggerNotification('مهمة جديدة', `وصلتك مهمة جديدة من ${manager?.fullName || 'المسؤول'}`, 'info');
-                         }
-                     } else if (eventType === 'UPDATE') {
-                         const updatedTask = api.mapDirectTask(newRecord);
-                         newState.directTasks = prev.directTasks.map(t => t.id === updatedTask.id ? updatedTask : t);
-                     }
-                } else if (table === 'announcements') {
-                     if (eventType === 'INSERT') {
-                         const newAnn = api.mapAnnouncement(newRecord);
-                         newState.announcements = [newAnn, ...prev.announcements];
-                         if (currentUser && currentUser.role === 'employee') {
-                             triggerNotification('توجيه عام جديد', 'تم نشر توجيه عام جديد من الإدارة', 'info');
-                         }
-                     } else if (eventType === 'UPDATE') {
-                         const updatedAnn = api.mapAnnouncement(newRecord);
-                         newState.announcements = prev.announcements.map(a => a.id === updatedAnn.id ? updatedAnn : a);
-                     }
-                } else if (table === 'users') {
-                     if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                         const mappedUser = api.mapUser(newRecord);
-                         newState.users = prev.users.map(u => u.id === mappedUser.id ? mappedUser : u);
-                         if (eventType === 'INSERT') newState.users = [...prev.users, mappedUser];
-                     }
                 }
+            } else if (table === 'direct_tasks') {
+                 if (eventType === 'DELETE') {
+                    setAppState(prev => ({...prev, directTasks: prev.directTasks.filter(t => t.id !== oldRecord.id)}));
+                 } else {
+                     const freshTask = await api.fetchDirectTaskById(newRecord.id);
+                     if (freshTask) {
+                         setAppState(prev => {
+                             const exists = prev.directTasks.some(t => t.id === freshTask.id);
+                             const currentUser = prev.users.find(u => u.id === loggedInUserId);
 
-                return newState;
-            });
+                             if (!exists && currentUser && freshTask.employeeId === currentUser.id) {
+                                 const manager = prev.users.find(u => u.id === freshTask.managerId);
+                                 triggerNotification('مهمة جديدة', `وصلتك مهمة جديدة من ${manager?.fullName || 'المسؤول'}`, 'info');
+                             }
+
+                             const newTasks = exists 
+                                ? prev.directTasks.map(t => t.id === freshTask.id ? freshTask : t)
+                                : [freshTask, ...prev.directTasks];
+                             return {...prev, directTasks: newTasks.sort((a,b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime())};
+                         });
+                     }
+                 }
+            } else if (table === 'announcements') {
+                 if (eventType === 'DELETE') {
+                    setAppState(prev => ({...prev, announcements: prev.announcements.filter(a => a.id !== oldRecord.id)}));
+                 } else {
+                     const freshAnn = await api.fetchAnnouncementById(newRecord.id);
+                     if (freshAnn) {
+                         setAppState(prev => {
+                             const exists = prev.announcements.some(a => a.id === freshAnn.id);
+                             const currentUser = prev.users.find(u => u.id === loggedInUserId);
+                             
+                             if (!exists && currentUser && currentUser.role === 'employee') {
+                                 triggerNotification('توجيه عام جديد', 'تم نشر توجيه عام جديد من الإدارة', 'info');
+                             }
+
+                             const newAnns = exists
+                                ? prev.announcements.map(a => a.id === freshAnn.id ? freshAnn : a)
+                                : [freshAnn, ...prev.announcements];
+                             return {...prev, announcements: newAnns.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())};
+                         });
+                     }
+                 }
+            } else if (table === 'users') {
+                 if (eventType === 'INSERT' || eventType === 'UPDATE') {
+                     const mappedUser = api.mapUser(newRecord);
+                     setAppState(prev => ({
+                         ...prev,
+                         users: prev.users.some(u => u.id === mappedUser.id) ? prev.users.map(u => u.id === mappedUser.id ? mappedUser : u) : [...prev.users, mappedUser]
+                     }));
+                 }
+            }
         });
         return () => { unsubscribe(); };
     }, [loadData, triggerNotification]);
@@ -204,7 +228,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const updateReport = useCallback(async (updatedReport: Report) => { try { await api.updateReport(updatedReport); } catch (e) { throw e; } }, []);
     const deleteReport = useCallback(async (reportId: string) => { try { await api.deleteReport(reportId); } catch (e) { throw e; } }, []);
     const markReportAsViewed = useCallback(async (reportId: string) => { 
-        // تحديث محلي فوري
         setAppState(prev => ({
             ...prev,
             reports: prev.reports.map(r => r.id === reportId ? { ...r, isViewedByManager: true } : r)
@@ -212,7 +235,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await api.markReportAsViewed(reportId); 
     }, []);
     const markAllReportsAsReadForUser = useCallback(async (userId: string) => { 
-        // تحديث محلي فوري لجميع تقارير المستخدم
         setAppState(prev => ({
             ...prev,
             reports: prev.reports.map(r => r.userId === userId ? { ...r, isViewedByManager: true } : r)
