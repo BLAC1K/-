@@ -124,52 +124,51 @@ const WeeklyReportView: React.FC = () => {
             </div>
 
             {/* Printable Table */}
-            {/* تمت إزالة overflow-hidden في الطباعة للسماح للجدول بالامتداد */}
-            <div id="printable-area" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden print:overflow-visible print:border-none print:shadow-none">
-                <div className="hidden print:block p-8 border-b-2 border-black mb-4">
+            {/* إزالة الفئات المقيدة للارتفاع أو التمرير أثناء الطباعة */}
+            <div id="printable-area" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden print:overflow-visible print:rounded-none print:shadow-none print:border-none print:bg-white">
+                <div className="hidden print:block p-4 border-b-2 border-black mb-2">
                     <div className="text-center">
-                        <h1 className="text-xl font-bold mb-2">استمارة الموقف الأسبوعي للتقارير اليومية</h1>
-                        <p className="text-sm">للفترة من {weekRange.start} لغاية {weekRange.end}</p>
+                        <h1 className="text-lg font-bold mb-1">استمارة الموقف الأسبوعي للتقارير اليومية</h1>
+                        <p className="text-xs">للفترة من {weekRange.start} لغاية {weekRange.end}</p>
                     </div>
                 </div>
 
-                {/* تمت إضافة print:overflow-visible لمنع قص الجدول */}
                 <div className="overflow-x-auto print:overflow-visible">
-                    <table className="w-full text-right border-collapse">
+                    <table className="w-full text-right border-collapse print:w-full print:table-fixed">
                         <thead>
-                            <tr className="bg-gray-50 dark:bg-gray-900/50 border-b-2 border-brand-light dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs md:text-sm print:bg-gray-100 print:text-black">
-                                <th className="p-4 text-center w-16 border-l dark:border-gray-700 print:border-gray-300">ت</th>
-                                <th className="p-4 w-48 border-l dark:border-gray-700 print:border-gray-300">اسم المنتسب</th>
-                                <th className="p-4 w-32 border-l dark:border-gray-700 print:border-gray-300">الوحدة</th>
-                                <th className="p-4 w-24 border-l dark:border-gray-700 text-center print:border-gray-300">الرقم الوظيفي</th>
-                                <th className="p-4 border-l dark:border-gray-700 print:border-gray-300">التقارير المرسلة (التاريخ)</th>
-                                <th className="p-4 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-300 print:bg-red-50 print:text-red-800">الملاحظات</th>
+                            <tr className="bg-gray-50 dark:bg-gray-900/50 border-b-2 border-brand-light dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs md:text-sm print:bg-gray-200 print:text-black print:text-[10px] print:border-black">
+                                <th className="p-4 text-center w-12 border-l dark:border-gray-700 print:border print:border-black print:p-1">ت</th>
+                                <th className="p-4 w-40 border-l dark:border-gray-700 print:border print:border-black print:p-1">اسم المنتسب</th>
+                                <th className="p-4 w-28 border-l dark:border-gray-700 print:border print:border-black print:p-1">الوحدة</th>
+                                <th className="p-4 w-24 border-l dark:border-gray-700 text-center print:border print:border-black print:p-1">الرقم الوظيفي</th>
+                                <th className="p-4 border-l dark:border-gray-700 print:border print:border-black print:p-1">التقارير المرسلة (التاريخ)</th>
+                                <th className="p-4 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-300 print:bg-transparent print:text-black print:border print:border-black print:p-1">الملاحظات</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700 print:divide-gray-300">
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700 print:divide-black">
                             {weeklyData.map((item) => (
-                                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors print:border-b print:border-gray-300">
-                                    <td className="p-4 text-center font-bold text-gray-500 border-l dark:border-gray-700 print:border-gray-300 print:text-black">{item.seq}</td>
-                                    <td className="p-4 font-bold text-gray-800 dark:text-gray-200 border-l dark:border-gray-700 print:border-gray-300 print:text-black">
+                                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors print:border print:border-black print:text-[10px]">
+                                    <td className="p-4 text-center font-bold text-gray-500 border-l dark:border-gray-700 print:border print:border-black print:text-black print:p-1">{item.seq}</td>
+                                    <td className="p-4 font-bold text-gray-800 dark:text-gray-200 border-l dark:border-gray-700 print:border print:border-black print:text-black print:p-1">
                                         {item.name}
                                     </td>
-                                    <td className="p-4 text-sm text-gray-600 dark:text-gray-400 border-l dark:border-gray-700 print:border-gray-300 print:text-black">{item.unit}</td>
-                                    <td className="p-4 text-center text-sm font-mono text-gray-600 dark:text-gray-400 border-l dark:border-gray-700 print:border-gray-300 print:text-black">{item.badge}</td>
+                                    <td className="p-4 text-sm text-gray-600 dark:text-gray-400 border-l dark:border-gray-700 print:border print:border-black print:text-black print:p-1">{item.unit}</td>
+                                    <td className="p-4 text-center text-sm font-mono text-gray-600 dark:text-gray-400 border-l dark:border-gray-700 print:border print:border-black print:text-black print:p-1">{item.badge}</td>
                                     
                                     {/* المرسلة */}
-                                    <td className="p-4 border-l dark:border-gray-700 print:border-gray-300">
+                                    <td className="p-4 border-l dark:border-gray-700 print:border print:border-black print:p-1">
                                         <div className="flex flex-col gap-1">
-                                            <span className="font-bold text-green-600 dark:text-green-400 text-xs mb-1 print:text-green-800">
+                                            <span className="font-bold text-green-600 dark:text-green-400 text-xs mb-1 print:text-black print:hidden">
                                                 العدد: {item.reportsCount}
                                             </span>
                                             <div className="flex flex-wrap gap-1">
                                                 {item.submittedDates.map(date => {
                                                     const isFri = isFriday(date);
                                                     return (
-                                                        <span key={date} className={`px-2 py-0.5 rounded text-[10px] border print:border-gray-400 ${
+                                                        <span key={date} className={`px-2 py-0.5 rounded text-[10px] print:border print:border-black print:rounded-none ${
                                                             isFri 
-                                                            ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border-blue-200 dark:border-blue-800 print:bg-blue-100 print:text-blue-800' 
-                                                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 print:bg-green-100 print:text-green-800'
+                                                            ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800 print:bg-blue-200 print:text-black' 
+                                                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 print:bg-transparent print:text-black'
                                                         }`}>
                                                             {date.slice(5)}
                                                         </span>
@@ -180,9 +179,9 @@ const WeeklyReportView: React.FC = () => {
                                     </td>
 
                                     {/* غير المرسلة */}
-                                    <td className="p-4 bg-red-50/30 dark:bg-red-900/5 print:bg-red-50/20">
+                                    <td className="p-4 bg-red-50/30 dark:bg-red-900/5 print:bg-transparent print:border print:border-black print:p-1">
                                         <div className="flex flex-col gap-1">
-                                            <span className={`font-bold text-xs mb-1 ${item.missingCount > 0 ? 'text-red-600 dark:text-red-400 print:text-red-700' : 'text-gray-400 print:text-gray-500'}`}>
+                                            <span className={`font-bold text-xs mb-1 print:hidden ${item.missingCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400'}`}>
                                                 {item.missingCount > 0 ? `لم يرسل: ${item.missingCount} أيام` : 'ملتزم بالكامل'}
                                             </span>
                                             {item.missingCount > 0 && (
@@ -190,10 +189,10 @@ const WeeklyReportView: React.FC = () => {
                                                     {item.missingDates.map(date => {
                                                         const isFri = isFriday(date);
                                                         return (
-                                                            <span key={date} className={`px-2 py-0.5 rounded text-[10px] border print:border-gray-400 ${
+                                                            <span key={date} className={`px-2 py-0.5 rounded text-[10px] print:border print:border-black print:rounded-none ${
                                                                 isFri
-                                                                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border-blue-200 dark:border-blue-800 print:bg-blue-100 print:text-blue-800'
-                                                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 print:bg-red-100 print:text-red-800'
+                                                                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800 print:bg-blue-200 print:text-black'
+                                                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 print:bg-transparent print:text-black'
                                                             }`}>
                                                                 {date.slice(5)}
                                                             </span>

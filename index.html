@@ -46,16 +46,17 @@
       /* أنماط الطباعة المتقدمة وإعدادات PDF */
       @media print {
         @page {
-          size: landscape; /* إجبار الوضع الأفقي للجدول العريض */
-          margin: 10mm;
+          /* تم إزالة size: landscape للسماح للمستخدم باختيار الاتجاه */
+          margin: 5mm; /* هوامش صغيرة لاستغلال المساحة */
         }
         
-        body {
-          background-color: white !important;
-          -webkit-print-color-adjust: exact !important; /* لطباعة الألوان والخلفيات */
-          print-color-adjust: exact !important;
-          overflow: visible !important;
+        html, body {
           height: auto !important;
+          min-height: 100% !important;
+          overflow: visible !important;
+          background-color: white !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
 
         /* إخفاء كل العناصر */
@@ -78,7 +79,7 @@
           background: white !important;
           color: black !important;
           
-          /* أهم خاصية لمنع انقطاع الجدول */
+          /* أهم خاصية لمنع انقطاع الجدول وتعدد الصفحات */
           overflow: visible !important;
           height: auto !important;
           display: block !important;
@@ -92,25 +93,34 @@
         table {
           width: 100% !important;
           border-collapse: collapse !important;
-          page-break-inside: auto;
+          page-break-inside: auto; /* السماح بكسر الجدول عبر الصفحات */
+          font-size: 10px !important; /* تصغير الخط قليلاً ليتناسب مع الوضع العمودي */
         }
-        tr {
-          page-break-inside: avoid;
-          page-break-after: auto;
-        }
+        
         thead {
-          display: table-header-group;
+          display: table-header-group; /* تكرار رأس الجدول في كل صفحة */
         }
+        
         tfoot {
           display: table-footer-group;
         }
         
+        tr {
+          page-break-inside: avoid; /* منع انقسام السطر الواحد بين صفحتين */
+          page-break-after: auto;
+        }
+        
+        td, th {
+          padding: 4px !important; /* تقليل الحواشي لتوفير المساحة */
+        }
+
         /* إزالة الظلال والحدود الزائدة */
         .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl {
           box-shadow: none !important;
         }
         .border {
-          border-color: #ddd !important;
+          border-color: #000 !important; /* حدود سوداء واضحة للطباعة */
+          border-width: 1px !important;
         }
       }
     </style>
