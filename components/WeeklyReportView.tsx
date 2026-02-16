@@ -115,15 +115,17 @@ const WeeklyReportView: React.FC = () => {
                     <button 
                         onClick={() => window.print()} 
                         className="flex items-center gap-2 px-5 py-2.5 bg-brand-light text-white rounded-xl font-bold shadow-lg shadow-brand-light/20 hover:bg-brand-dark transition-all"
+                        title="يمكنك حفظ الملف كـ PDF من نافذة الطباعة"
                     >
                         <DownloadIcon className="w-5 h-5" />
-                        <span>طباعة الموقف</span>
+                        <span>طباعة / حفظ PDF</span>
                     </button>
                 </div>
             </div>
 
             {/* Printable Table */}
-            <div id="printable-area" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {/* تمت إزالة overflow-hidden في الطباعة للسماح للجدول بالامتداد */}
+            <div id="printable-area" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden print:overflow-visible print:border-none print:shadow-none">
                 <div className="hidden print:block p-8 border-b-2 border-black mb-4">
                     <div className="text-center">
                         <h1 className="text-xl font-bold mb-2">استمارة الموقف الأسبوعي للتقارير اليومية</h1>
@@ -131,42 +133,43 @@ const WeeklyReportView: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* تمت إضافة print:overflow-visible لمنع قص الجدول */}
+                <div className="overflow-x-auto print:overflow-visible">
                     <table className="w-full text-right border-collapse">
                         <thead>
-                            <tr className="bg-gray-50 dark:bg-gray-900/50 border-b-2 border-brand-light dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs md:text-sm">
-                                <th className="p-4 text-center w-16 border-l dark:border-gray-700">ت</th>
-                                <th className="p-4 w-48 border-l dark:border-gray-700">اسم المنتسب</th>
-                                <th className="p-4 w-32 border-l dark:border-gray-700">الوحدة</th>
-                                <th className="p-4 w-24 border-l dark:border-gray-700 text-center">الرقم الوظيفي</th>
-                                <th className="p-4 border-l dark:border-gray-700">التقارير المرسلة (التاريخ)</th>
-                                <th className="p-4 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-300">الملاحظات</th>
+                            <tr className="bg-gray-50 dark:bg-gray-900/50 border-b-2 border-brand-light dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs md:text-sm print:bg-gray-100 print:text-black">
+                                <th className="p-4 text-center w-16 border-l dark:border-gray-700 print:border-gray-300">ت</th>
+                                <th className="p-4 w-48 border-l dark:border-gray-700 print:border-gray-300">اسم المنتسب</th>
+                                <th className="p-4 w-32 border-l dark:border-gray-700 print:border-gray-300">الوحدة</th>
+                                <th className="p-4 w-24 border-l dark:border-gray-700 text-center print:border-gray-300">الرقم الوظيفي</th>
+                                <th className="p-4 border-l dark:border-gray-700 print:border-gray-300">التقارير المرسلة (التاريخ)</th>
+                                <th className="p-4 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-300 print:bg-red-50 print:text-red-800">الملاحظات</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700 print:divide-gray-300">
                             {weeklyData.map((item) => (
-                                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                    <td className="p-4 text-center font-bold text-gray-500 border-l dark:border-gray-700">{item.seq}</td>
-                                    <td className="p-4 font-bold text-gray-800 dark:text-gray-200 border-l dark:border-gray-700">
+                                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors print:border-b print:border-gray-300">
+                                    <td className="p-4 text-center font-bold text-gray-500 border-l dark:border-gray-700 print:border-gray-300 print:text-black">{item.seq}</td>
+                                    <td className="p-4 font-bold text-gray-800 dark:text-gray-200 border-l dark:border-gray-700 print:border-gray-300 print:text-black">
                                         {item.name}
                                     </td>
-                                    <td className="p-4 text-sm text-gray-600 dark:text-gray-400 border-l dark:border-gray-700">{item.unit}</td>
-                                    <td className="p-4 text-center text-sm font-mono text-gray-600 dark:text-gray-400 border-l dark:border-gray-700">{item.badge}</td>
+                                    <td className="p-4 text-sm text-gray-600 dark:text-gray-400 border-l dark:border-gray-700 print:border-gray-300 print:text-black">{item.unit}</td>
+                                    <td className="p-4 text-center text-sm font-mono text-gray-600 dark:text-gray-400 border-l dark:border-gray-700 print:border-gray-300 print:text-black">{item.badge}</td>
                                     
                                     {/* المرسلة */}
-                                    <td className="p-4 border-l dark:border-gray-700">
+                                    <td className="p-4 border-l dark:border-gray-700 print:border-gray-300">
                                         <div className="flex flex-col gap-1">
-                                            <span className="font-bold text-green-600 dark:text-green-400 text-xs mb-1">
+                                            <span className="font-bold text-green-600 dark:text-green-400 text-xs mb-1 print:text-green-800">
                                                 العدد: {item.reportsCount}
                                             </span>
                                             <div className="flex flex-wrap gap-1">
                                                 {item.submittedDates.map(date => {
                                                     const isFri = isFriday(date);
                                                     return (
-                                                        <span key={date} className={`px-2 py-0.5 rounded text-[10px] ${
+                                                        <span key={date} className={`px-2 py-0.5 rounded text-[10px] border print:border-gray-400 ${
                                                             isFri 
-                                                            ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800' 
-                                                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                                            ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border-blue-200 dark:border-blue-800 print:bg-blue-100 print:text-blue-800' 
+                                                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 print:bg-green-100 print:text-green-800'
                                                         }`}>
                                                             {date.slice(5)}
                                                         </span>
@@ -177,9 +180,9 @@ const WeeklyReportView: React.FC = () => {
                                     </td>
 
                                     {/* غير المرسلة */}
-                                    <td className="p-4 bg-red-50/30 dark:bg-red-900/5">
+                                    <td className="p-4 bg-red-50/30 dark:bg-red-900/5 print:bg-red-50/20">
                                         <div className="flex flex-col gap-1">
-                                            <span className={`font-bold text-xs mb-1 ${item.missingCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400'}`}>
+                                            <span className={`font-bold text-xs mb-1 ${item.missingCount > 0 ? 'text-red-600 dark:text-red-400 print:text-red-700' : 'text-gray-400 print:text-gray-500'}`}>
                                                 {item.missingCount > 0 ? `لم يرسل: ${item.missingCount} أيام` : 'ملتزم بالكامل'}
                                             </span>
                                             {item.missingCount > 0 && (
@@ -187,10 +190,10 @@ const WeeklyReportView: React.FC = () => {
                                                     {item.missingDates.map(date => {
                                                         const isFri = isFriday(date);
                                                         return (
-                                                            <span key={date} className={`px-2 py-0.5 rounded text-[10px] ${
+                                                            <span key={date} className={`px-2 py-0.5 rounded text-[10px] border print:border-gray-400 ${
                                                                 isFri
-                                                                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800'
-                                                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                                                                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold border-blue-200 dark:border-blue-800 print:bg-blue-100 print:text-blue-800'
+                                                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 print:bg-red-100 print:text-red-800'
                                                             }`}>
                                                                 {date.slice(5)}
                                                             </span>
