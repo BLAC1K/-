@@ -21,6 +21,8 @@ import BellIcon from './icons/BellIcon';
 import InstallIcon from './icons/InstallIcon';
 import PlusIcon from './icons/PlusIcon';
 import ArrowPathIcon from './icons/ArrowPathIcon';
+import WeeklyReportView from './WeeklyReportView';
+import ChartBarIcon from './icons/ChartBarIcon';
 
 const ManagerDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
@@ -61,6 +63,7 @@ const ManagerDashboard: React.FC = () => {
 
     const pageTitles: { [key: string]: string } = {
         reports: 'التقارير',
+        weekly: 'الموقف الأسبوعي',
         employees: 'إدارة المنتسبين',
         sentTasks: 'المهام المرسلة',
         profile: 'الملف الشخصي'
@@ -70,6 +73,7 @@ const ManagerDashboard: React.FC = () => {
         switch(activeTab) {
             case 'employees': return <div className="pb-20"><UserManagement /></div>;
             case 'sentTasks': return <div className="pb-20"><SentTasksView /></div>;
+            case 'weekly': return <div className="pb-20"><WeeklyReportView /></div>;
             case 'profile': return <div className="pb-20"><ProfileManagement user={currentUser} /></div>;
             case 'reports':
             default: return <div className="pb-20"><ReportsView /></div>;
@@ -115,6 +119,7 @@ const ManagerDashboard: React.FC = () => {
                     </div>
                     <nav className="flex-grow px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
                         <NavItem tabName="reports" label="التقارير" icon={<NewReportIcon className="w-6 h-6"/>} count={newReportsCount}/>
+                        <NavItem tabName="weekly" label="الموقف الأسبوعي" icon={<ChartBarIcon className="w-6 h-6"/>} />
                         <NavItem tabName="employees" label="إدارة المنتسبين" icon={<UsersIcon className="w-6 h-6"/>} />
                         <NavItem tabName="sentTasks" label="المهام المرسلة" icon={<ClipboardDocumentListIcon className="w-6 h-6"/>} />
                         <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />

@@ -90,20 +90,20 @@ export const fetchInitialData = async (): Promise<AppState> => {
 
     let reportsData: any[] = [];
     
-    // تم تقليل العدد من 2000 إلى 40 لضمان سرعة الفتح وتجنب تحميل الصور الثقيلة
+    // زيادة الحد إلى 2000 لعرض جميع التقارير كما طلب المستخدم
     const { data: fullData, error: fullError } = await supabase
         .from('reports')
         .select('*')
         .order('date', { ascending: false })
-        .limit(40);
+        .limit(2000);
 
     if (fullError || !fullData) {
-        // Fallback في حال حدوث خطأ، نجلب البيانات الخفيفة فقط
+        // Fallback في حال حدوث خطأ
         const { data: lightData } = await supabase
             .from('reports')
             .select('id, user_id, sequence_number, date, day, tasks, accomplished, not_accomplished, manager_comment, is_viewed_by_manager, is_comment_read_by_employee, rating, status')
             .order('date', { ascending: false })
-            .limit(40);
+            .limit(2000);
         reportsData = lightData || [];
     } else {
         reportsData = fullData;
