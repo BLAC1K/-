@@ -198,6 +198,7 @@ const EmployeeReportsView: React.FC<EmployeeReportsViewProps> = ({ employee, onV
                     reportsForMonth={reportsForSelectedMonth}
                     year={year}
                     month={month}
+                    onViewReport={onViewReport}
                 />
             </div>
 
