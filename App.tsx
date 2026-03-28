@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
 import Login from './components/Login';
+import LandingPage from './components/LandingPage';
 import EmployeeDashboard from './components/EmployeeDashboard';
 import ManagerDashboard from './components/ManagerDashboard';
 import { ThemeProvider } from './context/ThemeContext';
@@ -12,6 +13,7 @@ import InstallPWA from './components/InstallPWA';
 const AppContent: React.FC = () => {
     const { currentUser, loading: authLoading } = useAuth();
     const { isDataLoading, error } = useData();
+    const [showLogin, setShowLogin] = useState(false);
 
     if (error) {
         return (
@@ -52,7 +54,11 @@ const AppContent: React.FC = () => {
     
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            {!currentUser ? <Login /> : (currentUser.role === 'employee' ? <EmployeeDashboard /> : <ManagerDashboard />)}
+            {!currentUser ? (
+                showLogin ? <Login onBack={() => setShowLogin(false)} /> : <LandingPage onLoginClick={() => setShowLogin(true)} />
+            ) : (
+                currentUser.role === 'employee' ? <EmployeeDashboard /> : <ManagerDashboard />
+            )}
             <InstallPWA />
         </div>
     );

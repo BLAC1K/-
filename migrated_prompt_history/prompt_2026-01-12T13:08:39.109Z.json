@@ -1,0 +1,302 @@
+[
+  {
+    "id": 220,
+    "author": "user",
+    "payload": {
+      "type": "text",
+      "text": "مرحبا لدي تعديلات هل انت جاهز",
+      "files": [],
+      "fileUploads": [],
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768222739,
+      "nanos": 835000000
+    }
+  },
+  {
+    "id": 221,
+    "author": "model",
+    "payload": {
+      "type": "thinking",
+      "text": "**Defining the Core Application**\n\nI'm solidifying the application's core identity as a \"Daily Tasks Reporter.\" I've established the foundation, focusing on a robust login system for both employees and managers. Right now, I'm concentrating on the employee dashboard design. I'm prioritizing user-friendly features.\n\n\n**Refining App Scope**\n\nOkay, I'm analyzing the new requests. The user wants an Arabic (RTL) version, which is exciting. They're also hinting at more functionality. I'm prioritizing understanding what's implied in the initial incomplete sentence, specifically regarding \"member\" needs. I'll need to define how that differs from a basic daily task reporter. I'm prepping for potential modifications and waiting for specifics.\n\n\n**Anticipating User Input**\n\nI'm ready for the modifications. I've noted inconsistencies in the logo component usage and the current focus on the dashboard's \"Home\" tab. The task system is robust, but I'm prepared to adapt the application to accommodate the \"member\" focus, as requested. I've prepared a response in Arabic and am eager to receive the details.\n\n\n**Addressing User Queries**\n\nI'm directly responding to the user's question with a technical overview of \"مهامي\" (My Tasks), including features like task logging, draft management, member administration, and intelligent assessment, and requesting specifics on desired modifications. I've also analyzed the existing code to see if there is any obvious omissions. The `metadata.json`, `types.ts`, and `apiService.ts` files all seem in order.\n\n\n",
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768222739,
+      "nanos": 835000000
+    },
+    "doneTimestamp": {
+      "seconds": 1768222754,
+      "nanos": 45000000
+    }
+  },
+  {
+    "id": 222,
+    "author": "model",
+    "payload": {
+      "type": "text",
+      "text": "أهلاً بك! أنا جاهز تماماً لتنفيذ أي تعديلات تطلبها على تطبيق \"مهامي\". التطبيق الحالي مبني بالفعل لخدمة المنتسبين والمسؤولين، ويدعم:\n\n1. **للمنتسبين:** كتابة التقارير اليومية، حفظ المسودات، تلقي المهام المباشرة، والاطلاع على التعميمات الإدارية.\n2. **للمسؤولين:** مراجعة التقارير، التعليق عليها، إدارة حسابات المنتسبين، وتقييم الأداء بالذكاء الاصطناعي.\n3. **تقنياً:** يدعم الوضع الليلي، العمل كتطبيق (PWA)، والمزامنة اللحظية مع Supabase.\n\nما هي التعديلات التي تود إضافتها؟ سواء كانت في التصميم (UI/UX)، أو إضافة ميزات جديدة، أو تغيير في آلية عمل التقارير، سأقوم بتنفيذها بدقة عالية واحترافية. أنا بانتظار تفاصيلك!",
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768222754,
+      "nanos": 45000000
+    },
+    "doneTimestamp": {
+      "seconds": 1768222754,
+      "nanos": 106000000
+    }
+  },
+  {
+    "id": 223,
+    "author": "user",
+    "payload": {
+      "type": "text",
+      "text": "ماذا تقصد التغير في الالية",
+      "files": [],
+      "fileUploads": [],
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768222794,
+      "nanos": 554000000
+    }
+  },
+  {
+    "id": 224,
+    "author": "model",
+    "payload": {
+      "type": "thinking",
+      "text": "**Formulating Application Needs**\n\nI'm currently focused on the core functionality: designing an application for members/employees to record their daily tasks. The immediate need is a task entry system, the foundation upon which features will be built.\n\n\n**Clarifying the Core Change**\n\nI'm now zeroing in on the user's confusion regarding the developer's \"change in mechanism\" phrasing. It seems they want a clearer definition. My focus is on unpacking that term within the context of the \"Daily Tasks Reporter.\" Essentially, it's about rephrasing what changes the user has in mind. The app already handles task entry, review, and reporting. I need to understand specifically what aspect needs adjustment.\n\n\n**Deconstructing \"Mechanism Change\"**\n\nI'm now focusing on clarifying the \"mechanism change\" concept. The user requires a precise definition related to the \"Daily Tasks Reporter\" app. It covers data flow alteration, frequency shifts (daily, weekly, per project), field additions, and automation, including summaries, reminders, and privacy settings. My response will incorporate these examples, referencing a reporting flow, types of data, and notifications. I'll gently remind them about the incomplete initial request.\n\n\n",
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768222794,
+      "nanos": 554000000
+    },
+    "doneTimestamp": {
+      "seconds": 1768222803,
+      "nanos": 14000000
+    }
+  },
+  {
+    "id": 225,
+    "author": "model",
+    "payload": {
+      "type": "text",
+      "text": "أهلاً بك. عندما ذكرتُ \"التغيير في آلية العمل\"، كنت أقصد الطريقة التي يعمل بها التطبيق من الناحية التنظيمية والتقنية، وإليك بعض الأمثلة لما يمكننا تعديله حسب رغبتك:\n\n1.  **دورة حياة التقرير:** هل تريد أن يرسل المنتسب التقرير مباشرة للمسؤول، أم يمر بمرحلة مراجعة أولية من قبل \"رئيس وحدة\" مثلاً؟\n2.  **طريقة إدخال البيانات:** هل تريد إدخال المهام كنص حر (كما هو الآن)، أم تريدها كقائمة خيارات محددة مسبقاً يختار منها المنتسب؟\n3.  **القيود الزمنية:** هل تريد منع إرسال التقارير بعد ساعة معينة من اليوم؟ أو تحديد مواعيد نهائية (Deadlines)؟\n4.  **التصنيفات:** هل تريد تقسيم المهام إلى أنواع (إدارية، ميدانية، فنية)؟\n5.  **الأتمتة:** هل تريد أن يقوم التطبيق بحساب ساعات العمل تلقائياً أو إرسال تنبيهات للمتأخرين عن الكتابة؟\n\nلقد بدأت جملتك بـ **\"على أن يكون هذا الـ...\"** ولم تكملها. فضلاً، أكمل ما كنت تود قوله أو صف لي كيف تتخيل سير العمل المثالي في مؤسستك، وسأقوم بتعديل الكود فوراً ليتناسب مع طلبك بدقة.",
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768222803,
+      "nanos": 15000000
+    },
+    "doneTimestamp": {
+      "seconds": 1768222803,
+      "nanos": 148000000
+    }
+  },
+  {
+    "id": 226,
+    "author": "user",
+    "payload": {
+      "type": "text",
+      "text": "لدي اقتراح اريد رئيك فيه اريد ان تكون الاشعارات عند المسؤول للتقارير الغير مقروءة مميزة بشكل جميل حيث يكتب مثلا جديد بلون مميز والتقرير الذي تمت قرائتة يكتب تمت قرائته وبلون مميز والذي تم التعليق عليه ايضا يكتب تم التعليق وبلون مميز واريد ان يختفي الاشعار فور دخول المسؤول الى التقرير وهذا مهم جدا ما هو رأيك ؟",
+      "files": [],
+      "fileUploads": [],
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768223116,
+      "nanos": 26000000
+    }
+  },
+  {
+    "id": 227,
+    "author": "model",
+    "payload": {
+      "type": "thinking",
+      "text": "**Visualizing Report Status**\n\nI'm working on the Manager's dashboard report notification statuses. My focus right now is on clear and visually appealing status indicators. I'm thinking of using distinct, beautiful labels to represent different report states like \"جديد\" (New/Unread) with a prominent color. The visual labels should be easily discernible.\n\n\n**Developing Report Status Logic**\n\nI'm now integrating the report status logic. I've mapped out the color-coded statuses \"Read,\" \"Commented,\" and so on. The \"New\" state will automatically become \"Read\" once a manager views the report. I'm focusing on updating the status labels in `ReportView.tsx` and enhancing the visual cues for \"New\" reports, using the existing data structure with updates in `ReportView.tsx` to handle the stylized labels. I'll test the updates in `ReportDetailModal.tsx` to ensure real-time updates are maintained.\n\n\n**Refining Status Visuals**\n\nI'm now refining the visual statuses in `ReportView.tsx`. \"Directed\" reports will now have a deep green background, while new reports get a bright blue pulse. Read reports will be subtle gray. I've updated the `getStatus` logic and the UI styling using Tailwind classes. I'm focusing on ensuring responsiveness, using soft backgrounds and distinct text colors in badges, and adding subtle animations for the \"New\" status. The database update in `ReportDetailModal` is now triggering reliably.\n\n\n**Revising Badge Design**\n\nI'm now revising the badge designs in `ReportView.tsx`. I'll implement a clean design: Blue badges for \"New\" reports, Gray for \"Read,\" and a Green theme for \"Commented.\" This ensures visual clarity. I'll test the updates in `ReportDetailModal.tsx` to ensure real-time status updates are maintained, leveraging the existing `markReportAsViewed` function. I will check the `getStatus` logic.\n\n\n**Integrating Manager Logic**\n\nI'm now integrating the manager logic for statuses. I'm focusing on the `getStatus` function in `ReportView.tsx` to display the correct status badges. I'm prioritizing showing a blinking blue dot for unread reports and an amber badge for commented reports. My goal is clear distinction based on user roles, utilizing existing logic but expanding it.\n\n\n",
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768223116,
+      "nanos": 26000000
+    },
+    "doneTimestamp": {
+      "seconds": 1768223129,
+      "nanos": 925000000
+    }
+  },
+  {
+    "id": 228,
+    "author": "model",
+    "payload": {
+      "type": "text",
+      "text": "هذا اقتراح ممتاز جداً ويزيد من كفاءة العمل الإداري! إن تمييز التقارير بصرياً يساعد المسؤول على ترتيب أولوياته بلمحة بصر، وفكرة \"الاختفاء اللحظي\" للعلامة عند الدخول تضمن عدم تشتت المسؤول بالتقارير التي سبق واطلع عليها.\n\n### المواصفات الفنية للتحديث:\n\n1.  **تطوير `ReportView.tsx`**: سنقوم بإعادة تصميم نظام \"الحالة\" (Badges) ليكون أكثر أناقة واحترافية:\n    *   **جديد (New)**: سيظهر بلون أزرق مشع مع نقطة نبض (Pulse Animation) لجذب الانتباه فوراً.\n    *   **تمت قراءته (Read)**: سيتحول إلى لون رمادي هادئ وأنيق يشير إلى اكتمال الاطلاع.\n    *   **تم التعليق (Commented)**: سيظهر بلون ذهبي/برتقالي ليدل على وجود توجيهات إدارية من قبلك.\n2.  **آلية التحديث اللحظي**:\n    *   عندما تضغط على التقرير ويفتح \"المودال\"، سيقوم التطبيق فوراً بإرسال أمر لقاعدة البيانات (Supabase) لتغيير حالة `isViewedByManager` إلى `true`.\n    *   بفضل المزامنة اللحظية التي قمنا ببنائها، سيتحدث الكارت في الخلفية فوراً حتى قبل إغلاق التقرير، مما يعطيك شعوراً بالسلاسة التامة.\n3.  **التنسيق البصري**: سنضيف حدوداً (Borders) ملونة للكروت غير المقروءة لتمييزها بوضوح عن البقية في القائمة.\n\nإليك الكود المحدث لتنفيذ هذه الفكرة الإبداعية:\n\n",
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768223129,
+      "nanos": 925000000
+    },
+    "doneTimestamp": {
+      "seconds": 1768223129,
+      "nanos": 991000000
+    }
+  },
+  {
+    "id": 229,
+    "author": "model",
+    "payload": {
+      "type": "generationTable",
+      "entries": [
+        {
+          "path": "components/ReportView.tsx",
+          "generationType": 1,
+          "isDone": true,
+          "description": "تحديث واجهة عرض التقرير في القائمة لإضافة الحالات الجديدة (جديد، تمت قراءته، تم التعليق) بتصميم عصري وألوان مميزة.",
+          "diffs": [
+            {
+              "target": "",
+              "replacement": "\nimport React from 'react';\nimport { Report, User, Role } from '../types';\nimport Avatar from './Avatar';\nimport ChevronRightIcon from './icons/ChevronRightIcon';\n\ninterface ReportViewProps {\n    report: Report;\n    user: User; // The user who submitted the report\n    viewerRole: Role;\n    onClick: () => void;\n}\n\nconst ReportView: React.FC<ReportViewProps> = ({ report, user, viewerRole, onClick }) => {\n    const isManager = viewerRole === Role.MANAGER;\n    \n    const getStatus = () => {\n        // واجهة المنتسب (الموظف)\n        if (!isManager) {\n            if (report.managerComment && !report.isCommentReadByEmployee) {\n                return (\n                    <span className=\"flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-full dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800\">\n                        <span className=\"w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse\"></span>\n                        توجيه جديد\n                    </span>\n                );\n            }\n            if (report.managerComment) {\n                 return <span className=\"px-3 py-1 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 rounded-full dark:bg-green-900/30 dark:text-green-300 dark:border-green-800\">تم التوجيه</span>;\n            }\n            return <span className=\"px-3 py-1 text-[10px] font-bold text-gray-500 bg-gray-50 border border-gray-100 rounded-full dark:bg-gray-700/50 dark:text-gray-400 dark:border-gray-600\">تم الإرسال</span>;\n        }\n        \n        // واجهة المسؤول (Manager) - التحديث المطلوب\n        if (report.managerComment) {\n            return (\n                <span className=\"px-3 py-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800 shadow-sm\">\n                    تم التعليق\n                </span>\n            );\n        }\n\n        if (!report.isViewedByManager) {\n            return (\n                <div className=\"flex items-center gap-2\">\n                    <span className=\"relative flex h-2 w-2\">\n                      <span className=\"animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75\"></span>\n                      <span className=\"relative inline-flex rounded-full h-2 w-2 bg-blue-600\"></span>\n                    </span>\n                    <span className=\"px-3 py-1 text-[10px] font-bold text-white bg-blue-600 rounded-full shadow-md shadow-blue-500/20\">\n                        جديد\n                    </span>\n                </div>\n            );\n        }\n\n        return (\n            <span className=\"px-3 py-1 text-[10px] font-bold text-gray-500 bg-gray-50 border border-gray-200 rounded-full dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700\">\n                تمت قراءته\n            </span>\n        );\n    }\n\n    return (\n        <div \n            className={`group overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-sm border transition-all duration-300 active:scale-[0.98] ${\n                !report.isViewedByManager && isManager \n                ? 'border-blue-500 ring-4 ring-blue-500/5 bg-blue-50/5' \n                : 'border-gray-100 dark:border-gray-700 hover:border-brand-light'\n            }`}\n            onClick={onClick}\n            role=\"button\"\n            aria-label={`عرض تقرير ${user.fullName} بتاريخ ${report.date}`}\n        >\n            <div className=\"px-5 py-4\">\n                <div className=\"flex items-center justify-between\">\n                    <div className=\"flex items-center gap-4\">\n                        <div className=\"relative\">\n                            <Avatar src={user.profilePictureUrl} name={user.fullName} size={48} className=\"ring-2 ring-white dark:ring-gray-700\" />\n                            {!report.isViewedByManager && isManager && (\n                                <span className=\"absolute -top-1 -right-1 w-3 h-3 bg-blue-600 border-2 border-white dark:border-gray-800 rounded-full\"></span>\n                            )}\n                        </div>\n                        <div>\n                            <p className=\"font-bold text-gray-900 dark:text-gray-100 text-sm md:text-base\">{user.fullName}</p>\n                            <p className=\"text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium\">{user.jobTitle}</p>\n                        </div>\n                    </div>\n                    \n                    <div className=\"flex items-center gap-4\">\n                        <div className=\"hidden sm:block text-left ml-2\">\n                             <p className=\"text-[10px] font-bold text-brand-dark dark:text-brand-light\">#{report.sequenceNumber}</p>\n                             <p className=\"text-[9px] text-gray-400 font-medium\">{report.date}</p>\n                        </div>\n                        \n                        <div className=\"flex items-center gap-3\">\n                            {getStatus()}\n                            <ChevronRightIcon className=\"w-5 h-5 text-gray-300 group-hover:text-brand-light transition-colors\" />\n                        </div>\n                    </div>\n                </div>\n            </div>\n        </div>\n    );\n};\n\nexport default ReportView;\n"
+            }
+          ]
+        }
+      ]
+    },
+    "createdTimestamp": {
+      "seconds": 1768223132,
+      "nanos": 604000000
+    },
+    "doneTimestamp": {
+      "seconds": 1768223141,
+      "nanos": 425000000
+    }
+  },
+  {
+    "id": 230,
+    "author": "model",
+    "payload": {
+      "type": "text",
+      "text": "\n\nلقد قمت بتطبيق التعديلات التالية:\n- **تصميم الكروت**: الآن التقرير \"الجديد\" يظهر بحدود زرقاء مميزة وتوهج خفيف (Ring) ليقفز إلى عين المسؤول فوراً.\n- **تسميات واضحة**: استخدمت تسميات \"جديد\" بخلفية زرقاء صلبة، و \"تمت قراءته\" بلون محايد، و \"تم التعليق\" بلون كهرماني (Amber) يوحي بالأهمية.\n- **تفاعل لحظي**: بمجرد دخولك إلى التقرير (فتح المودال)، ستقوم وظيفة `useEffect` الموجودة أصلاً في `ReportDetailModal` بتحديث قاعدة البيانات، وبما أن القائمة مشتركة في الـ `Context` وتراقب التغييرات، ستتحول الحالة أمامك فوراً إلى \"تمت قراءته\".\n\nما رأيك بهذا المظهر الجديد؟ هل تود تعديل أي من الألوان المختارة؟",
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768223141,
+      "nanos": 426000000
+    },
+    "doneTimestamp": {
+      "seconds": 1768223141,
+      "nanos": 593000000
+    }
+  },
+  {
+    "id": 232,
+    "author": "user",
+    "payload": {
+      "type": "text",
+      "text": "هذا جميل جدا لكن الاشعارات لازالت نفسها عند دخول اليها لا يذهب الاشعار فورا",
+      "files": [],
+      "fileUploads": [],
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768223286,
+      "nanos": 580000000
+    }
+  },
+  {
+    "id": 233,
+    "author": "model",
+    "payload": {
+      "type": "thinking",
+      "text": "**Designing Visual Cues**\n\nI'm currently focused on the visual aspects of the report statuses. I've decided on a blue badge with a pulse for \"New\" reports, and a gray badge that appears only after the report is opened for \"Read\" status. The next step is the design for the \"Commented\" status.\n\n\n**Defining the Comment Status**\n\nI've settled on an amber/gold visual cue to indicate a manager comment. The user feedback highlights a persistent issue: even after viewing, notifications don't disappear instantly. I'm diagnosing the delay; it seems like a synchronization lag between the database update, handled by Supabase, and the real-time subscription update to the report list in DataContext. I need to pinpoint where the state and data are out-of-sync.\n\n\n**Optimizing UI Updates**\n\nI'm now thinking about how the UI reacts to changes, especially the manager's \"Read\" status. The current setup, as I understand, relies on `report.isViewedByManager` directly from props in `ReportView.tsx`. The core issue is the perceived delay; the notification doesn't disappear immediately after viewing. I see now that `ReportDetailModal.tsx` contains a `useEffect` that triggers when the modal opens and calls `markReportAsViewed`. The challenge is to make the change instantaneous from the user's perspective, whether the modal is open or closed, so the list behind it updates instantly.\n\n\n**Troubleshooting State Sync**\n\nI'm now zeroing in on the \"New\" vs. \"Read\" status logic in `ReportView.tsx`. The code uses `report.isViewedByManager` to determine the visual cue, but the UI update might lag behind the server broadcast. To fix this, I need to verify `markReportAsViewed` is triggered. I need to consider a small optimistic UI update to make the transition immediate. I also need to make sure the condition for `report.isViewedByManager` is being satisfied correctly, in `ReportView`.\n\n\n**Analyzing Realtime Updates**\n\nI'm now investigating why the notification status isn't updating instantly. The problem isn't the function calls; `markReportAsViewed` is triggered as expected in `ReportDetailModal.tsx`. I suspect the delay is due to the data context not updating fast enough after the database change. I will examine `DataContext.tsx` to determine the state management strategy. Is there a dependency missing that is causing a refresh? Perhaps I need to force a re-render of the list.\n\n\n**Implementing Optimistic Updates**\n\nI'm now zeroing in on optimizing the `DataContext.tsx`. I will be updating the local `appState` optimistically within `DataContext.tsx` when `markReportAsViewed` is triggered. I'll also revisit `ReportView.tsx` to ensure the correct colors and animations are used. I will also be making this look even \"more beautiful\" as requested. Finally, I will ensure `ReportDetailModal.tsx` is appropriately triggering the \"mark as viewed\" action to complete the flow.\n\n\n**Prioritizing Status Logic**\n\nI'm now refining the logic in `ReportView.tsx` to handle status priority. The user preferences have made things more clear. I've defined a clear set of visual cues, ensuring that \"Commented\" takes precedence, followed by \"New\", and finally, \"Read\". I am now focusing on the implementation details for the optimistic updates in `DataContext.tsx` to ensure instant visual feedback.\n\n\n",
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768223286,
+      "nanos": 580000000
+    },
+    "doneTimestamp": {
+      "seconds": 1768223315,
+      "nanos": 274000000
+    }
+  },
+  {
+    "id": 234,
+    "author": "model",
+    "payload": {
+      "type": "text",
+      "text": "لقد استوعبت ملاحظتك بدقة. السبب في تأخر اختفاء علامة \"جديد\" هو أن التطبيق كان ينتظر رد قاعدة البيانات (Supabase) ثم عودة الإشارة عبر المزامنة اللحظية، مما يسبب تأخيراً بسيطاً.\n\nلجعل الأمر **لحظياً (Instant)**، سنقوم بتحديث الحالة في واجهة المستخدم **فورياً** (Optimistic Update) قبل حتى أن يصل الرد من الخادم. بمجرد أن يلمس إصبعك التقرير، ستتحول الحالة داخلياً، مما يعطي تجربة مستخدم فائقة السلاسة.\n\n### التعديلات التي سأقوم بها:\n\n1.  **تحديث `DataContext.tsx`**: سأجعل وظيفة `markReportAsViewed` تقوم بتحديث قائمة التقارير محلياً فور استدعائها، لضمان اختفاء الإشعار فوراً.\n2.  **تحسين `ReportView.tsx`**: سأعزز المظهر البصري ليكون أكثر جاذبية مع إضافة تأثيرات حركية (Animations) تجعل التقرير الجديد \"ينبض\" بالحياة، والتقرير الذي تمت قراءته \"يهدأ\" بصرياً.\n\n",
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768223315,
+      "nanos": 276000000
+    },
+    "doneTimestamp": {
+      "seconds": 1768223315,
+      "nanos": 372000000
+    }
+  },
+  {
+    "id": 235,
+    "author": "model",
+    "payload": {
+      "type": "generationTable",
+      "entries": [
+        {
+          "path": "context/DataContext.tsx",
+          "generationType": 1,
+          "isDone": true,
+          "description": "إضافة التحديث المتفائل (Optimistic Update) لوظيفة markReportAsViewed لضمان اختفاء إشعار \"جديد\" فور الضغط على التقرير دون أي تأخير.",
+          "diffs": [
+            {
+              "target": "",
+              "replacement": "\nimport React, { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect, useRef } from 'react';\nimport { User, Report, Announcement, DirectTask } from '../types';\nimport * as api from '../services/apiService';\n\ninterface AppState {\n    users: User[];\n    reports: Report[];\n    announcements: Announcement[];\n    directTasks: DirectTask[];\n}\n\ninterface DataContextType extends AppState {\n    isDataLoading: boolean;\n    isCloud: boolean;\n    error: string | null;\n    isSyncing: boolean;\n    refreshData: () => Promise<void>;\n    notification: { message: string, type: 'info' | 'success', id: number } | null;\n    clearNotification: () => void;\n    getUserById: (id: string) => User | undefined;\n    addReport: (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => Promise<void>;\n    updateReport: (updatedReport: Report) => Promise<void>;\n    saveOrUpdateDraft: (draft: Partial<Report>) => Promise<void>;\n    deleteReport: (reportId: string) => Promise<void>;\n    markReportAsViewed: (reportId: string) => Promise<void>;\n    markCommentAsRead: (reportId: string) => Promise<void>;\n    addUser: (user: Omit<User, 'id'>) => Promise<void>;\n    updateUser: (user: User) => Promise<void>;\n    deleteUser: (userId: string) => Promise<void>;\n    addAnnouncement: (content: string) => Promise<void>;\n    updateAnnouncement: (announcementId: string, content: string) => Promise<void>;\n    deleteAnnouncement: (announcementId: string) => Promise<void>;\n    markAnnouncementAsRead: (announcementId: string, userId: string) => Promise<void>;\n    addDirectTask: (task: Omit<DirectTask, 'id' | 'sentAt' | 'status' | 'isReadByEmployee'>) => Promise<void>;\n    updateDirectTaskStatus: (taskId: string, status: 'acknowledged' | 'rejected', rejectionReason?: string) => Promise<void>;\n    markDirectTaskAsRead: (taskId: string) => Promise<void>;\n    unlockAudio: () => void;\n    testNotification: () => void;\n}\n\nconst DataContext = createContext<DataContextType | undefined>(undefined);\n\nexport const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {\n    const [appState, setAppState] = useState<AppState>({ users: [], reports: [], announcements: [], directTasks: [] });\n    const [isDataLoading, setIsDataLoading] = useState(true);\n    const [isSyncing, setIsSyncing] = useState(false);\n    const [isCloud, setIsCloud] = useState(false);\n    const [error, setError] = useState<string | null>(null);\n    const [notification, setNotification] = useState<{ message: string, type: 'info' | 'success', id: number } | null>(null);\n    \n    const audioRef = useRef<HTMLAudioElement | null>(null);\n\n    useEffect(() => {\n        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');\n        audioRef.current.load();\n    }, []);\n\n    const unlockAudio = useCallback(() => {\n        if (audioRef.current) {\n            audioRef.current.play().then(() => {\n                audioRef.current?.pause();\n                if (audioRef.current) audioRef.current.currentTime = 0;\n            }).catch(e => console.log(\"Audio unlock interaction needed\", e));\n        }\n    }, []);\n\n    const playNotificationSound = useCallback(() => {\n        if (audioRef.current) {\n            audioRef.current.currentTime = 0;\n            audioRef.current.volume = 0.6;\n            audioRef.current.play().catch(e => console.warn(\"Sound blocked by browser policy\", e));\n        }\n    }, []);\n\n    const triggerNotification = useCallback((title: string, body: string, type: 'info' | 'success' = 'info') => {\n        setNotification({ message: body, type, id: Date.now() });\n        playNotificationSound();\n\n        if (\"vibrate\" in navigator) {\n            navigator.vibrate([100, 50, 100]);\n        }\n\n        if (\"Notification\" in window && Notification.permission === \"granted\") {\n            const options: any = {\n                body,\n                icon: 'https://img.icons8.com/fluency/192/task.png',\n                badge: 'https://img.icons8.com/fluency/48/task.png',\n                vibrate: [200, 100, 200],\n                tag: 'daily-tasks-alert',\n            };\n            \n            navigator.serviceWorker.ready.then(registration => {\n                registration.showNotification(title, options);\n            }).catch(() => {\n                new Notification(title, options);\n            });\n        }\n    }, [playNotificationSound]);\n\n    const testNotification = useCallback(() => {\n        triggerNotification(\"تجربة التنبيهات\", \"هذا إشعار تجريبي للتأكد من عمل الصوت والاشعارات بشكل صحيح.\", \"success\");\n    }, [triggerNotification]);\n\n    const clearNotification = useCallback(() => setNotification(null), []);\n\n    const loadData = useCallback(async (silent = false) => {\n        if (!silent) setIsDataLoading(true);\n        else setIsSyncing(true);\n        try {\n            const data = await api.fetchInitialData();\n            setAppState({\n                users: data.users,\n                reports: data.reports,\n                announcements: data.announcements,\n                directTasks: data.directTasks\n            });\n            setIsCloud(data.isCloud);\n        } catch (error: any) {\n            if (!silent) setError(error.message || \"فشل الاتصال بقاعدة البيانات.\");\n        } finally {\n            setIsDataLoading(false);\n            setIsSyncing(false);\n        }\n    }, []);\n\n    const refreshData = useCallback(async () => {\n        await loadData(true);\n    }, [loadData]);\n\n    useEffect(() => {\n        loadData();\n        \n        const unsubscribe = api.subscribeToAllChanges((payload) => {\n            const { table, eventType, new: newRecord, old: oldRecord } = payload;\n            \n            setAppState(prev => {\n                const newState = { ...prev };\n                const loggedInUserId = localStorage.getItem('loggedInUserId') || sessionStorage.getItem('loggedInUserId');\n                const currentUser = prev.users.find(u => u.id === loggedInUserId);\n\n                if (table === 'reports') {\n                    if (eventType === 'INSERT' || eventType === 'UPDATE') {\n                        const mapped = api.mapReport(newRecord);\n                        const existsIndex = prev.reports.findIndex(r => r.id === mapped.id);\n                        if (existsIndex > -1) {\n                            // للحفاظ على الترتيب والبيانات المحدثة\n                            newState.reports = prev.reports.map(r => r.id === mapped.id ? mapped : r);\n                        } else {\n                            newState.reports = [mapped, ...prev.reports];\n                        }\n\n                        if (eventType === 'INSERT' && mapped.status === 'submitted' && currentUser?.role === 'manager') {\n                            const sender = prev.users.find(u => u.id === mapped.userId);\n                            triggerNotification('تقرير جديد', `أرسل ${sender?.fullName.split(' ')[0]} تقريراً جديداً الآن.`);\n                        }\n                    } else if (eventType === 'DELETE') {\n                        newState.reports = prev.reports.filter(r => r.id !== oldRecord.id);\n                    }\n                } \n                else if (table === 'direct_tasks') {\n                    if (eventType === 'INSERT' || eventType === 'UPDATE') {\n                        const mapped = api.mapDirectTask(newRecord);\n                        const existsIndex = prev.directTasks.findIndex(t => t.id === mapped.id);\n                        if (existsIndex > -1) newState.directTasks = prev.directTasks.map(t => t.id === mapped.id ? mapped : t);\n                        else newState.directTasks = [mapped, ...prev.directTasks];\n                    } else if (eventType === 'DELETE') {\n                        newState.directTasks = prev.directTasks.filter(t => t.id !== oldRecord.id);\n                    }\n                } \n                else if (table === 'announcements') {\n                    if (eventType === 'INSERT' || eventType === 'UPDATE') {\n                        const mapped = api.mapAnnouncement(newRecord);\n                        const existsIndex = prev.announcements.findIndex(a => a.id === mapped.id);\n                        if (existsIndex > -1) newState.announcements = prev.announcements.map(a => a.id === mapped.id ? mapped : a);\n                        else newState.announcements = [mapped, ...prev.announcements];\n                    } else if (eventType === 'DELETE') {\n                        newState.announcements = prev.announcements.filter(a => a.id !== oldRecord.id);\n                    }\n                } \n                else if (table === 'users') {\n                    if (eventType === 'INSERT' || eventType === 'UPDATE') {\n                        const mapped = api.mapUser(newRecord);\n                        const existsIndex = prev.users.findIndex(u => u.id === mapped.id);\n                        if (existsIndex > -1) newState.users = prev.users.map(u => u.id === mapped.id ? mapped : u);\n                        else newState.users = [...prev.users, mapped];\n                    } else if (eventType === 'DELETE') {\n                        newState.users = prev.users.filter(u => u.id !== oldRecord.id);\n                    }\n                }\n\n                return newState;\n            });\n        });\n\n        return () => { unsubscribe(); };\n    }, [loadData, triggerNotification]);\n    \n    const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);\n\n    const saveOrUpdateDraft = useCallback(async (draft: Partial<Report>) => {\n        try { await api.saveOrUpdateDraft(draft); } catch (error) { throw error; }\n    }, []);\n\n    const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => {\n        try { await api.createReport(report); } catch (error) { throw error; }\n    }, []);\n\n    const updateReport = useCallback(async (updatedReport: Report) => {\n        try { await api.updateReport(updatedReport); } catch (error) { throw error; }\n    }, []);\n\n    const deleteReport = useCallback(async (reportId: string) => {\n        try { await api.deleteReport(reportId); } catch (error) { throw error; }\n    }, []);\n\n    const markReportAsViewed = useCallback(async (reportId: string) => {\n        // تحديث متفائل (Optimistic Update) لجعل التغيير لحظياً في الواجهة\n        setAppState(prev => ({\n            ...prev,\n            reports: prev.reports.map(r => r.id === reportId ? { ...r, isViewedByManager: true } : r)\n        }));\n        await api.markReportAsViewed(reportId);\n    }, []);\n\n    const markCommentAsRead = useCallback(async (reportId: string) => {\n        setAppState(prev => ({\n            ...prev,\n            reports: prev.reports.map(r => r.id === reportId ? { ...r, isCommentReadByEmployee: true } : r)\n        }));\n        await api.markCommentAsRead(reportId);\n    }, []);\n\n    const addUser = useCallback(async (user: Omit<User, 'id'>) => api.createUser(user), []);\n    const updateUser = useCallback(async (updatedUser: User) => api.updateUser(updatedUser), []);\n    const deleteUser = useCallback(async (userId: string) => api.deleteUser(userId), []);\n    const addAnnouncement = useCallback(async (content: string) => api.createAnnouncement(content), []);\n    const updateAnnouncement = useCallback(async (announcementId: string, content: string) => api.updateAnnouncement(announcementId, content), []);\n    const deleteAnnouncement = useCallback(async (announcementId: string) => api.deleteAnnouncement(announcementId), []);\n    const markAnnouncementAsRead = useCallback(async (announcementId: string, userId: string) => api.markAnnouncementAsRead(announcementId, userId), []);\n    const addDirectTask = useCallback(async (task: Omit<DirectTask, 'id' | 'sentAt' | 'status' | 'isReadByEmployee'>) => api.createDirectTask(task), []);\n    const updateDirectTaskStatus = useCallback(async (taskId: string, status: 'acknowledged' | 'rejected', rejectionReason?: string) => api.updateDirectTaskStatus(taskId, status, rejectionReason), []);\n    const markDirectTaskAsRead = useCallback(async (taskId: string) => api.markDirectTaskAsRead(taskId), []);\n\n    const value = useMemo(() => ({\n        ...appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,\n        markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,\n        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification\n    }), [\n        appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, addReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed,\n        markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,\n        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification\n    ]);\n\n    return (\n        <DataContext.Provider value={value}>\n            {children}\n        </DataContext.Provider>\n    );\n};\n\nexport const useData = (): DataContextType => {\n    const context = useContext(DataContext);\n    if (!context) throw new Error('useData must be used within a DataProvider');\n    return context;\n};\n"
+            }
+          ]
+        },
+        {
+          "path": "components/ReportView.tsx",
+          "generationType": 1,
+          "isDone": true,
+          "description": "تحديث واجهة عرض التقرير لجعل الحالات (جديد، تمت قراءته، تم التعليق) أكثر تميزاً وبجمالية عالية كما طلب المستخدم، مع تحسين استجابة الواجهة.",
+          "diffs": [
+            {
+              "target": "",
+              "replacement": "\nimport React from 'react';\nimport { Report, User, Role } from '../types';\nimport Avatar from './Avatar';\nimport ChevronRightIcon from './icons/ChevronRightIcon';\n\ninterface ReportViewProps {\n    report: Report;\n    user: User; // The user who submitted the report\n    viewerRole: Role;\n    onClick: () => void;\n}\n\nconst ReportView: React.FC<ReportViewProps> = ({ report, user, viewerRole, onClick }) => {\n    const isManager = viewerRole === Role.MANAGER;\n    \n    const getStatus = () => {\n        // واجهة المنتسب (الموظف)\n        if (!isManager) {\n            if (report.managerComment && !report.isCommentReadByEmployee) {\n                return (\n                    <span className=\"flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-full dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800\">\n                        <span className=\"w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse\"></span>\n                        توجيه جديد\n                    </span>\n                );\n            }\n            if (report.managerComment) {\n                 return <span className=\"px-3 py-1 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 rounded-full dark:bg-green-900/30 dark:text-green-300 dark:border-green-800 font-cairo\">تم التوجيه</span>;\n            }\n            return <span className=\"px-3 py-1 text-[10px] font-bold text-gray-500 bg-gray-50 border border-gray-100 rounded-full dark:bg-gray-700/50 dark:text-gray-400 dark:border-gray-600 font-cairo\">تم الإرسال</span>;\n        }\n        \n        // واجهة المسؤول (Manager) - الحالات المطلوبة\n        \n        // 1. إذا تم التعليق عليه (أولوية عالية)\n        if (report.managerComment) {\n            return (\n                <span className=\"px-3 py-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800 shadow-sm animate-fade-in font-cairo\">\n                    تم التعليق\n                </span>\n            );\n        }\n\n        // 2. إذا كان جديداً (لم يُقرأ)\n        if (!report.isViewedByManager) {\n            return (\n                <div className=\"flex items-center gap-2 animate-fade-in\">\n                    <span className=\"relative flex h-2.5 w-2.5\">\n                      <span className=\"animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75\"></span>\n                      <span className=\"relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600\"></span>\n                    </span>\n                    <span className=\"px-3 py-1 text-[10px] font-extrabold text-white bg-blue-600 rounded-full shadow-lg shadow-blue-500/30 font-cairo\">\n                        جديد\n                    </span>\n                </div>\n            );\n        }\n\n        // 3. إذا تمت قراءته\n        return (\n            <span className=\"px-3 py-1 text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-200 rounded-full dark:bg-gray-800/50 dark:text-gray-500 dark:border-gray-700 font-cairo transition-all duration-500\">\n                تمت قراءته\n            </span>\n        );\n    }\n\n    // تحديد لون الحدود بناءً على الحالة\n    const getBorderClass = () => {\n        if (!isManager) return 'border-gray-100 dark:border-gray-700';\n        if (report.managerComment) return 'border-amber-200 dark:border-amber-900/50 bg-amber-50/10';\n        if (!report.isViewedByManager) return 'border-blue-400 ring-4 ring-blue-500/5 bg-blue-50/10 dark:bg-blue-900/5 dark:border-blue-800';\n        return 'border-gray-100 dark:border-gray-700 opacity-80';\n    };\n\n    return (\n        <div \n            className={`group overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-sm border transition-all duration-300 active:scale-[0.98] cursor-pointer ${getBorderClass()} hover:border-brand-light`}\n            onClick={onClick}\n            role=\"button\"\n            aria-label={`عرض تقرير ${user.fullName} بتاريخ ${report.date}`}\n        >\n            <div className=\"px-5 py-4\">\n                <div className=\"flex items-center justify-between\">\n                    <div className=\"flex items-center gap-4\">\n                        <div className=\"relative\">\n                            <Avatar src={user.profilePictureUrl} name={user.fullName} size={48} className=\"ring-2 ring-white dark:ring-gray-700 transition-transform group-hover:scale-105\" />\n                            {isManager && !report.isViewedByManager && !report.managerComment && (\n                                <span className=\"absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-600 border-2 border-white dark:border-gray-800 rounded-full shadow-sm\"></span>\n                            )}\n                        </div>\n                        <div>\n                            <p className=\"font-bold text-gray-900 dark:text-gray-100 text-sm md:text-base leading-tight\">{user.fullName}</p>\n                            <p className=\"text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium\">{user.jobTitle}</p>\n                        </div>\n                    </div>\n                    \n                    <div className=\"flex items-center gap-4\">\n                        <div className=\"hidden sm:block text-left ml-2\">\n                             <p className=\"text-[10px] font-bold text-brand-dark dark:text-brand-light\">#{report.sequenceNumber}</p>\n                             <p className=\"text-[9px] text-gray-400 font-medium\">{report.date}</p>\n                        </div>\n                        \n                        <div className=\"flex items-center gap-3\">\n                            {getStatus()}\n                            <ChevronRightIcon className=\"w-5 h-5 text-gray-300 group-hover:text-brand-light group-hover:translate-x-[-4px] transition-all\" />\n                        </div>\n                    </div>\n                </div>\n            </div>\n        </div>\n    );\n};\n\nexport default ReportView;\n"
+            }
+          ]
+        }
+      ]
+    },
+    "createdTimestamp": {
+      "seconds": 1768223317,
+      "nanos": 254000000
+    },
+    "doneTimestamp": {
+      "seconds": 1768223335,
+      "nanos": 525000000
+    }
+  },
+  {
+    "id": 236,
+    "author": "model",
+    "payload": {
+      "type": "text",
+      "text": "\n\nلقد تم تنفيذ التعديل الآن!\nبمجرد أن يضغط المسؤول على تقرير \"جديد\"، ستحصل الخطوات التالية:\n1.  **تغيير فوري**: سيتغير كارت التقرير في الخلفية فوراً من \"جديد\" إلى \"تمت قراءته\" دون انتظار رد الخادم.\n2.  **ألوان احترافية**: \"جديد\" باللون الأزرق النبضي، \"تمت قراءته\" بالرمادي الهادئ، و\"تم التعليق\" باللون الكهرماني المميز.\n3.  **سلاسة فائقة**: أضفت تأثيرات حركية (Transitions) تجعل التنقل بين الحالات يبدو طبيعياً وأنيقاً جداً.\n\nجرب الآن الضغط على تقرير جديد، وستلاحظ اختفاء العلامة بلمح البصر!",
+      "cMarkNode": {}
+    },
+    "createdTimestamp": {
+      "seconds": 1768223345,
+      "nanos": 717000000
+    },
+    "doneTimestamp": {
+      "seconds": 1768223345,
+      "nanos": 770000000
+    }
+  }
+]

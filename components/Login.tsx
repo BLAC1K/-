@@ -9,9 +9,13 @@ import EyeIcon from './icons/EyeIcon';
 import EyeSlashIcon from './icons/EyeSlashIcon';
 import CheckCircleIcon from './icons/CheckCircleIcon';
 import ExclamationCircleIcon from './icons/ExclamationCircleIcon';
+import ChevronRightIcon from './icons/ChevronRightIcon';
 
+interface LoginProps {
+    onBack?: () => void;
+}
 
-const Login: React.FC = () => {
+const Login: React.FC<LoginProps> = ({ onBack }) => {
     const { login, loginLoading } = useAuth();
     const { unlockAudio, isDataLoading, isCloud, error: dataError } = useData();
 
@@ -45,7 +49,17 @@ const Login: React.FC = () => {
             <div className="absolute top-0 -right-4 w-72 h-72 bg-brand-accent-yellow rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob animation-delay-2000"></div>
             <div className="absolute -bottom-8 left-20 w-72 h-72 bg-brand-accent-red rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob animation-delay-4000"></div>
 
-            <div className="w-full max-w-md p-8 space-y-6 bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl z-10">
+            <div className="w-full max-w-md p-8 space-y-6 bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl z-10 relative">
+                {onBack && (
+                    <button 
+                        onClick={onBack}
+                        type="button"
+                        className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors flex items-center gap-1 text-sm"
+                    >
+                        <ChevronRightIcon className="w-4 h-4" />
+                        العودة
+                    </button>
+                )}
                 <div className="flex flex-col items-center text-center">
                     <div className="w-20 h-20 mb-6 transition-transform hover:scale-110 duration-500">
                         <AppLogoIcon />
