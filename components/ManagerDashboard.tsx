@@ -101,10 +101,10 @@ const ManagerDashboard: React.FC = () => {
     }
 
     return (
-        <div className="h-[100dvh] w-full bg-[#f8f9fa] dark:bg-[#121212] flex overflow-hidden">
-             {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
+        <div className="h-[100dvh] w-full bg-[#f8f9fa] dark:bg-[#121212] flex overflow-hidden print:h-auto print:overflow-visible print:block">
+             {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden print:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
             
-            <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-800 shadow-2xl transform transition-transform duration-300 ease-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-800 shadow-2xl transform transition-transform duration-300 ease-out md:relative md:translate-x-0 print:hidden ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="flex flex-col h-full border-l dark:border-gray-700">
                     <div className="flex items-center p-6 border-b dark:border-gray-700 gap-3 relative">
                         <button 
@@ -144,8 +144,8 @@ const ManagerDashboard: React.FC = () => {
                 </div>
             </aside>
             
-            <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-                <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b dark:border-gray-700 md:hidden z-20 sticky top-0 safe-area-top">
+            <div className="flex-1 flex flex-col h-full overflow-hidden relative print:h-auto print:overflow-visible print:block">
+                <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b dark:border-gray-700 md:hidden z-20 sticky top-0 safe-area-top print:hidden">
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8">
                             <AppLogoIcon />
@@ -163,8 +163,8 @@ const ManagerDashboard: React.FC = () => {
                         {isSidebarOpen ? <XMarkIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
                     </button>
                 </header>
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar bg-inherit">
-                    <div className="container mx-auto max-w-6xl">
+                <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar bg-inherit print:overflow-visible print:h-auto print:p-0">
+                    <div className="container mx-auto max-w-6xl print:min-h-0 print:block">
                         {activeTab === 'reports' && !isStandalone && (
                              <button 
                                 onClick={handleInstallClick}

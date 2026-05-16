@@ -280,10 +280,10 @@ const EmployeeDashboard: React.FC = () => {
     };
 
     return (
-        <div className="h-[100dvh] w-full bg-[#fcfdfe] dark:bg-[#0d1117] flex overflow-hidden">
-            {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
+        <div className="h-[100dvh] w-full bg-[#fcfdfe] dark:bg-[#0d1117] flex overflow-hidden print:h-auto print:overflow-visible print:block">
+            {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden print:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
             
-            <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 md:relative md:translate-x-0 print:hidden ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 <div className="flex flex-col h-full border-l dark:border-gray-800">
                     <div className="flex flex-col items-center p-6 border-b dark:border-gray-800 gap-2 relative">
                         <button 
@@ -328,8 +328,8 @@ const EmployeeDashboard: React.FC = () => {
                 </div>
             </aside>
             
-            <div className="flex-1 flex flex-col h-full overflow-hidden">
-                <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b dark:border-gray-800 md:hidden z-20 sticky top-0 safe-area-top">
+            <div className="flex-1 flex flex-col h-full overflow-hidden print:h-auto print:overflow-visible print:block">
+                <header className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b dark:border-gray-800 md:hidden z-20 sticky top-0 safe-area-top print:hidden">
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8"><AppLogoIcon /></div>
                         <h2 className="text-lg font-bold dark:text-gray-100">المهام اليومية</h2>
@@ -344,8 +344,8 @@ const EmployeeDashboard: React.FC = () => {
                     <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-gray-50 dark:bg-gray-800 rounded-2xl"><MenuIcon className="w-6 h-6" /></button>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-10 no-scrollbar bg-inherit">
-                    <div className="container mx-auto max-w-4xl min-h-full flex flex-col">
+                <main className="flex-1 overflow-y-auto p-4 md:p-10 no-scrollbar bg-inherit print:overflow-visible print:h-auto print:p-0">
+                    <div className="container mx-auto max-w-4xl min-h-full flex flex-col print:min-h-0 print:block">
                         <div className="flex-grow">
                             {activeTab === 'home' && (
                                 <div className="space-y-6 animate-fade-in">
@@ -537,7 +537,7 @@ const EmployeeDashboard: React.FC = () => {
                             {activeTab === 'profile' && <ProfileManagement user={currentUser} />}
                         </div>
 
-                        <footer className="mt-12 py-8 border-t dark:border-gray-800 text-center space-y-2 no-print">
+                        <footer className="mt-12 py-8 border-t dark:border-gray-800 text-center space-y-2 print:hidden">
                             <div className="flex justify-center items-center gap-3 opacity-30 grayscale mb-4">
                                 <div className="w-8 h-8"><AppLogoIcon /></div>
                                 <span className="text-sm font-bold dark:text-white">نظام مهامي الإلكتروني</span>

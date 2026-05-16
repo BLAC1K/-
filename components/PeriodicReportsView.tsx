@@ -199,9 +199,12 @@ const PeriodicReportsView: React.FC<PeriodicReportsViewProps> = ({ user, reports
                             value={currentReport.content || ''} 
                             onChange={(e) => setCurrentReport(prev => ({...prev, content: e.target.value}))}
                             rows={15}
-                            className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/30 transition-all leading-relaxed print:border-none print:bg-transparent print:p-0 print:overflow-visible print:whitespace-pre-wrap"
+                            className="w-full px-4 py-3 border border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-brand-light/30 transition-all leading-relaxed print:hidden"
                             dir="rtl"
                         />
+                        <div className="hidden print:block whitespace-pre-wrap leading-relaxed text-lg dark:text-white font-medium">
+                            {currentReport.content}
+                        </div>
                     </div>
                 </div>
 
