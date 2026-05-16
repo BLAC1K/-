@@ -43,15 +43,15 @@ const ManagerPeriodicReportsView: React.FC = () => {
     }, [selectedEmployeeId]);
 
     return (
-        <div className="space-y-6 animate-fade-in">
-            <div className="flex flex-col md:flex-row items-start justify-between border-b dark:border-gray-700 pb-4 gap-4">
+        <div id="printable-area" className="space-y-6 animate-fade-in print:bg-white print:text-black">
+            <div className="flex flex-col md:flex-row items-start justify-between border-b dark:border-gray-700 pb-4 gap-4 print:hidden">
                 <div>
                     <h3 className="text-2xl font-bold text-brand-dark dark:text-gray-100">التقارير الدورية للمنتسبين</h3>
                     <p className="text-gray-500 dark:text-gray-400">استطلاع التقارير الدورية (الشهرية، النصف سنوية، أو السنوية) المولدة من قبل المنتسبين.</p>
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-700 print:hidden">
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">اختر المنتسب לעرض تقاريره الدورية:</label>
                 <select 
                     value={selectedEmployeeId} 
@@ -80,6 +80,9 @@ const ManagerPeriodicReportsView: React.FC = () => {
                                         {report.type === 'monthly' ? 'شهري' : report.type === 'half-yearly' ? 'نصف سنوي' : 'سنوي'}
                                     </span>
                                     <span className="text-xs text-gray-500">{new Date(report.createdAt).toLocaleDateString('ar-EG')}</span>
+                                    <button onClick={() => window.print()} className="ml-auto text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-brand-dark dark:text-white transition-all print:hidden mr-auto font-bold">
+                                        طباعة
+                                    </button>
                                 </div>
                                 <h4 className="text-xl font-bold dark:text-white border-b dark:border-gray-700 pb-2">{report.title}</h4>
                                 <div className="mt-2 text-sm leading-relaxed whitespace-pre-wrap dark:text-gray-300 font-medium">

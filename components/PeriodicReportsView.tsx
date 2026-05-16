@@ -171,7 +171,7 @@ const PeriodicReportsView: React.FC<PeriodicReportsViewProps> = ({ user, reports
 
     if (viewMode === 'create' || viewMode === 'edit') {
         return (
-            <div className="space-y-6 animate-fade-in print:bg-white print:text-black">
+            <div id="printable-area" className="space-y-6 animate-fade-in print:bg-white print:text-black">
                 <div className="flex items-center justify-between border-b dark:border-gray-700 pb-4 print:hidden">
                     <div>
                         <h3 className="text-xl font-bold dark:text-white">{viewMode === 'edit' ? 'تعديل التقرير الدوري' : 'توليد تقرير دوري جديد'}</h3>
