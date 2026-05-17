@@ -47,6 +47,7 @@ interface DataContextType extends AppState {
     toggleLikeArtPost: (postId: string, userId: string, currentLikes: string[]) => Promise<void>;
     addArtComment: (postId: string, userId: string, content: string, currentComments: any[]) => Promise<void>;
     deleteArtComment: (postId: string, commentId: string, currentComments: any[]) => Promise<void>;
+    editArtComment: (postId: string, commentId: string, newContent: string, currentComments: any[]) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -293,18 +294,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const newComments = await api.deleteArtComment(postId, commentId, currentComments);
         setAppState(prev => ({...prev, artPosts: prev.artPosts.map(p => p.id === postId ? {...p, comments: newComments} : p)}));
     }, []);
+    const editArtComment = useCallback(async (postId: string, commentId: string, newContent: string, currentComments: any[]) => {
+        const newComments = await api.editArtComment(postId, commentId, newContent, currentComments);
+        setAppState(prev => ({...prev, artPosts: prev.artPosts.map(p => p.id === postId ? {...p, comments: newComments} : p)}));
+    }, []);
 
     const value = useMemo(() => ({
         ...appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, 
         addReport, submitReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markReportAsUnread, markAllReportsAsReadForUser,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification,
-        addArtPost, updateArtPost, deleteArtPost, toggleLikeArtPost, addArtComment, deleteArtComment
+        addArtPost, updateArtPost, deleteArtPost, toggleLikeArtPost, addArtComment, deleteArtComment, editArtComment
     }), [appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, 
         addReport, submitReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markReportAsUnread, markAllReportsAsReadForUser,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
         markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification,
-        addArtPost, updateArtPost, deleteArtPost, toggleLikeArtPost, addArtComment, deleteArtComment]);
+        addArtPost, updateArtPost, deleteArtPost, toggleLikeArtPost, addArtComment, deleteArtComment, editArtComment]);
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };

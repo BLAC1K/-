@@ -15,9 +15,9 @@ const generateId = () => crypto.randomUUID();
 
 export const mapArtComment = (row: any) => ({
     id: row.id,
-    userId: row.user_id,
+    userId: row.user_id || row.userId,
     content: row.content,
-    createdAt: row.created_at
+    createdAt: row.created_at || row.createdAt
 });
 
 export const mapArtPost = (row: any): ArtPost => ({
@@ -392,6 +392,12 @@ export const addArtComment = async (postId: string, userId: string, content: str
 
 export const deleteArtComment = async (postId: string, commentId: string, currentComments: any[]): Promise<any[]> => {
     const newComments = currentComments.filter(c => c.id !== commentId);
+    try { await supabase.from('art_posts').update({ comments: newComments.map(c => ({ id: c.id, user_id: c.userId, content: c.content, created_at: c.createdAt })) }).eq('id', postId); } catch(e) {}
+    return newComments.map(mapArtComment);
+};
+
+export const editArtComment = async (postId: string, commentId: string, newContent: string, currentComments: any[]): Promise<any[]> => {
+    const newComments = currentComments.map(c => c.id === commentId ? { ...c, content: newContent } : c);
     try { await supabase.from('art_posts').update({ comments: newComments.map(c => ({ id: c.id, user_id: c.userId, content: c.content, created_at: c.createdAt })) }).eq('id', postId); } catch(e) {}
     return newComments.map(mapArtComment);
 };
