@@ -24,6 +24,8 @@ import ArrowPathIcon from './icons/ArrowPathIcon';
 import WeeklyReportView from './WeeklyReportView';
 import ChartBarIcon from './icons/ChartBarIcon';
 import ManagerPeriodicReportsView from './ManagerPeriodicReportsView';
+import ArtsPlatform from './ArtsPlatform';
+import SparklesIcon from './icons/SparklesIcon';
 
 const ManagerDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
@@ -68,6 +70,7 @@ const ManagerDashboard: React.FC = () => {
         employees: 'إدارة المنتسبين',
         sentTasks: 'المهام المرسلة',
         periodic: 'التقارير الدورية للمنتسبين',
+        arts: 'منصة الفنون',
         profile: 'الملف الشخصي'
     };
 
@@ -77,6 +80,7 @@ const ManagerDashboard: React.FC = () => {
             case 'sentTasks': return <div className="pb-20"><SentTasksView /></div>;
             case 'weekly': return <div className="pb-20"><WeeklyReportView /></div>;
             case 'periodic': return <div className="pb-20"><ManagerPeriodicReportsView /></div>;
+            case 'arts': return <div className="pb-20"><ArtsPlatform isAdmin={true} /></div>;
             case 'profile': return <div className="pb-20"><ProfileManagement user={currentUser} /></div>;
             case 'reports':
             default: return <div className="pb-20"><ReportsView /></div>;
@@ -124,6 +128,7 @@ const ManagerDashboard: React.FC = () => {
                         <NavItem tabName="reports" label="التقارير" icon={<NewReportIcon className="w-6 h-6"/>} count={newReportsCount}/>
                         <NavItem tabName="weekly" label="الموقف الأسبوعي" icon={<ChartBarIcon className="w-6 h-6"/>} />
                         <NavItem tabName="periodic" label="التقارير الدورية للمنتسبين" icon={<ClipboardDocumentListIcon className="w-6 h-6"/>} />
+                        <NavItem tabName="arts" label="منصة الفنون" icon={<SparklesIcon className="w-6 h-6"/>} />
                         <NavItem tabName="employees" label="إدارة المنتسبين" icon={<UsersIcon className="w-6 h-6"/>} />
                         <NavItem tabName="sentTasks" label="المهام المرسلة" icon={<ClipboardDocumentListIcon className="w-6 h-6"/>} />
                         <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />

@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect, useRef } from 'react';
-import { User, Report, Announcement, DirectTask } from '../types';
+import { User, Report, Announcement, DirectTask, ArtPost } from '../types';
 import * as api from '../services/apiService';
 
 interface AppState {
@@ -8,6 +8,7 @@ interface AppState {
     reports: Report[];
     announcements: Announcement[];
     directTasks: DirectTask[];
+    artPosts: ArtPost[];
 }
 
 interface DataContextType extends AppState {
@@ -40,12 +41,18 @@ interface DataContextType extends AppState {
     markDirectTaskAsRead: (taskId: string) => Promise<void>;
     unlockAudio: () => void;
     testNotification: () => void;
+    addArtPost: (post: Omit<ArtPost, 'id' | 'createdAt' | 'likes' | 'comments'>) => Promise<void>;
+    updateArtPost: (post: ArtPost) => Promise<void>;
+    deleteArtPost: (postId: string) => Promise<void>;
+    toggleLikeArtPost: (postId: string, userId: string, currentLikes: string[]) => Promise<void>;
+    addArtComment: (postId: string, userId: string, content: string, currentComments: any[]) => Promise<void>;
+    deleteArtComment: (postId: string, commentId: string, currentComments: any[]) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [appState, setAppState] = useState<AppState>({ users: [], reports: [], announcements: [], directTasks: [] });
+    const [appState, setAppState] = useState<AppState>({ users: [], reports: [], announcements: [], directTasks: [], artPosts: [] });
     const [isDataLoading, setIsDataLoading] = useState(true);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isCloud, setIsCloud] = useState(false);
@@ -109,7 +116,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 users: data.users,
                 reports: data.reports,
                 announcements: data.announcements,
-                directTasks: data.directTasks
+                directTasks: data.directTasks,
+                artPosts: data.artPosts || []
             });
             setIsCloud(data.isCloud);
         } catch (error: any) {
@@ -261,15 +269,42 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const updateDirectTaskStatus = useCallback(async (tId: string, s: any, r?: string) => api.updateDirectTaskStatus(tId, s, r), []);
     const markDirectTaskAsRead = useCallback(async (tId: string) => api.markDirectTaskAsRead(tId), []);
 
+    const addArtPost = useCallback(async (post: any) => { 
+        const newPost = await api.createArtPost(post); 
+        setAppState(prev => ({...prev, artPosts: [newPost, ...prev.artPosts]})); 
+    }, []);
+    const updateArtPost = useCallback(async (post: any) => { 
+        const updated = await api.updateArtPost(post);
+        setAppState(prev => ({...prev, artPosts: prev.artPosts.map(p => p.id === post.id ? updated : p)}));
+    }, []);
+    const deleteArtPost = useCallback(async (id: string) => { 
+        await api.deleteArtPost(id);
+        setAppState(prev => ({...prev, artPosts: prev.artPosts.filter(p => p.id !== id)}));
+    }, []);
+    const toggleLikeArtPost = useCallback(async (postId: string, userId: string, currentLikes: string[]) => {
+        const newLikes = await api.toggleLikeArtPost(postId, userId, currentLikes);
+        setAppState(prev => ({...prev, artPosts: prev.artPosts.map(p => p.id === postId ? {...p, likes: newLikes} : p)}));
+    }, []);
+    const addArtComment = useCallback(async (postId: string, userId: string, content: string, currentComments: any[]) => {
+        const newComment = await api.addArtComment(postId, userId, content, currentComments);
+        setAppState(prev => ({...prev, artPosts: prev.artPosts.map(p => p.id === postId ? {...p, comments: [...p.comments, newComment]} : p)}));
+    }, []);
+    const deleteArtComment = useCallback(async (postId: string, commentId: string, currentComments: any[]) => {
+        const newComments = await api.deleteArtComment(postId, commentId, currentComments);
+        setAppState(prev => ({...prev, artPosts: prev.artPosts.map(p => p.id === postId ? {...p, comments: newComments} : p)}));
+    }, []);
+
     const value = useMemo(() => ({
         ...appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, 
         addReport, submitReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markReportAsUnread, markAllReportsAsReadForUser,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
-        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification
+        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification,
+        addArtPost, updateArtPost, deleteArtPost, toggleLikeArtPost, addArtComment, deleteArtComment
     }), [appState, isDataLoading, isCloud, error, isSyncing, refreshData, notification, clearNotification, getUserById, 
         addReport, submitReport, updateReport, saveOrUpdateDraft, deleteReport, markReportAsViewed, markReportAsUnread, markAllReportsAsReadForUser,
         markCommentAsRead, addUser, updateUser, deleteUser, addAnnouncement, updateAnnouncement, deleteAnnouncement,
-        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification]);
+        markAnnouncementAsRead, addDirectTask, updateDirectTaskStatus, markDirectTaskAsRead, unlockAudio, testNotification,
+        addArtPost, updateArtPost, deleteArtPost, toggleLikeArtPost, addArtComment, deleteArtComment]);
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };

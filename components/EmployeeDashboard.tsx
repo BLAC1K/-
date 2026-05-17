@@ -31,6 +31,7 @@ import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import ArrowPathIcon from './icons/ArrowPathIcon';
 import CheckCircleIcon from './icons/CheckCircleIcon';
 import PeriodicReportsView from './PeriodicReportsView';
+import ArtsPlatform from './ArtsPlatform';
 
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
@@ -308,6 +309,7 @@ const EmployeeDashboard: React.FC = () => {
                         <NavItem tabName="drafts" label="المسودات" icon={<ClipboardDocumentListIcon className="w-6 h-6"/>} count={myDrafts.length} />
                         <NavItem tabName="tasks" label="المهام الواردة" icon={<InboxIcon className="w-6 h-6"/>} count={unreadTasksCount}/>
                         <NavItem tabName="archive" label="الأرشيف" icon={<ArchiveBoxIcon className="w-6 h-6"/>} />
+                        <NavItem tabName="arts" label="منصة الفنون" icon={<SparklesIcon className="w-6 h-6"/>} />
                         <NavItem tabName="periodic" label="التقارير الدورية" icon={<DocumentTextIcon className="w-6 h-6"/>} />
                         <NavItem tabName="profile" label="الملف الشخصي" icon={<UserCircleIcon className="w-6 h-6"/>} />
                     </nav>
@@ -534,6 +536,7 @@ const EmployeeDashboard: React.FC = () => {
                              </div>
                             )}
                             {activeTab === 'periodic' && <PeriodicReportsView user={currentUser} reports={myReports} />}
+                            {activeTab === 'arts' && <ArtsPlatform isAdmin={false} />}
                             {activeTab === 'profile' && <ProfileManagement user={currentUser} />}
                         </div>
 

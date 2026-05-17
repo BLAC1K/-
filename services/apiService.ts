@@ -7,10 +7,35 @@ interface AppState {
     reports: Report[];
     announcements: Announcement[];
     directTasks: DirectTask[];
+    artPosts: ArtPost[];
     isCloud: boolean;
 }
 
 const generateId = () => crypto.randomUUID();
+
+export const mapArtComment = (row: any) => ({
+    id: row.id,
+    userId: row.user_id,
+    content: row.content,
+    createdAt: row.created_at
+});
+
+export const mapArtPost = (row: any): ArtPost => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    details: row.details,
+    organizer: row.organizer,
+    date: row.date,
+    createdAt: row.created_at,
+    images: row.images || [],
+    collaborators: row.collaborators,
+    participantCount: row.participant_count,
+    category: row.category,
+    tags: row.tags || [],
+    likes: row.likes || [],
+    comments: (row.comments || []).map(mapArtComment)
+});
 
 export const mapUser = (row: any): User => ({
     id: row.id,
@@ -82,10 +107,18 @@ export const fetchAnnouncementById = async (id: string): Promise<Announcement | 
 export const fetchInitialData = async (): Promise<AppState> => {
     if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
     
-    const [usersRes, annRes, tasksRes] = await Promise.all([
+    const [usersRes, annRes, tasksRes, artPostsRes] = await Promise.all([
         supabase.from('users').select('*'),
         supabase.from('announcements').select('*').order('date', { ascending: false }),
-        supabase.from('direct_tasks').select('*').order('sent_at', { ascending: false })
+        supabase.from('direct_tasks').select('*').order('sent_at', { ascending: false }),
+        (async () => {
+            try {
+                const res = await supabase.from('art_posts').select('*').order('created_at', { ascending: false });
+                return res.error ? { data: [] } : res;
+            } catch (e) {
+                return { data: [] };
+            }
+        })()
     ]);
 
     let reportsData: any[] = [];
@@ -114,6 +147,7 @@ export const fetchInitialData = async (): Promise<AppState> => {
         reports: reportsData.map(mapReport),
         announcements: (annRes.data || []).map(mapAnnouncement),
         directTasks: (tasksRes.data || []).map(mapDirectTask),
+        artPosts: (artPostsRes?.data || []).map(mapArtPost),
         isCloud: true
     };
 };
@@ -289,4 +323,75 @@ export const markAnnouncementAsRead = async (announcementId: string, userId: str
             await supabase.from('announcements').update({ read_by: updatedReadBy }).eq('id', announcementId);
         }
     }
+};
+
+export const createArtPost = async (post: Omit<ArtPost, 'id' | 'createdAt' | 'likes' | 'comments'>): Promise<ArtPost> => {
+    const newId = generateId();
+    const dbPost = {
+        id: newId,
+        title: post.title,
+        description: post.description,
+        details: post.details,
+        organizer: post.organizer,
+        date: post.date,
+        created_at: new Date().toISOString(),
+        images: post.images,
+        collaborators: post.collaborators,
+        participant_count: post.participantCount,
+        category: post.category,
+        tags: post.tags,
+        likes: [],
+        comments: []
+    };
+    
+    try {
+        await supabase.from('art_posts').insert(dbPost);
+    } catch (e) {
+        console.warn('Supabase insert failed, table might not exist', e);
+    }
+    
+    return mapArtPost(dbPost);
+};
+
+export const updateArtPost = async (updatedPost: ArtPost): Promise<ArtPost> => {
+    const dbPost = {
+        title: updatedPost.title,
+        description: updatedPost.description,
+        details: updatedPost.details,
+        organizer: updatedPost.organizer,
+        date: updatedPost.date,
+        images: updatedPost.images,
+        collaborators: updatedPost.collaborators,
+        participant_count: updatedPost.participantCount,
+        category: updatedPost.category,
+        tags: updatedPost.tags,
+        likes: updatedPost.likes,
+        comments: updatedPost.comments.map(c => ({ id: c.id, user_id: c.userId, content: c.content, created_at: c.createdAt }))
+    };
+    try { await supabase.from('art_posts').update(dbPost).eq('id', updatedPost.id); } catch (e) { console.warn('Supabase update failed', e); }
+    return updatedPost;
+};
+
+export const deleteArtPost = async (postId: string): Promise<void> => {
+    try { await supabase.from('art_posts').delete().eq('id', postId); } catch(e) {}
+};
+
+export const toggleLikeArtPost = async (postId: string, userId: string, currentLikes: string[]): Promise<string[]> => {
+    const hasLiked = currentLikes.includes(userId);
+    const newLikes = hasLiked ? currentLikes.filter(id => id !== userId) : [...currentLikes, userId];
+    try { await supabase.from('art_posts').update({ likes: newLikes }).eq('id', postId); } catch(e) {}
+    return newLikes;
+};
+
+export const addArtComment = async (postId: string, userId: string, content: string, currentComments: any[]): Promise<any> => {
+    const newComment = { id: generateId(), user_id: userId, content, created_at: new Date().toISOString() };
+    const newComments = [...currentComments, newComment];
+    try { await supabase.from('art_posts').update({ comments: newComments }).eq('id', postId); } catch(e) {}
+    return mapArtComment(newComment);
+};
+
+export const deleteArtComment = async (postId: string, commentId: string, currentComments: any[]): Promise<any[]> => {
+    const newComments = currentComments.filter(c => c.id !== commentId);
+    try { await supabase.from('art_posts').update({ comments: newComments.map(c => ({ id: c.id, user_id: c.userId, content: c.content, created_at: c.createdAt })) }).eq('id', postId); } catch(e) {}
+    return newComments.map(mapArtComment);
 };

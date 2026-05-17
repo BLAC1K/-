@@ -85,3 +85,27 @@ export interface PointGroup {
 }
 
 export type SignatureData = PointGroup[];
+
+export interface ArtComment {
+    id: string;
+    userId: string;
+    content: string;
+    createdAt: string;
+}
+
+export interface ArtPost {
+    id: string;
+    title: string;
+    description: string;
+    details: string;
+    organizer: string;
+    date: string;
+    createdAt: string;
+    images: string[];
+    collaborators: string;
+    participantCount?: number;
+    category: 'news' | 'activities' | 'courses' | 'participations' | 'annual_reports';
+    tags: string[];
+    likes: string[]; // array of userIds
+    comments: ArtComment[];
+}
