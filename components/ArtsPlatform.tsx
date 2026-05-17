@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { ArtPost, ArtComment } from '../types';
-import { Heart, MessageCircle, MoreVertical, Image as ImageIcon, Calendar, MapPin, Users, Hash, Trash2, X, Plus } from 'lucide-react';
+import { Heart, MessageCircle, MoreVertical, Image as ImageIcon, Calendar, MapPin, Users, Hash, Trash2, X, Plus, ChevronRight, ChevronLeft } from 'lucide-react';
 
 const CATEGORIES = [
     { id: 'all', label: 'الكل' },
@@ -25,6 +25,7 @@ const ArtsPlatform: React.FC<ArtsPlatformProps> = ({ isAdmin }) => {
     const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
     
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [viewerContext, setViewerContext] = useState<{ images: string[], currentIndex: number, title: string } | null>(null);
     const [newPost, setNewPost] = useState<Partial<ArtPost>>({
         title: '',
         description: '',
@@ -34,6 +35,73 @@ const ArtsPlatform: React.FC<ArtsPlatformProps> = ({ isAdmin }) => {
         participantCount: 0,
         organizer: ''
     });
+
+    const openImageViewer = (images: string[], index: number, title: string) => {
+        setViewerContext({ images, currentIndex: index, title });
+    };
+
+    const closeImageViewer = () => setViewerContext(null);
+    
+    const nextImage = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (viewerContext) {
+            setViewerContext({ ...viewerContext, currentIndex: (viewerContext.currentIndex + 1) % viewerContext.images.length });
+        }
+    };
+
+    const prevImage = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (viewerContext) {
+            setViewerContext({ ...viewerContext, currentIndex: (viewerContext.currentIndex - 1 + viewerContext.images.length) % viewerContext.images.length });
+        }
+    };
+
+    const renderImageGrid = (images: string[] | undefined, title: string) => {
+        if (!images || images.length === 0) return null;
+        
+        if (images.length === 1) {
+            return (
+                <div className="w-full h-64 md:h-96 relative bg-gray-100 dark:bg-gray-900 cursor-pointer group rounded-t-3xl overflow-hidden" onClick={() => openImageViewer(images, 0, title)}>
+                    <img src={images[0]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="1" />
+                </div>
+            );
+        }
+        
+        if (images.length === 2) {
+            return (
+                <div className="w-full h-64 md:h-96 grid grid-cols-2 gap-1 bg-white dark:bg-gray-800 overflow-hidden relative rounded-t-3xl">
+                    <img onClick={() => openImageViewer(images, 0, title)} src={images[0]} className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity bg-gray-100 dark:bg-gray-900" alt="1" />
+                    <img onClick={() => openImageViewer(images, 1, title)} src={images[1]} className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity bg-gray-100 dark:bg-gray-900" alt="2" />
+                </div>
+            );
+        }
+        
+        if (images.length === 3) {
+            return (
+                <div className="w-full h-64 md:h-96 grid grid-cols-2 grid-rows-2 gap-1 bg-white dark:bg-gray-800 overflow-hidden relative rounded-t-3xl">
+                    <img onClick={() => openImageViewer(images, 0, title)} src={images[0]} className="w-full h-full object-cover row-span-2 cursor-pointer hover:opacity-90 transition-opacity bg-gray-100 dark:bg-gray-900" alt="1" />
+                    <img onClick={() => openImageViewer(images, 1, title)} src={images[1]} className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity bg-gray-100 dark:bg-gray-900" alt="2" />
+                    <img onClick={() => openImageViewer(images, 2, title)} src={images[2]} className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity bg-gray-100 dark:bg-gray-900" alt="3" />
+                </div>
+            );
+        }
+        
+        return (
+            <div className="w-full h-64 md:h-96 grid grid-cols-2 grid-rows-2 gap-1 bg-white dark:bg-gray-800 overflow-hidden relative rounded-t-3xl">
+                <img onClick={() => openImageViewer(images, 0, title)} src={images[0]} className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity bg-gray-100 dark:bg-gray-900" alt="1" />
+                <img onClick={() => openImageViewer(images, 1, title)} src={images[1]} className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity bg-gray-100 dark:bg-gray-900" alt="2" />
+                <img onClick={() => openImageViewer(images, 2, title)} src={images[2]} className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity bg-gray-100 dark:bg-gray-900" alt="3" />
+                <div className="relative w-full h-full cursor-pointer group" onClick={() => openImageViewer(images, 3, title)}>
+                    <img src={images[3]} className="w-full h-full object-cover bg-gray-100 dark:bg-gray-900 group-hover:opacity-90 transition-opacity" alt="4" />
+                    {images.length > 4 && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm transition-all group-hover:bg-black/70">
+                            <span className="text-white text-3xl font-black">+{images.length - 4}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     const filteredPosts = useMemo(() => {
         if (activeTab === 'all') return artPosts;
@@ -136,17 +204,7 @@ const ArtsPlatform: React.FC<ArtsPlatformProps> = ({ isAdmin }) => {
                 ) : (
                     filteredPosts.map(post => (
                         <div key={post.id} className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-all hover:shadow-md">
-                            {post.images && post.images.length > 0 && (
-                                <div className="w-full h-64 md:h-96 relative bg-black group">
-                                    <img src={post.images[0]} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                    {post.images.length > 1 && (
-                                        <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2">
-                                            <ImageIcon className="w-4 h-4" />
-                                            + {post.images.length - 1} صور
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                            {renderImageGrid(post.images, post.title)}
                             
                             <div className="p-6 md:p-8">
                                 <div className="flex justify-between items-start mb-4">
@@ -193,15 +251,15 @@ const ArtsPlatform: React.FC<ArtsPlatformProps> = ({ isAdmin }) => {
                                 {/* Interactions */}
                                 <div className="flex items-center gap-6 pt-4 border-t border-gray-100 dark:border-gray-700">
                                     <button 
-                                        onClick={() => handleLike(post.id, post.likes)}
+                                        onClick={() => handleLike(post.id, post.likes || [])}
                                         className={`flex items-center gap-2 transition-colors ${
-                                            currentUser && post.likes.includes(currentUser.id) 
+                                            currentUser && (post.likes || []).includes(currentUser.id) 
                                                 ? 'text-red-500' 
                                                 : 'text-gray-500 hover:text-red-500'
                                         }`}
                                     >
-                                        <Heart className={`w-6 h-6 ${currentUser && post.likes.includes(currentUser.id) ? 'fill-current' : ''}`} />
-                                        <span className="font-bold">{post.likes.length}</span>
+                                        <Heart className={`w-6 h-6 ${currentUser && (post.likes || []).includes(currentUser.id) ? 'fill-current' : ''}`} />
+                                        <span className="font-bold">{(post.likes || []).length}</span>
                                     </button>
                                     <button 
                                         onClick={() => setExpandedComments(prev => ({...prev, [post.id]: !prev[post.id]}))}
@@ -364,6 +422,57 @@ const ArtsPlatform: React.FC<ArtsPlatformProps> = ({ isAdmin }) => {
                                 نشر
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Full Screen Image Viewer Modal */}
+            {viewerContext && (
+                <div 
+                    className="fixed inset-0 z-[100] flex animate-fade-in bg-black/95 backdrop-blur-xl"
+                    onClick={closeImageViewer}
+                >
+                    <div className="absolute top-4 right-4 flex gap-4 z-50">
+                        <div className="bg-black/50 px-4 py-2 rounded-full text-white font-bold backdrop-blur-md">
+                            {viewerContext.currentIndex + 1} / {viewerContext.images.length}
+                        </div>
+                        <button 
+                            className="bg-black/50 p-2 rounded-full text-white hover:bg-white hover:text-black transition-colors backdrop-blur-md"
+                            onClick={(e) => { e.stopPropagation(); closeImageViewer(); }}
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    {viewerContext.images.length > 1 && (
+                        <>
+                            <button 
+                                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 p-4 rounded-full text-white hover:bg-white hover:text-black transition-all hover:scale-110 z-50 backdrop-blur-md"
+                                onClick={nextImage}
+                            >
+                                <ChevronRight className="w-8 h-8" />
+                            </button>
+                            <button 
+                                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 p-4 rounded-full text-white hover:bg-white hover:text-black transition-all hover:scale-110 z-50 backdrop-blur-md"
+                                onClick={prevImage}
+                            >
+                                <ChevronLeft className="w-8 h-8" />
+                            </button>
+                        </>
+                    )}
+
+                    <div className="w-full h-full flex items-center justify-center p-4">
+                        <img 
+                            src={viewerContext.images[viewerContext.currentIndex]} 
+                            alt={viewerContext.title} 
+                            onClick={(e) => e.stopPropagation()}
+                            className="max-w-full max-h-full object-contain select-none rounded-xl shadow-2xl" 
+                            draggable={false}
+                        />
+                    </div>
+                    
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 px-6 py-3 rounded-full text-white font-bold backdrop-blur-md z-50 max-w-[90%] truncate">
+                        {viewerContext.title}
                     </div>
                 </div>
             )}
