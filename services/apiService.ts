@@ -384,20 +384,20 @@ export const toggleLikeArtPost = async (postId: string, userId: string, currentL
 };
 
 export const addArtComment = async (postId: string, userId: string, content: string, currentComments: any[]): Promise<any> => {
-    const newComment = { id: generateId(), user_id: userId, content, created_at: new Date().toISOString() };
+    const newComment = { id: generateId(), userId: userId, content, createdAt: new Date().toISOString() };
     const newComments = [...currentComments, newComment];
-    try { await supabase.from('art_posts').update({ comments: newComments }).eq('id', postId); } catch(e) {}
-    return mapArtComment(newComment);
+    try { await supabase.from('art_posts').update({ comments: newComments.map(c => ({ id: c.id, user_id: c.userId || c.user_id, content: c.content, created_at: c.createdAt || c.created_at })) }).eq('id', postId); } catch(e) {}
+    return newComment;
 };
 
 export const deleteArtComment = async (postId: string, commentId: string, currentComments: any[]): Promise<any[]> => {
     const newComments = currentComments.filter(c => c.id !== commentId);
-    try { await supabase.from('art_posts').update({ comments: newComments.map(c => ({ id: c.id, user_id: c.userId, content: c.content, created_at: c.createdAt })) }).eq('id', postId); } catch(e) {}
+    try { await supabase.from('art_posts').update({ comments: newComments.map(c => ({ id: c.id, user_id: c.userId || c.user_id, content: c.content, created_at: c.createdAt || c.created_at })) }).eq('id', postId); } catch(e) {}
     return newComments.map(mapArtComment);
 };
 
 export const editArtComment = async (postId: string, commentId: string, newContent: string, currentComments: any[]): Promise<any[]> => {
     const newComments = currentComments.map(c => c.id === commentId ? { ...c, content: newContent } : c);
-    try { await supabase.from('art_posts').update({ comments: newComments.map(c => ({ id: c.id, user_id: c.userId, content: c.content, created_at: c.createdAt })) }).eq('id', postId); } catch(e) {}
+    try { await supabase.from('art_posts').update({ comments: newComments.map(c => ({ id: c.id, user_id: c.userId || c.user_id, content: c.content, created_at: c.createdAt || c.created_at })) }).eq('id', postId); } catch(e) {}
     return newComments.map(mapArtComment);
 };

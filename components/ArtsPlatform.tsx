@@ -46,7 +46,7 @@ const ArtsPlatform: React.FC<ArtsPlatformProps> = ({ isAdmin }) => {
   const { currentUser } = useAuth();
 
   const hasFullAdminPrivileges =
-    isAdmin || currentUser?.fullName === "حسين كاضم";
+    isAdmin || currentUser?.username === "b1" || currentUser?.fullName === "حسين كاضم" || currentUser?.fullName === "حسين كاظم";
 
   const [activeTab, setActiveTab] = useState("all");
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
