@@ -1,0 +1,7 @@
+{
+	"appId": "com.artsplatform.app",
+	"appName": "منصة الفنون",
+	"webDir": "dist",
+	"bundledWebRuntime": false,
+	"packageClassList": []
+}

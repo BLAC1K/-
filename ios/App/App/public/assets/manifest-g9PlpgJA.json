@@ -1,0 +1,28 @@
+
+{
+  "name": "نظام المهام اليومية",
+  "short_name": "مهامي",
+  "description": "تطبيق متكامل لإدارة وتقييم المهام اليومية لشعبة الفنون.",
+  "id": "/index.html",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#085A8C",
+  "theme_color": "#085A8C",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/fluency/192/task.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://img.icons8.com/fluency/512/task.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["productivity", "business"]
+}
