@@ -1,6 +1,11 @@
 
-import { User, Report, Announcement, DirectTask, Role } from '../types';
+import { User, Report, Announcement, DirectTask, Role, ArtPost } from '../types';
 import { supabase, isSupabaseConfigured } from './supabaseConfig';
+import { db } from './firebaseConfig';
+import { 
+    collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, 
+    query, where, onSnapshot, orderBy, limit 
+} from 'firebase/firestore';
 
 interface AppState {
     users: User[];
@@ -27,10 +32,10 @@ export const mapArtPost = (row: any): ArtPost => ({
     details: row.details,
     organizer: row.organizer,
     date: row.date,
-    createdAt: row.created_at,
+    createdAt: row.created_at || row.createdAt,
     images: row.images || [],
     collaborators: row.collaborators,
-    participantCount: row.participant_count,
+    participantCount: row.participant_count || row.participantCount,
     category: row.category,
     tags: row.tags || [],
     likes: row.likes || [],
@@ -39,29 +44,29 @@ export const mapArtPost = (row: any): ArtPost => ({
 
 export const mapUser = (row: any): User => ({
     id: row.id,
-    fullName: row.full_name,
-    badgeNumber: row.badge_number,
+    fullName: row.full_name || row.fullName,
+    badgeNumber: row.badge_number || row.badgeNumber,
     username: row.username,
     password: row.password,
     role: row.role as Role,
-    jobTitle: row.job_title,
+    jobTitle: row.job_title || row.jobTitle,
     unit: row.unit,
-    profilePictureUrl: row.profile_picture_url
+    profilePictureUrl: row.profile_picture_url || row.profilePictureUrl
 });
 
 export const mapReport = (row: any): Report => ({
     id: row.id,
-    userId: row.user_id,
-    sequenceNumber: row.sequence_number,
+    userId: row.user_id || row.userId,
+    sequenceNumber: row.sequence_number || row.sequenceNumber,
     date: row.date,
     day: row.day,
     tasks: row.tasks || [],
     accomplished: row.accomplished,
-    notAccomplished: row.not_accomplished,
+    notAccomplished: row.not_accomplished || row.notAccomplished,
     attachments: row.attachments || [],
-    managerComment: row.manager_comment,
-    isViewedByManager: row.is_viewed_by_manager,
-    isCommentReadByEmployee: row.is_comment_read_by_employee,
+    managerComment: row.manager_comment || row.managerComment,
+    isViewedByManager: row.is_viewed_by_manager || row.isViewedByManager,
+    isCommentReadByEmployee: row.is_comment_read_by_employee || row.isCommentReadByEmployee,
     rating: row.rating,
     status: row.status || 'submitted'
 });
@@ -70,334 +75,267 @@ export const mapAnnouncement = (row: any): Announcement => ({
     id: row.id,
     content: row.content,
     date: row.date,
-    readBy: row.read_by || []
+    readBy: row.read_by || row.readBy || []
 });
 
 export const mapDirectTask = (row: any): DirectTask => ({
     id: row.id,
-    managerId: row.manager_id,
-    employeeId: row.employee_id,
+    managerId: row.manager_id || row.managerId,
+    employeeId: row.employee_id || row.employeeId,
     content: row.content,
-    sentAt: row.sent_at,
+    sentAt: row.sent_at || row.sentAt,
     status: row.status,
-    acknowledgedAt: row.acknowledged_at,
-    rejectionReason: row.rejection_reason,
-    isReadByEmployee: row.is_read_by_employee
+    acknowledgedAt: row.acknowledged_at || row.acknowledgedAt,
+    rejectionReason: row.rejection_reason || row.rejectionReason,
+    isReadByEmployee: row.is_read_by_employee || row.isReadByEmployee
 });
 
-// دوال جلب عنصر واحد لضمان التحديث الفوري الدقيق
+// Migration helper: sync Supabase to Firebase once
 export const fetchReportById = async (id: string): Promise<Report | null> => {
-    const { data, error } = await supabase.from('reports').select('*').eq('id', id).single();
-    if (error || !data) return null;
-    return mapReport(data);
+    const d = await getDoc(doc(db, 'reports', id));
+    return d.exists() ? d.data() as Report : null;
 };
 
 export const fetchDirectTaskById = async (id: string): Promise<DirectTask | null> => {
-    const { data, error } = await supabase.from('direct_tasks').select('*').eq('id', id).single();
-    if (error || !data) return null;
-    return mapDirectTask(data);
+    const d = await getDoc(doc(db, 'direct_tasks', id));
+    return d.exists() ? d.data() as DirectTask : null;
 };
 
 export const fetchAnnouncementById = async (id: string): Promise<Announcement | null> => {
-    const { data, error } = await supabase.from('announcements').select('*').eq('id', id).single();
-    if (error || !data) return null;
-    return mapAnnouncement(data);
+    const d = await getDoc(doc(db, 'announcements', id));
+    return d.exists() ? d.data() as Announcement : null;
 };
 
 export const fetchInitialData = async (): Promise<AppState> => {
-    if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
-    
-    const [usersRes, annRes, tasksRes, artPostsRes] = await Promise.all([
-        supabase.from('users').select('*'),
-        supabase.from('announcements').select('*').order('date', { ascending: false }),
-        supabase.from('direct_tasks').select('*').order('sent_at', { ascending: false }),
-        (async () => {
-            try {
-                const res = await supabase.from('art_posts').select('*').order('created_at', { ascending: false });
-                return res.error ? { data: [] } : res;
-            } catch (e) {
-                return { data: [] };
-            }
-        })()
-    ]);
+    try {
+        const fetchPromise = Promise.all([
+            getDocs(collection(db, 'users')),
+            getDocs(collection(db, 'reports')),
+            getDocs(collection(db, 'announcements')),
+            getDocs(collection(db, 'direct_tasks')),
+            getDocs(collection(db, 'art_posts'))
+        ]);
+        
+        // 15 seconds timeout
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout: Connection is taking too long.')), 15000)
+        );
 
-    let reportsData: any[] = [];
-    
-    // زيادة الحد إلى 2000 لعرض جميع التقارير كما طلب المستخدم
-    const { data: fullData, error: fullError } = await supabase
-        .from('reports')
-        .select('*')
-        .order('date', { ascending: false })
-        .limit(2000);
+        const [uSnap, rSnap, aSnap, tSnap, apSnap] = await Promise.race([
+            fetchPromise,
+            timeoutPromise
+        ]) as any[];
 
-    if (fullError || !fullData) {
-        // Fallback في حال حدوث خطأ
-        const { data: lightData } = await supabase
-            .from('reports')
-            .select('id, user_id, sequence_number, date, day, tasks, accomplished, not_accomplished, manager_comment, is_viewed_by_manager, is_comment_read_by_employee, rating, status')
-            .order('date', { ascending: false })
-            .limit(2000);
-        reportsData = lightData || [];
-    } else {
-        reportsData = fullData;
+        return {
+            users: uSnap.docs.map((d: any) => d.data() as User),
+            reports: rSnap.docs.map((d: any) => d.data() as Report).filter((r: any) => r && r.date).sort((a: any, b: any)=> new Date(b.date).getTime() - new Date(a.date).getTime()),
+            announcements: aSnap.docs.map((d: any) => d.data() as Announcement).filter((a: any) => a && a.date).sort((a: any, b: any)=> new Date(b.date).getTime() - new Date(a.date).getTime()),
+            directTasks: tSnap.docs.map((d: any) => d.data() as DirectTask).filter((t: any) => t && t.sentAt).sort((a: any, b: any)=> new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()),
+            artPosts: apSnap.docs.map((d: any) => d.data() as ArtPost).filter((p: any) => p && p.createdAt).sort((a: any, b: any)=> new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+            isCloud: true
+        };
+    } catch (error: any) {
+        console.error('fetchInitialData failed:', error);
+        throw error;
     }
-
-    return {
-        users: (usersRes.data || []).map(mapUser),
-        reports: reportsData.map(mapReport),
-        announcements: (annRes.data || []).map(mapAnnouncement),
-        directTasks: (tasksRes.data || []).map(mapDirectTask),
-        artPosts: (artPostsRes?.data || []).map(mapArtPost),
-        isCloud: true
-    };
 };
 
 export const subscribeToAllChanges = (onUpdate: (payload: any) => void) => {
-    const channel = supabase
-        .channel('schema-db-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, (p) => onUpdate({ table: 'reports', ...p }))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_tasks' }, (p) => onUpdate({ table: 'direct_tasks', ...p }))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, (p) => onUpdate({ table: 'announcements', ...p }))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (p) => onUpdate({ table: 'users', ...p }))
-        .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                console.log('Realtime Connected!');
-            }
-        });
+    let isInitialReports = true;
+    let isInitialUsers = true;
+    let isInitialAnnouncements = true;
+    let isInitialTasks = true;
+    let isInitialArtPosts = true;
 
-    return () => { supabase.removeChannel(channel); };
+    const handleSnap = (table: string, isInitialFlagObj: { value: boolean }, mapper: any) => (snap: any) => {
+        if (isInitialFlagObj.value) {
+            isInitialFlagObj.value = false;
+            return; // Skip the initial massive 'added' burst because fetchInitialData already gets them
+        }
+        snap.docChanges().forEach((change: any) => {
+            const docData = change.doc.data();
+            const mapped = mapper ? mapper(docData) : docData;
+            const payload = {
+                table,
+                eventType: change.type === 'added' ? 'INSERT' : change.type === 'modified' ? 'UPDATE' : 'DELETE',
+                new: change.type !== 'removed' ? mapped : null,
+                old: change.type === 'removed' ? { id: change.doc.id } : null,
+            };
+            onUpdate(payload);
+        });
+    };
+
+    const unsubs = [
+        onSnapshot(collection(db, 'reports'), handleSnap('reports', { get value() { return isInitialReports; }, set value(v) { isInitialReports = v; } }, mapReport)),
+        onSnapshot(collection(db, 'users'), handleSnap('users', { get value() { return isInitialUsers; }, set value(v) { isInitialUsers = v; } }, mapUser)),
+        onSnapshot(collection(db, 'announcements'), handleSnap('announcements', { get value() { return isInitialAnnouncements; }, set value(v) { isInitialAnnouncements = v; } }, mapAnnouncement)),
+        onSnapshot(collection(db, 'direct_tasks'), handleSnap('direct_tasks', { get value() { return isInitialTasks; }, set value(v) { isInitialTasks = v; } }, mapDirectTask)),
+        onSnapshot(collection(db, 'art_posts'), handleSnap('art_posts', { get value() { return isInitialArtPosts; }, set value(v) { isInitialArtPosts = v; } }, mapArtPost))
+    ];
+    return () => unsubs.forEach(u => u());
 };
 
 export const submitReport = async (reportData: Omit<Report, 'id' | 'sequenceNumber' | 'status'>, draftId?: string): Promise<Report> => {
-    const { data: maxSeqData, error: seqError } = await supabase
-        .from('reports')
-        .select('sequence_number')
-        .eq('user_id', reportData.userId)
-        .eq('status', 'submitted')
-        .order('sequence_number', { ascending: false })
-        .limit(1);
+    const rSnap = await getDocs(query(collection(db, 'reports'), where('userId', '==', reportData.userId), where('status', '==', 'submitted')));
+    let maxSeq = 0;
+    rSnap.forEach(d => { const s = d.data().sequenceNumber; if (s > maxSeq) maxSeq = s; });
 
-    if (seqError) throw seqError;
-
-    const maxSeq = maxSeqData && maxSeqData.length > 0 ? maxSeqData[0].sequence_number : 0;
-    const nextSeq = maxSeq + 1;
-
-    const submissionData = {
-        user_id: reportData.userId,
-        sequence_number: nextSeq,
+    const submissionData: Report = {
+        id: draftId || generateId(),
+        userId: reportData.userId,
+        sequenceNumber: maxSeq + 1,
         date: reportData.date,
         day: reportData.day,
         tasks: reportData.tasks,
         accomplished: reportData.accomplished,
-        not_accomplished: reportData.notAccomplished,
+        notAccomplished: reportData.notAccomplished,
         attachments: reportData.attachments,
         status: 'submitted',
-        is_viewed_by_manager: false,
-        is_comment_read_by_employee: false
+        isViewedByManager: false,
+        isCommentReadByEmployee: false
     };
 
-    if (draftId) {
-        const { error } = await supabase.from('reports').update(submissionData).eq('id', draftId);
-        if (error) throw error;
-        return { ...reportData, id: draftId, sequenceNumber: nextSeq, status: 'submitted' } as Report;
-    } else {
-        const newId = generateId();
-        const { error } = await supabase.from('reports').insert({ id: newId, ...submissionData });
-        if (error) throw error;
-        return { ...reportData, id: newId, sequenceNumber: nextSeq, status: 'submitted' } as Report;
-    }
+    await setDoc(doc(db, 'reports', submissionData.id), submissionData);
+    return submissionData;
 };
 
-export const createReport = async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>): Promise<Report> => {
-    return submitReport(report);
-};
+export const createReport = submitReport;
 
 export const saveOrUpdateDraft = async (draft: Partial<Report>): Promise<Report> => {
-    const dbPayload = {
-        user_id: draft.userId, date: draft.date, day: draft.day, tasks: draft.tasks || [],
-        accomplished: draft.accomplished || '', not_accomplished: draft.notAccomplished || '',
-        attachments: draft.attachments || [], status: 'draft', sequence_number: null
-    };
-
-    if (draft.id && !draft.id.startsWith('temp-')) {
-        const { error } = await supabase.from('reports').update(dbPayload).eq('id', draft.id);
-        if (error) throw error;
-        return { ...draft, status: 'draft' } as Report;
-    } else {
-        const newId = generateId();
-        const { error } = await supabase.from('reports').insert({ id: newId, ...dbPayload });
-        if (error) throw error;
-        return { ...draft, id: newId, status: 'draft' } as Report;
-    }
+    const rId = draft.id && !draft.id.startsWith('temp-') ? draft.id : generateId();
+    const d: Report = {
+        ...draft, id: rId, status: 'draft', sequenceNumber: undefined, 
+        userId: draft.userId!, date: draft.date!, day: draft.day!
+    } as Report;
+    await setDoc(doc(db, 'reports', rId), d, { merge: true });
+    return d;
 };
 
 export const updateReport = async (updatedReport: Report): Promise<Report> => {
-    const { error } = await supabase.from('reports').update({
-        tasks: updatedReport.tasks, accomplished: updatedReport.accomplished,
-        not_accomplished: updatedReport.notAccomplished, attachments: updatedReport.attachments,
-        manager_comment: updatedReport.managerComment, rating: updatedReport.rating,
-        status: updatedReport.status, is_viewed_by_manager: updatedReport.isViewedByManager,
-        is_comment_read_by_employee: updatedReport.isCommentReadByEmployee
-    }).eq('id', updatedReport.id);
-    if (error) throw error;
+    await updateDoc(doc(db, 'reports', updatedReport.id), updatedReport as any);
     return updatedReport;
 };
 
 export const deleteReport = async (reportId: string): Promise<void> => {
-    await supabase.from('reports').delete().eq('id', reportId);
+    await deleteDoc(doc(db, 'reports', reportId));
 };
 
 export const markReportAsViewed = async (reportId: string): Promise<void> => {
-    await supabase.from('reports').update({ is_viewed_by_manager: true }).eq('id', reportId);
+    await updateDoc(doc(db, 'reports', reportId), { isViewedByManager: true });
 };
 
 export const markReportAsUnread = async (reportId: string): Promise<void> => {
-    await supabase.from('reports').update({ is_viewed_by_manager: false }).eq('id', reportId);
+    await updateDoc(doc(db, 'reports', reportId), { isViewedByManager: false });
 };
 
 export const markAllReportsAsReadForUser = async (userId: string): Promise<void> => {
-    await supabase.from('reports').update({ is_viewed_by_manager: true }).eq('user_id', userId).eq('status', 'submitted');
+    const q = query(collection(db, 'reports'), where('userId', '==', userId), where('status', '==', 'submitted'));
+    const s = await getDocs(q);
+    s.forEach(d => updateDoc(d.ref, { isViewedByManager: true }));
 };
 
 export const markCommentAsRead = async (reportId: string): Promise<void> => {
-    await supabase.from('reports').update({ is_comment_read_by_employee: true }).eq('id', reportId);
+    await updateDoc(doc(db, 'reports', reportId), { isCommentReadByEmployee: true });
 };
 
 export const createDirectTask = async (task: Omit<DirectTask, 'id' | 'sentAt' | 'status' | 'isReadByEmployee'>): Promise<DirectTask> => {
-    const newId = generateId();
-    const dbTask = { id: newId, manager_id: task.managerId, employee_id: task.employeeId, content: task.content, sent_at: new Date().toISOString(), status: 'pending', is_read_by_employee: false };
-    const { error } = await supabase.from('direct_tasks').insert(dbTask);
-    if (error) throw error;
-    return { ...task, id: newId, sentAt: dbTask.sent_at, status: 'pending', isReadByEmployee: false };
+    const t: DirectTask = { ...task, id: generateId(), sentAt: new Date().toISOString(), status: 'pending', isReadByEmployee: false };
+    await setDoc(doc(db, 'direct_tasks', t.id), t);
+    return t;
 };
 
 export const updateDirectTaskStatus = async (taskId: string, status: 'acknowledged' | 'rejected', rejectionReason?: string): Promise<void> => {
-    const updates: any = { status };
-    if (rejectionReason) updates.rejection_reason = rejectionReason;
-    if (status === 'acknowledged') updates.acknowledged_at = new Date().toISOString();
-    await supabase.from('direct_tasks').update(updates).eq('id', taskId);
+    const p: any = { status };
+    if (rejectionReason) p.rejectionReason = rejectionReason;
+    if (status === 'acknowledged') p.acknowledgedAt = new Date().toISOString();
+    await updateDoc(doc(db, 'direct_tasks', taskId), p);
 };
 
 export const markDirectTaskAsRead = async (taskId: string): Promise<void> => {
-    await supabase.from('direct_tasks').update({ is_read_by_employee: true }).eq('id', taskId);
+    await updateDoc(doc(db, 'direct_tasks', taskId), { isReadByEmployee: true });
 };
 
 export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
-    const newId = generateId();
-    await supabase.from('users').insert({ id: newId, full_name: user.fullName, badge_number: user.badgeNumber, username: user.username, password: user.password, role: user.role, job_title: user.jobTitle, unit: user.unit, profile_picture_url: user.profilePictureUrl });
-    return { ...user, id: newId };
+    const u: User = { ...user, id: generateId() };
+    await setDoc(doc(db, 'users', u.id), u);
+    return u;
 };
 
 export const updateUser = async (updatedUser: User): Promise<User> => {
-    await supabase.from('users').update({ full_name: updatedUser.fullName, badge_number: updatedUser.badgeNumber, username: updatedUser.username, password: updatedUser.password, role: updatedUser.role, job_title: updatedUser.jobTitle, unit: updatedUser.unit, profile_picture_url: updatedUser.profilePictureUrl }).eq('id', updatedUser.id);
+    await updateDoc(doc(db, 'users', updatedUser.id), updatedUser as any);
     return updatedUser;
 };
 
 export const deleteUser = async (userId: string): Promise<void> => {
-    await supabase.from('reports').delete().eq('user_id', userId);
-    await supabase.from('users').delete().eq('id', userId);
+    await deleteDoc(doc(db, 'users', userId));
 };
 
 export const createAnnouncement = async (content: string): Promise<Announcement> => {
-    const newId = generateId();
-    const { error } = await supabase.from('announcements').insert({ id: newId, content, date: new Date().toISOString(), read_by: [] });
-    if (error) throw error;
-    return { id: newId, content, date: new Date().toISOString(), readBy: [] };
+    const a: Announcement = { id: generateId(), content, date: new Date().toISOString(), readBy: [] };
+    await setDoc(doc(db, 'announcements', a.id), a);
+    return a;
 };
 
 export const updateAnnouncement = async (announcementId: string, content: string): Promise<Announcement> => {
-    await supabase.from('announcements').update({ content }).eq('id', announcementId);
+    await updateDoc(doc(db, 'announcements', announcementId), { content });
     return { id: announcementId, content } as Announcement;
 };
 
 export const deleteAnnouncement = async (announcementId: string): Promise<void> => {
-    await supabase.from('announcements').delete().eq('id', announcementId);
+    await deleteDoc(doc(db, 'announcements', announcementId));
 };
 
 export const markAnnouncementAsRead = async (announcementId: string, userId: string): Promise<void> => {
-    const { data } = await supabase.from('announcements').select('read_by').eq('id', announcementId).single();
-    if (data) {
-        const currentReadBy = data.read_by || [];
-        if (!currentReadBy.some((r: any) => r.userId === userId)) {
-            const updatedReadBy = [...currentReadBy, { userId, readAt: new Date().toISOString() }];
-            await supabase.from('announcements').update({ read_by: updatedReadBy }).eq('id', announcementId);
+    const d = await getDoc(doc(db, 'announcements', announcementId));
+    if (d.exists()) {
+        const a = d.data() as Announcement;
+        if (!a.readBy.some(r => r.userId === userId)) {
+            a.readBy.push({ userId, readAt: new Date().toISOString() });
+            await updateDoc(d.ref, { readBy: a.readBy });
         }
     }
 };
 
 export const createArtPost = async (post: Omit<ArtPost, 'id' | 'createdAt' | 'likes' | 'comments'>): Promise<ArtPost> => {
-    const newId = generateId();
-    const dbPost = {
-        id: newId,
-        title: post.title,
-        description: post.description,
-        details: post.details,
-        organizer: post.organizer,
-        date: post.date,
-        created_at: new Date().toISOString(),
-        images: post.images,
-        collaborators: post.collaborators,
-        participant_count: post.participantCount,
-        category: post.category,
-        tags: post.tags,
-        likes: [],
-        comments: []
+    const p: ArtPost = {
+        ...post, id: generateId(), createdAt: new Date().toISOString(),
+        likes: [], comments: []
     };
-    
-    try {
-        await supabase.from('art_posts').insert(dbPost);
-    } catch (e) {
-        console.warn('Supabase insert failed, table might not exist', e);
-    }
-    
-    return mapArtPost(dbPost);
+    await setDoc(doc(db, 'art_posts', p.id), p);
+    return p;
 };
 
 export const updateArtPost = async (updatedPost: ArtPost): Promise<ArtPost> => {
-    const dbPost = {
-        title: updatedPost.title,
-        description: updatedPost.description,
-        details: updatedPost.details,
-        organizer: updatedPost.organizer,
-        date: updatedPost.date,
-        images: updatedPost.images,
-        collaborators: updatedPost.collaborators,
-        participant_count: updatedPost.participantCount,
-        category: updatedPost.category,
-        tags: updatedPost.tags,
-        likes: updatedPost.likes,
-        comments: updatedPost.comments.map(c => ({ id: c.id, user_id: c.userId, content: c.content, created_at: c.createdAt }))
-    };
-    try { await supabase.from('art_posts').update(dbPost).eq('id', updatedPost.id); } catch (e) { console.warn('Supabase update failed', e); }
+    await updateDoc(doc(db, 'art_posts', updatedPost.id), updatedPost as any);
     return updatedPost;
 };
 
 export const deleteArtPost = async (postId: string): Promise<void> => {
-    try { await supabase.from('art_posts').delete().eq('id', postId); } catch(e) {}
+    await deleteDoc(doc(db, 'art_posts', postId));
 };
 
 export const toggleLikeArtPost = async (postId: string, userId: string, currentLikes: string[]): Promise<string[]> => {
-    const hasLiked = currentLikes.includes(userId);
-    const newLikes = hasLiked ? currentLikes.filter(id => id !== userId) : [...currentLikes, userId];
-    try { await supabase.from('art_posts').update({ likes: newLikes }).eq('id', postId); } catch(e) {}
+    const newLikes = currentLikes.includes(userId) ? currentLikes.filter(id => id !== userId) : [...currentLikes, userId];
+    await updateDoc(doc(db, 'art_posts', postId), { likes: newLikes });
     return newLikes;
 };
 
 export const addArtComment = async (postId: string, userId: string, content: string, currentComments: any[]): Promise<any> => {
-    const newComment = { id: generateId(), userId: userId, content, createdAt: new Date().toISOString() };
-    const newComments = [...currentComments, newComment];
-    try { await supabase.from('art_posts').update({ comments: newComments.map(c => ({ id: c.id, user_id: c.userId || c.user_id, content: c.content, created_at: c.createdAt || c.created_at })) }).eq('id', postId); } catch(e) {}
-    return newComment;
+    const c = { id: generateId(), userId, content, createdAt: new Date().toISOString() };
+    const newComments = [...currentComments, c];
+    await updateDoc(doc(db, 'art_posts', postId), { comments: newComments });
+    return c;
 };
 
 export const deleteArtComment = async (postId: string, commentId: string, currentComments: any[]): Promise<any[]> => {
     const newComments = currentComments.filter(c => c.id !== commentId);
-    try { await supabase.from('art_posts').update({ comments: newComments.map(c => ({ id: c.id, user_id: c.userId || c.user_id, content: c.content, created_at: c.createdAt || c.created_at })) }).eq('id', postId); } catch(e) {}
-    return newComments.map(mapArtComment);
+    await updateDoc(doc(db, 'art_posts', postId), { comments: newComments });
+    return newComments;
 };
 
 export const editArtComment = async (postId: string, commentId: string, newContent: string, currentComments: any[]): Promise<any[]> => {
     const newComments = currentComments.map(c => c.id === commentId ? { ...c, content: newContent } : c);
-    try { await supabase.from('art_posts').update({ comments: newComments.map(c => ({ id: c.id, user_id: c.userId || c.user_id, content: c.content, created_at: c.createdAt || c.created_at })) }).eq('id', postId); } catch(e) {}
-    return newComments.map(mapArtComment);
+    await updateDoc(doc(db, 'art_posts', postId), { comments: newComments });
+    return newComments;
 };
+

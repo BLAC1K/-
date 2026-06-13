@@ -32,6 +32,7 @@ import ArrowPathIcon from './icons/ArrowPathIcon';
 import CheckCircleIcon from './icons/CheckCircleIcon';
 import PeriodicReportsView from './PeriodicReportsView';
 import ArtsPlatform from './ArtsPlatform';
+import BellIcon from './icons/BellIcon';
 
 const EmployeeDashboard: React.FC = () => {
     const { currentUser, logout } = useAuth();
@@ -182,6 +183,10 @@ const EmployeeDashboard: React.FC = () => {
         directTasks.filter(t => t.employeeId === currentUser?.id && t.status === 'pending' && !t.isReadByEmployee).length
     , [directTasks, currentUser]);
 
+    const unreadCommentsCount = useMemo(() => 
+        reports.filter(r => r.userId === currentUser?.id && r.managerComment && r.managerComment.trim().length > 0 && !r.isCommentReadByEmployee).length
+    , [reports, currentUser]);
+
     if (!currentUser) return null;
 
     const resetForm = () => {
@@ -305,6 +310,7 @@ const EmployeeDashboard: React.FC = () => {
                     
                     <nav className="flex-grow px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
                         <NavItem tabName="home" label="الرئيسية" icon={<HomeIcon className="w-6 h-6"/>} />
+                        <NavItem tabName="notifications" label="الإشعارات" icon={<BellIcon className="w-6 h-6"/>} count={unreadCommentsCount} />
                         <NavItem tabName="new-report" label="مركز المهام" icon={<NewReportIcon className="w-6 h-6"/>} />
                         <NavItem tabName="drafts" label="المسودات" icon={<ClipboardDocumentListIcon className="w-6 h-6"/>} count={myDrafts.length} />
                         <NavItem tabName="tasks" label="المهام الواردة" icon={<InboxIcon className="w-6 h-6"/>} count={unreadTasksCount}/>
@@ -507,6 +513,21 @@ const EmployeeDashboard: React.FC = () => {
                                 </form>
                             )}
                             
+                            {activeTab === 'notifications' && (
+                                <div className="space-y-4 animate-fade-in">
+                                    <h3 className="text-xl font-bold dark:text-white mb-4">إشعارات التوجيهات</h3>
+                                    {myReports.filter(r => r.managerComment && r.managerComment.trim() !== '' && !r.isCommentReadByEmployee).length > 0 ? (
+                                        myReports.filter(r => r.managerComment && r.managerComment.trim() !== '' && !r.isCommentReadByEmployee).map(r => (
+                                            <ReportView key={r.id} report={r} user={currentUser} viewerRole={Role.EMPLOYEE} onClick={() => setSelectedReport(r)} />
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
+                                            <BellIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                            <p className="text-gray-500 font-bold">لا توجد إشعارات أو توجيهات جديدة</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             {activeTab === 'archive' && (
                                 <div className="space-y-4 animate-fade-in">
                                     <h3 className="text-xl font-bold dark:text-white mb-4">أرشيف التقارير المرسلة</h3>

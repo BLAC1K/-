@@ -109,10 +109,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const clearNotification = useCallback(() => setNotification(null), []);
 
     const loadData = useCallback(async (silent = false) => {
+        console.log('loadData started. silent:', silent);
         if (!silent) setIsDataLoading(true);
         else setIsSyncing(true);
         try {
+            console.log('fetching initial data...');
             const data = await api.fetchInitialData();
+            console.log('fetchInitialData completed', data.users.length);
             setAppState({
                 users: data.users,
                 reports: data.reports,
@@ -122,8 +125,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
             setIsCloud(data.isCloud);
         } catch (error: any) {
-            if (!silent) setError(error.message || "خطأ اتصال.");
+            console.error('loadData error:', error);
+            if (!silent) setError(error.stack || error.message || String(error));
         } finally {
+            console.log('loadData finished');
             setIsDataLoading(false);
             setIsSyncing(false);
         }
@@ -134,31 +139,27 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [loadData]);
 
     useEffect(() => {
-        loadData();
-        const unsubscribe = api.subscribeToAllChanges(async (payload) => {
-            const { table, eventType, new: newRecord, old: oldRecord } = payload;
-            const loggedInUserId = localStorage.getItem('loggedInUserId') || sessionStorage.getItem('loggedInUserId');
-            
-            // Robust Realtime Handling: Fetch full fresh object instead of relying on payload
-            if (table === 'reports') {
-                if (eventType === 'DELETE') {
-                    setAppState(prev => ({...prev, reports: prev.reports.filter(r => r.id !== oldRecord.id)}));
-                } else {
-                    const freshReport = await api.fetchReportById(newRecord.id);
-                    if (freshReport) {
+        let unsubscribe: (() => void) | undefined;
+        loadData().then(() => {
+            unsubscribe = api.subscribeToAllChanges(async (payload) => {
+                const { table, eventType, new: newRecord, old: oldRecord } = payload;
+                const loggedInUserId = localStorage.getItem('loggedInUserId') || sessionStorage.getItem('loggedInUserId');
+                
+                if (table === 'reports') {
+                    if (eventType === 'DELETE') {
+                        setAppState(prev => ({...prev, reports: prev.reports.filter(r => r.id !== oldRecord.id)}));
+                    } else if (newRecord) {
+                        const freshReport = newRecord as Report;
                         setAppState(prev => {
                             const exists = prev.reports.some(r => r.id === freshReport.id);
-                            // Detect Changes for Notifications
                             const currentUser = prev.users.find(u => u.id === loggedInUserId);
                             const oldReport = prev.reports.find(r => r.id === freshReport.id);
                             
-                            // Manager Notification for New Report
                             if (eventType === 'INSERT' && freshReport.status === 'submitted' && currentUser?.role === 'manager') {
                                 const sender = prev.users.find(u => u.id === freshReport.userId);
-                                triggerNotification('تقرير جديد', `وصل تقرير جديد من ${sender?.fullName.split(' ')[0]}`, 'success');
+                                triggerNotification('تقرير جديد', `وصل تقرير جديد من ${sender?.fullName?.split(' ')[0] || 'موظف'}`, 'success');
                             }
                             
-                            // Employee Notification for Manager Comment/Ack
                             if (eventType === 'UPDATE' && currentUser && currentUser.id === freshReport.userId) {
                                 const oldComment = oldReport?.managerComment;
                                 const newComment = freshReport.managerComment;
@@ -174,13 +175,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                             return {...prev, reports: newReports.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())};
                         });
                     }
-                }
-            } else if (table === 'direct_tasks') {
-                 if (eventType === 'DELETE') {
-                    setAppState(prev => ({...prev, directTasks: prev.directTasks.filter(t => t.id !== oldRecord.id)}));
-                 } else {
-                     const freshTask = await api.fetchDirectTaskById(newRecord.id);
-                     if (freshTask) {
+                } else if (table === 'direct_tasks') {
+                     if (eventType === 'DELETE') {
+                         setAppState(prev => ({...prev, directTasks: prev.directTasks.filter(t => t.id !== oldRecord.id)}));
+                     } else if (newRecord) {
+                         const freshTask = newRecord as DirectTask;
                          setAppState(prev => {
                              const exists = prev.directTasks.some(t => t.id === freshTask.id);
                              const currentUser = prev.users.find(u => u.id === loggedInUserId);
@@ -196,13 +195,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                              return {...prev, directTasks: newTasks.sort((a,b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime())};
                          });
                      }
-                 }
-            } else if (table === 'announcements') {
-                 if (eventType === 'DELETE') {
-                    setAppState(prev => ({...prev, announcements: prev.announcements.filter(a => a.id !== oldRecord.id)}));
-                 } else {
-                     const freshAnn = await api.fetchAnnouncementById(newRecord.id);
-                     if (freshAnn) {
+                } else if (table === 'announcements') {
+                     if (eventType === 'DELETE') {
+                         setAppState(prev => ({...prev, announcements: prev.announcements.filter(a => a.id !== oldRecord.id)}));
+                     } else if (newRecord) {
+                         const freshAnn = newRecord as Announcement;
                          setAppState(prev => {
                              const exists = prev.announcements.some(a => a.id === freshAnn.id);
                              const currentUser = prev.users.find(u => u.id === loggedInUserId);
@@ -217,18 +214,29 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                              return {...prev, announcements: newAnns.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())};
                          });
                      }
-                 }
-            } else if (table === 'users') {
-                 if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                     const mappedUser = api.mapUser(newRecord);
-                     setAppState(prev => ({
-                         ...prev,
-                         users: prev.users.some(u => u.id === mappedUser.id) ? prev.users.map(u => u.id === mappedUser.id ? mappedUser : u) : [...prev.users, mappedUser]
-                     }));
-                 }
-            }
+                } else if (table === 'users') {
+                     if (eventType === 'INSERT' || eventType === 'UPDATE') {
+                         const mappedUser = newRecord as User;
+                         setAppState(prev => ({
+                             ...prev,
+                             users: prev.users.some(u => u.id === mappedUser.id) ? prev.users.map(u => u.id === mappedUser.id ? mappedUser : u) : [...prev.users, mappedUser]
+                         }));
+                     }
+                } else if (table === 'art_posts') {
+                     if (eventType === 'DELETE') {
+                        setAppState(prev => ({...prev, artPosts: prev.artPosts.filter(p => p.id !== oldRecord.id)}));
+                     } else if (newRecord) {
+                        const freshPost = newRecord as ArtPost;
+                        setAppState(prev => {
+                            const exists = prev.artPosts.some(p => p.id === freshPost.id);
+                            const newPosts = exists ? prev.artPosts.map(p => p.id === freshPost.id ? freshPost : p) : [freshPost, ...prev.artPosts];
+                            return {...prev, artPosts: newPosts.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())};
+                        });
+                     }
+                }
+            });
         });
-        return () => { unsubscribe(); };
+        return () => { if (unsubscribe) unsubscribe(); };
     }, [loadData, triggerNotification]);
     
     const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);

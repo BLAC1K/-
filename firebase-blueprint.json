@@ -1,0 +1,111 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fullName": { "type": "string" },
+        "badgeNumber": { "type": "string" },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "role": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "unit": { "type": "string" },
+        "profilePictureUrl": { "type": "string" }
+      }
+    },
+    "Report": {
+      "title": "Report",
+      "description": "A daily report",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "sequenceNumber": { "type": "number" },
+        "date": { "type": "string" },
+        "day": { "type": "string" },
+        "tasks": { "type": "array" },
+        "accomplished": { "type": "string" },
+        "notAccomplished": { "type": "string" },
+        "attachments": { "type": "array" },
+        "managerComment": { "type": "string" },
+        "isViewedByManager": { "type": "boolean" },
+        "isCommentReadByEmployee": { "type": "boolean" },
+        "rating": { "type": "number" },
+        "status": { "type": "string" }
+      }
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "A global announcement",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "content": { "type": "string" },
+        "date": { "type": "string" },
+        "readBy": { "type": "array" }
+      }
+    },
+    "DirectTask": {
+      "title": "DirectTask",
+      "description": "Direct task",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "managerId": { "type": "string" },
+        "employeeId": { "type": "string" },
+        "content": { "type": "string" },
+        "sentAt": { "type": "string" },
+        "status": { "type": "string" },
+        "acknowledgedAt": { "type": "string" },
+        "rejectionReason": { "type": "string" },
+        "isReadByEmployee": { "type": "boolean" }
+      }
+    },
+    "ArtPost": {
+      "title": "ArtPost",
+      "description": "Event post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "details": { "type": "string" },
+        "organizer": { "type": "string" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "images": { "type": "array" },
+        "collaborators": { "type": "string" },
+        "participantCount": { "type": "string" },
+        "category": { "type": "string" },
+        "tags": { "type": "array" },
+        "likes": { "type": "array" },
+        "comments": { "type": "array" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Users collection"
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/Report" },
+      "description": "Reports collection"
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/Announcement" },
+      "description": "Announcements collection"
+    },
+    "/direct_tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/DirectTask" },
+      "description": "Direct tasks collection"
+    },
+    "/art_posts/{postId}": {
+      "schema": { "$ref": "#/entities/ArtPost" },
+      "description": "Art posts collection"
+    }
+  }
+}

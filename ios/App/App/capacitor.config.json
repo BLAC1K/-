@@ -3,5 +3,10 @@
 	"appName": "منصة الفنون",
 	"webDir": "dist",
 	"bundledWebRuntime": false,
-	"packageClassList": []
+	"packageClassList": [
+		"CAPCameraPlugin",
+		"FilesystemPlugin",
+		"LocalNotificationsPlugin",
+		"PushNotificationsPlugin"
+	]
 }

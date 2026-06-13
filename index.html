@@ -182,24 +182,18 @@
 </head>
   <body class="bg-[#f8f9fc] dark:bg-gray-900 selection:bg-brand-light selection:text-white">
     <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
 
     <script>
-      async function registerServiceWorker() {
-        if ('serviceWorker' in navigator) {
-          try {
-            const swPath = new URL('sw.js', window.location.href).pathname;
-            const registration = await navigator.serviceWorker.register(swPath, {
-              scope: './'
-            });
-            console.log('PWA: تم تسجيل المحرك بنجاح:', registration.scope);
-          } catch (error) {
-            console.warn('PWA: فشل التسجيل التلقائي:', error.message);
+      // UNREGISTER STALE SERVICE WORKERS
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+            console.log('Unregistered SW', registration);
           }
-        }
+        });
       }
-      window.addEventListener('load', registerServiceWorker);
     </script>
-  <script type="module" src="/index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
 </body>
 </html>
