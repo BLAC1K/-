@@ -17,6 +17,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="مهامي">
     <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/192/task.png" />
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
 
     <title>نظام المهام اليومية</title>
     <meta name="description" content="تطبيق المهام اليومية لإدارة تقارير الموظفين ومتابعة الإنجازات والأداء بسهولة وفعالية." />
@@ -39,6 +40,12 @@
     
     <!-- Canonical URL -->
     <link rel="canonical" href="https://ais-pre-t3honimhpe35o5fxr7c4w6-185208768003.europe-west1.run.app/" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body {
@@ -46,7 +53,19 @@
         -webkit-tap-highlight-color: transparent;
         user-select: none;
         overscroll-behavior-y: contain;
+        -webkit-font-smoothing: antialiased;
       }
+      
+      /* Prevent iOS zoom on focus */
+      input, select, textarea {
+        font-size: 16px !important;
+      }
+      
+      /* Smooth scrolling for iOS */
+      .overflow-y-auto {
+        -webkit-overflow-scrolling: touch;
+      }
+
       .animate-fade-in {
         animation: fadeIn 0.3s ease-out forwards;
       }
@@ -88,6 +107,8 @@
           background-color: white !important;
           margin: 0 !important;
           padding: 0 !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
 
         /* إخفاء كل العناصر */
