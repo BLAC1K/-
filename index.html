@@ -3,8 +3,8 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="icon.png" />
-    <link rel="shortcut icon" href="icon.png" type="image/png" />
+    <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/192/task.png" />
+    <link rel="shortcut icon" href="https://img.icons8.com/fluency/192/task.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     
     <!-- PWA Meta Tags -->
@@ -14,9 +14,9 @@
     
     <!-- iOS Specific -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="مهامي">
-    <link rel="apple-touch-icon" href="icon.png" />
+    <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/192/task.png" />
 
     <title>نظام المهام اليومية</title>
     <meta name="description" content="تطبيق المهام اليومية لإدارة تقارير الموظفين ومتابعة الإنجازات والأداء بسهولة وفعالية." />
@@ -28,14 +28,14 @@
     <meta property="og:url" content="https://ais-pre-t3honimhpe35o5fxr7c4w6-185208768003.europe-west1.run.app/" />
     <meta property="og:title" content="نظام المهام اليومية - إدارة التقارير" />
     <meta property="og:description" content="تطبيق المهام اليومية لإدارة تقارير الموظفين ومتابعة الإنجازات والأداء بسهولة وفعالية." />
-    <meta property="og:image" content="https://ais-pre-t3honimhpe35o5fxr7c4w6-185208768003.europe-west1.run.app/icon.png" />
+    <meta property="og:image" content="https://img.icons8.com/fluency/512/task.png" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://ais-pre-t3honimhpe35o5fxr7c4w6-185208768003.europe-west1.run.app/" />
     <meta property="twitter:title" content="نظام المهام اليومية - إدارة التقارير" />
     <meta property="twitter:description" content="تطبيق المهام اليومية لإدارة تقارير الموظفين ومتابعة الإنجازات والأداء بسهولة وفعالية." />
-    <meta property="twitter:image" content="https://ais-pre-t3honimhpe35o5fxr7c4w6-185208768003.europe-west1.run.app/icon.png" />
+    <meta property="twitter:image" content="https://img.icons8.com/fluency/512/task.png" />
     
     <!-- Canonical URL -->
     <link rel="canonical" href="https://ais-pre-t3honimhpe35o5fxr7c4w6-185208768003.europe-west1.run.app/" />
@@ -62,8 +62,19 @@
         to { opacity: 1; transform: scale(1); }
       }
       .no-scrollbar::-webkit-scrollbar { display: none; }
+      
+      /* Safe area insets for iOS */
+      .safe-padding-bottom {
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+      }
+      .safe-area-main {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }
 
-      /* أنماط الطباعة المتقدمة وإعدادات PDF */
+
       @media print {
         @page {
           /* تم إزالة size: landscape للسماح للمستخدم باختيار الاتجاه */

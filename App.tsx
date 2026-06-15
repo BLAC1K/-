@@ -46,7 +46,7 @@ const AppContent: React.FC = () => {
     }
     
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 print:bg-white print:min-h-0 print:block">
+        <div className="safe-area-main min-h-[100dvh] bg-gray-50 dark:bg-gray-900 print:bg-white print:min-h-0 print:block">
             {!currentUser ? (
                 showLogin ? <Login onBack={() => setShowLogin(false)} /> : <LandingPage onLoginClick={() => setShowLogin(true)} />
             ) : (
