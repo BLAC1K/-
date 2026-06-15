@@ -44,7 +44,7 @@ const Login: React.FC<LoginProps> = ({ onBack }) => {
     };
     
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-brand-dark to-[#3a7c93] relative overflow-hidden">
+        <div className="flex items-center justify-center min-h-[100dvh] bg-gradient-to-br from-brand-dark to-[#3a7c93] relative overflow-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] px-[env(safe-area-inset-left)]">
             <div className="absolute top-0 -left-4 w-72 h-72 bg-brand-light rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob"></div>
             <div className="absolute top-0 -right-4 w-72 h-72 bg-brand-accent-yellow rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob animation-delay-2000"></div>
             <div className="absolute -bottom-8 left-20 w-72 h-72 bg-brand-accent-red rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob animation-delay-4000"></div>
@@ -167,7 +167,7 @@ const Login: React.FC<LoginProps> = ({ onBack }) => {
                 </form>
 
             </div>
-            <footer className="absolute bottom-6 text-center text-xs text-gray-300/80 z-10">
+            <footer className="absolute bottom-[max(1.5rem,env(safe-area-inset-bottom))] text-center text-xs text-gray-300/80 z-10 w-full">
                 <p>© جميع الحقوق محفوظة 2025م</p>
                 <p className="mt-1 font-semibold">تطوير: حسين كاظم</p>
             </footer>

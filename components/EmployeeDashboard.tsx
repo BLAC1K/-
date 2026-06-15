@@ -289,7 +289,7 @@ const EmployeeDashboard: React.FC = () => {
             {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden print:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
             
             <aside className={`fixed inset-y-0 right-0 z-40 w-72 h-full bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 md:relative md:translate-x-0 print:hidden ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-                <div className="flex flex-col h-full border-l dark:border-gray-800">
+                <div className="flex flex-col h-full border-l dark:border-gray-800 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
                     <div className="flex flex-col items-center p-6 border-b dark:border-gray-800 gap-2 relative">
                         <button 
                             onClick={() => refreshData()}

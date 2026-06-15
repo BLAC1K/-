@@ -10,9 +10,9 @@ interface LandingPageProps {
 
 const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans selection:bg-brand-light selection:text-white">
+        <div className="min-h-[100dvh] bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans selection:bg-brand-light selection:text-white">
             {/* Header */}
-            <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50">
+            <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50 pt-[env(safe-area-inset-top)]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 text-brand-dark dark:text-brand-light">
@@ -116,7 +116,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
             </main>
 
             {/* Footer */}
-            <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 py-8">
+            <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex items-center gap-2">
                         <div className="w-6 h-6 text-brand-dark dark:text-gray-400">

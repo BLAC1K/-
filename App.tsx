@@ -17,7 +17,7 @@ const AppContent: React.FC = () => {
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4 text-center">
+            <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-gray-50 dark:bg-gray-900 p-4 text-center">
                  <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full border border-red-200 dark:border-red-900">
                     <ExclamationCircleIcon className="w-16 h-16 text-red-500 mx-auto mb-4" />
                     <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">تنبيه أثناء الاتصال</h2>
@@ -36,7 +36,7 @@ const AppContent: React.FC = () => {
 
     if (authLoading || isDataLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+            <div className="flex items-center justify-center min-h-[100dvh] bg-gray-100 dark:bg-gray-900">
                 <div className="flex flex-col items-center">
                     <div className="w-12 h-12 border-4 border-brand-light border-t-transparent rounded-full animate-spin mb-4"></div>
                     <div className="text-xl font-semibold text-gray-700 dark:text-gray-300">جاري الاتصال بقاعدة البيانات...</div>
@@ -46,7 +46,7 @@ const AppContent: React.FC = () => {
     }
     
     return (
-        <div className="safe-area-main min-h-[100dvh] bg-gray-50 dark:bg-gray-900 print:bg-white print:min-h-0 print:block">
+        <div className="min-h-[100dvh] bg-gray-50 dark:bg-gray-900 print:bg-white print:min-h-0 print:block">
             {!currentUser ? (
                 showLogin ? <Login onBack={() => setShowLogin(false)} /> : <LandingPage onLoginClick={() => setShowLogin(true)} />
             ) : (
