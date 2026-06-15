@@ -49,7 +49,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 md:p-8" aria-modal="true" role="dialog" onClick={onClose}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 md:p-8" aria-modal="true" role="dialog" onClick={onClose}>
             {/* الحاوية مكبرة للأجهزة اللوحية والكمبيوتر لضمان عدم التداخل */}
             <div id="printable-area" className="relative w-full h-full max-w-5xl sm:h-[95vh] sm:rounded-[2.5rem] bg-white dark:bg-gray-800 shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                 
@@ -75,7 +75,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                 </div>
 
                 {/* رأس الشاشة الرقمي - يختفي عند الطباعة */}
-                <div className="p-4 sm:p-6 border-b dark:border-gray-700 no-print flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
+                <div className="p-4 sm:p-6 pt-[max(1rem,env(safe-area-inset-top))] border-b dark:border-gray-700 no-print flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
                     <div className="flex items-center space-x-3 space-x-reverse">
                          <Avatar src={user.profilePictureUrl} name={user.fullName} size={48} />
                          <div>
@@ -114,7 +114,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, user, vie
                     </div>
                 </div>
 
-                <div className="flex-grow overflow-y-auto no-scrollbar bg-white dark:bg-gray-900">
+                <div className="flex-grow overflow-y-auto no-scrollbar bg-white dark:bg-gray-900 pb-[max(1rem,env(safe-area-inset-bottom))]">
                     <ReportDetail report={report} user={user} viewerRole={viewerRole} hideMargin={hideMargin} />
                 </div>
             </div>

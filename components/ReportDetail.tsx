@@ -227,7 +227,7 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report: initialReport, user
             {/* نافذة معاينة المرفق (Lightbox) */}
             {previewAttachment && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 no-print" onClick={() => setPreviewAttachment(null)}>
-                    <button onClick={() => setPreviewAttachment(null)} className="absolute top-6 left-6 text-white/70 hover:text-white bg-white/10 p-2.5 rounded-full transition-all">
+                    <button onClick={() => setPreviewAttachment(null)} className="absolute top-[max(1.5rem,env(safe-area-inset-top))] left-[max(1.5rem,env(safe-area-inset-left))] text-white/70 hover:text-white bg-white/10 p-2.5 rounded-full transition-all">
                         <XMarkIcon className="w-8 h-8" />
                     </button>
                     <div className="relative max-w-5xl w-full flex flex-col items-center justify-center gap-4" onClick={e => e.stopPropagation()}>

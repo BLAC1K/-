@@ -197,7 +197,7 @@ ${accomplishedSummary || "لم تذكر إنجازات محددة."}
 
             {/* نافذة التفاصيل المنبثقة - باستخدام Portal لحل مشكلة التداخل */}
             {activeDetail && createPortal(
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fade-in" onClick={() => setActiveDetail(null)}>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] animate-fade-in" onClick={() => setActiveDetail(null)}>
                     <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
                         
                         {/* Header */}
