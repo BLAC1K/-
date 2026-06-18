@@ -23,7 +23,7 @@ interface DataContextType extends AppState {
     addReport: (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => Promise<void>;
     submitReport: (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>, draftId?: string) => Promise<void>;
     updateReport: (updatedReport: Report) => Promise<void>;
-    saveOrUpdateDraft: (draft: Partial<Report>) => Promise<void>;
+    saveOrUpdateDraft: (draft: Partial<Report>) => Promise<Report | void>;
     deleteReport: (reportId: string) => Promise<void>;
     markReportAsViewed: (reportId: string) => Promise<void>;
     markReportAsUnread: (reportId: string) => Promise<void>;
@@ -240,7 +240,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [loadData, triggerNotification]);
     
     const getUserById = useCallback((id: string) => appState.users.find(u => u.id === id), [appState.users]);
-    const saveOrUpdateDraft = useCallback(async (draft: Partial<Report>) => { try { await api.saveOrUpdateDraft(draft); } catch (e) { throw e; } }, []);
+    const saveOrUpdateDraft = useCallback(async (draft: Partial<Report>) => { try { return await api.saveOrUpdateDraft(draft); } catch (e) { throw e; } }, []);
     const addReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>) => { try { await api.createReport(report); } catch (e) { throw e; } }, []);
     const submitReport = useCallback(async (report: Omit<Report, 'id' | 'sequenceNumber' | 'status'>, draftId?: string) => { try { await api.submitReport(report, draftId); } catch (e) { throw e; } }, []);
     const updateReport = useCallback(async (updatedReport: Report) => { try { await api.updateReport(updatedReport); } catch (e) { throw e; } }, []);

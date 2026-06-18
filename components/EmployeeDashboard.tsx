@@ -129,24 +129,73 @@ const EmployeeDashboard: React.FC = () => {
         return Math.round((done / total) * 100);
     }, [reportForm.tasks]);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) {
-            Array.from(files).forEach((file: File) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setReportForm(prev => ({
-                        ...prev,
-                        attachments: [...prev.attachments, {
-                            name: file.name,
-                            type: file.type,
-                            size: file.size,
-                            content: reader.result as string
-                        }]
-                    }));
-                };
-                reader.readAsDataURL(file);
-            });
+            const currentCount = reportForm.attachments.length;
+            const newFiles = Array.from(files);
+            
+            if (currentCount + newFiles.length > 20) {
+                setToast({ message: 'يمكنك إرفاق 20 ملف كحد أقصى للتقرير الواحد', type: 'info' });
+                return;
+            }
+
+            for (const file of newFiles) {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+                            const MAX_DIMENSION = 600; // Optimal for reports
+
+                            if (width > height && width > MAX_DIMENSION) {
+                                height *= MAX_DIMENSION / width;
+                                width = MAX_DIMENSION;
+                            } else if (height > MAX_DIMENSION) {
+                                width *= MAX_DIMENSION / height;
+                                height = MAX_DIMENSION;
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx?.drawImage(img, 0, 0, width, height);
+                            
+                            const quality = 0.4; // Very aggressive compression to save Firestore space
+                            const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+
+                            setReportForm(prev => ({
+                                ...prev,
+                                attachments: [...prev.attachments, {
+                                    name: file.name.replace(/\.[^/.]+$/, "") + ".jpg",
+                                    type: 'image/jpeg',
+                                    size: Math.round((compressedDataUrl.length * 3) / 4),
+                                    content: compressedDataUrl
+                                }]
+                            }));
+                        };
+                        img.src = event.target?.result as string;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setReportForm(prev => ({
+                            ...prev,
+                            attachments: [...prev.attachments, {
+                                name: file.name,
+                                type: file.type,
+                                size: file.size,
+                                content: reader.result as string
+                            }]
+                        }));
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
             e.target.value = '';
         }
     };
@@ -211,11 +260,12 @@ const EmployeeDashboard: React.FC = () => {
             attachments: reportForm.attachments
         };
         try {
-            await saveOrUpdateDraft(draftData);
+            const savedDraft = await saveOrUpdateDraft(draftData);
+            if (savedDraft && savedDraft.id) {
+                setEditingDraftId(savedDraft.id);
+            }
             setToast({ message: 'تم حفظ المسودة بنجاح.', type: 'success' });
-            if (activeTab === 'new-report') {
-                 if (!editingDraftId) resetForm();
-            } else {
+            if (activeTab !== 'new-report') {
                 setActiveTab('drafts');
             }
         } catch (error) {
