@@ -135,8 +135,9 @@ const EmployeeDashboard: React.FC = () => {
             const currentCount = reportForm.attachments.length;
             const newFiles = Array.from(files);
             
-            if (currentCount + newFiles.length > 20) {
-                setToast({ message: 'يمكنك إرفاق 20 ملف كحد أقصى للتقرير الواحد', type: 'info' });
+            const MAX_FILES = 50; 
+            if (currentCount + newFiles.length > MAX_FILES) {
+                setToast({ message: `يمكنك إرفاق ${MAX_FILES} ملف كحد أقصى للتقرير الواحد`, type: 'info' });
                 return;
             }
 
@@ -149,7 +150,7 @@ const EmployeeDashboard: React.FC = () => {
                             const canvas = document.createElement('canvas');
                             let width = img.width;
                             let height = img.height;
-                            const MAX_DIMENSION = 600; // Optimal for reports
+                            const MAX_DIMENSION = 500; // More aggressive compression for many files
 
                             if (width > height && width > MAX_DIMENSION) {
                                 height *= MAX_DIMENSION / width;
@@ -164,7 +165,7 @@ const EmployeeDashboard: React.FC = () => {
                             const ctx = canvas.getContext('2d');
                             ctx?.drawImage(img, 0, 0, width, height);
                             
-                            const quality = 0.4; // Very aggressive compression to save Firestore space
+                            const quality = 0.3; // Maximum compression for many images
                             const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
 
                             setReportForm(prev => ({
@@ -248,19 +249,23 @@ const EmployeeDashboard: React.FC = () => {
     };
 
     const handleSaveDraft = async () => {
+        setIsSubmitting(true);
         const nonEmptyTasks = reportForm.tasks.filter(t => t.text.trim() !== '');
         const draftData: Partial<Report> = {
             id: editingDraftId || undefined,
             userId: currentUser.id,
             date: new Date().toISOString().split('T')[0],
             day: new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(new Date()),
-            tasks: nonEmptyTasks.map(t => ({ id: t.id, text: t.text, isDone: t.isDone })),
+            tasks: nonEmptyTasks.map(t => ({ id: t.id, text: t.text, isDone: t.isDone || false })),
             accomplished: reportForm.accomplished,
             notAccomplished: reportForm.notAccomplished,
             attachments: reportForm.attachments
         };
+        
+        const cleanedDraftData = JSON.parse(JSON.stringify(draftData));
+        
         try {
-            const savedDraft = await saveOrUpdateDraft(draftData);
+            const savedDraft = await saveOrUpdateDraft(cleanedDraftData);
             if (savedDraft && savedDraft.id) {
                 setEditingDraftId(savedDraft.id);
             }
@@ -270,6 +275,8 @@ const EmployeeDashboard: React.FC = () => {
             }
         } catch (error) {
             setToast({ message: 'خطأ في الحفظ.', type: 'info' });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -288,15 +295,18 @@ const EmployeeDashboard: React.FC = () => {
         setShowSubmitConfirm(false);
         const nonEmptyTasks = reportForm.tasks.filter(t => t.text.trim() !== '');
         try {
-            await submitReport({
+            const reportData = {
                 userId: currentUser.id,
                 date: new Date().toISOString().split('T')[0],
                 day: new Intl.DateTimeFormat('ar-EG', { weekday: 'long' }).format(new Date()),
-                tasks: nonEmptyTasks.map(t => ({ id: t.id, text: t.text, isDone: t.isDone })),
+                tasks: nonEmptyTasks.map(t => ({ id: t.id, text: t.text, isDone: t.isDone || false })),
                 accomplished: reportForm.accomplished,
                 notAccomplished: reportForm.notAccomplished,
                 attachments: reportForm.attachments
-            }, editingDraftId || undefined);
+            };
+            const cleanedReportData = JSON.parse(JSON.stringify(reportData));
+            
+            await submitReport(cleanedReportData, editingDraftId || undefined);
 
             resetForm();
             setToast({ message: 'تم إرسال التقرير النهائي بنجاح!', type: 'success' });
@@ -553,7 +563,7 @@ const EmployeeDashboard: React.FC = () => {
                                     </div>
 
                                     <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t dark:border-gray-700">
-                                        <button type="button" onClick={handleSaveDraft} className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 text-brand-dark dark:text-gray-200 rounded-2xl font-bold shadow-md hover:bg-gray-200 transition-all">حفظ كمسودة للعودة لاحقاً</button>
+                                        <button type="button" onClick={handleSaveDraft} disabled={isSubmitting} className="flex-1 py-4 bg-gray-100 dark:bg-gray-700 text-brand-dark dark:text-gray-200 rounded-2xl font-bold shadow-md hover:bg-gray-200 transition-all disabled:opacity-50">حفظ كمسودة للعودة لاحقاً</button>
                                         <button type="submit" disabled={isSubmitting} className="flex-[2] py-4 bg-brand-light text-white rounded-2xl font-bold text-lg shadow-xl shadow-brand-light/30 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3">
                                             {isSubmitting ? <ArrowPathIcon className="w-6 h-6 animate-spin" /> : 'إرسال التقرير النهائي الآن'}
                                         </button>

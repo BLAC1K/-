@@ -180,7 +180,7 @@ export const submitReport = async (reportData: Omit<Report, 'id' | 'sequenceNumb
     let maxSeq = 0;
     rSnap.forEach(d => { const s = d.data().sequenceNumber; if (s > maxSeq) maxSeq = s; });
 
-    const submissionData: Report = {
+    const submissionData: any = {
         id: draftId || generateId(),
         userId: reportData.userId,
         sequenceNumber: maxSeq + 1,
@@ -195,20 +195,27 @@ export const submitReport = async (reportData: Omit<Report, 'id' | 'sequenceNumb
         isCommentReadByEmployee: false
     };
 
+    Object.keys(submissionData).forEach(key => submissionData[key] === undefined && delete submissionData[key]);
+
     await setDoc(doc(db, 'reports', submissionData.id), submissionData);
-    return submissionData;
+    return submissionData as Report;
 };
 
 export const createReport = submitReport;
 
 export const saveOrUpdateDraft = async (draft: Partial<Report>): Promise<Report> => {
     const rId = draft.id && !draft.id.startsWith('temp-') ? draft.id : generateId();
-    const d: Report = {
-        ...draft, id: rId, status: 'draft', sequenceNumber: undefined, 
+    const d: any = {
+        ...draft, id: rId, status: 'draft', 
         userId: draft.userId!, date: draft.date!, day: draft.day!
-    } as Report;
+    };
+    if (d.sequenceNumber === undefined) delete d.sequenceNumber;
+    
+    // Clean up undefined values to avoid Firestore errors
+    Object.keys(d).forEach(key => d[key] === undefined && delete d[key]);
+
     await setDoc(doc(db, 'reports', rId), d, { merge: true });
-    return d;
+    return d as Report;
 };
 
 export const updateReport = async (updatedReport: Report): Promise<Report> => {
